@@ -1,7 +1,13 @@
 'use strict';
 
 const api = window.BuddyAPI;
-const { PET_ROSTER, FRAMES_PER_STATE, ensurePetSprites } = window.JBSprites;
+const spritesMod = window.JBSprites || {
+  PET_ROSTER: [],
+  STATES: ['IDLE'],
+  FRAMES_PER_STATE: 1,
+  ensurePetSprites: () => null,
+};
+const { PET_ROSTER, FRAMES_PER_STATE, ensurePetSprites } = spritesMod;
 
 const canvas = document.getElementById('pet-canvas');
 const ctx = canvas.getContext('2d');
@@ -134,8 +140,22 @@ function drawPet(now) {
   if (speciesId !== currentSpecies) {
     currentSpecies = speciesId;
   }
-  const bank = ensurePetSprites(speciesId);
-  if (!bank || !bank[state]) return;
+  let bank = null;
+  try {
+    bank = ensurePetSprites(speciesId);
+  } catch (err) {
+    bank = null;
+  }
+  if (!bank || !bank[state]) {
+    if (!window.JBSprites) {
+      ctx.fillStyle = "#ffb64d";
+      ctx.beginPath();
+      ctx.ellipse(cx, groundY - 60, 42, 34, 0, 0, Math.PI * 2);
+      ctx.fill();
+      return;
+    }
+    return;
+  }
 
   const state = petStateFor(now);
   const frame = Math.floor(now / FRAME_MS) % FRAMES_PER_STATE;
