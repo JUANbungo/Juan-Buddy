@@ -1,0 +1,71 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+#pet-root {
+  position: relative;
+  width: 240px;
+  height: 280px;
+}
+
+#pet-canvas {
+  -webkit-app-region: drag;
+  cursor: pointer;
+}
+
+.bubble {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 18, 32, 0.92);
+  color: #fff;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  white-space: nowrap;
+  max-width: 220px;
+  pointer-events: none;
+  -webkit-app-region: no-drag;
+  transition: opacity 0.3s ease;
+}
+
+.bubble.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  margin-left: -6px;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid rgba(20, 18, 32, 0.92);
+}
+
+.close-hint {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  text-align: center;
+  color: rgba(255, 255, 255, 0);
+  font-size: 10px;
+  transition: color 0.4s ease;
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+#pet-root:hover .close-hint {
+  color: rgba(255, 255, 255, 0.75);
+}

@@ -1,0 +1,36 @@
+{
+  "name": "juan-buddy",
+  "productName": "Juan Buddy",
+  "version": "0.1.0",
+  "description": "A taskbar idle pet — feed, play, work, and upgrade your little desktop buddy.",
+  "main": "main.js",
+  "author": "JUANbungo",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "icons": "node scripts/generate-icons.js",
+    "postinstall": "node scripts/generate-icons.js",
+    "test": "node test/engine.test.js && node test/main.smoke.js",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.juanbungo.juanbuddy",
+    "productName": "Juan Buddy",
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "assets/icons.js",
+      "assets/icon.png",
+      "assets/tray.png",
+      "scripts/generate-icons.js"
+    ],
+    "win": { "icon": "assets/icon.png" },
+    "mac": { "icon": "assets/icon.png" },
+    "linux": { "icon": "assets/icon.png", "category": "Game" }
+  }
+}

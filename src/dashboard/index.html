@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'" />
+  <link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+  <header>
+    <div class="title-row">
+      <h1 id="pet-name" title="Click to rename">Buddy</h1>
+      <span id="status-pill" class="pill">Chilling</span>
+    </div>
+    <div class="title-row secondary">
+      <span class="lvl">Lv <b id="level">1</b></span>
+      <div class="xpbar"><div id="xp-fill" class="xpfill"></div></div>
+      <span id="xp-text" class="muted">0 / 40 XP</span>
+    </div>
+  </header>
+
+  <section class="card">
+    <div class="coin-row">
+      <span class="coin">🪙 <b id="coins">0</b></span>
+      <span id="coin-rate" class="muted">+0.0/s</span>
+    </div>
+    <div class="meter">
+      <label>🍖 Hunger</label>
+      <div class="bar"><div id="hunger-fill" class="fill hunger"></div></div>
+      <span id="hunger-val" class="val">0%</span>
+    </div>
+    <div class="meter">
+      <label>⚡ Energy</label>
+      <div class="bar"><div id="energy-fill" class="fill energy"></div></div>
+      <span id="energy-val" class="val">0%</span>
+    </div>
+    <div class="meter">
+      <label>💖 Happiness</label>
+      <div class="bar"><div id="happy-fill" class="fill happy"></div></div>
+      <span id="happy-val" class="val">0%</span>
+    </div>
+  </section>
+
+  <section class="actions">
+    <div class="feed-group">
+      <button id="feed-snack" class="btn">🍳 Snack <small>🪙5</small></button>
+      <button id="feed-meal" class="btn">🍱 Meal <small>🪙15</small></button>
+      <button id="feed-feast" class="btn">🎉 Feast <small>🪙40</small></button>
+    </div>
+    <div class="main-actions">
+      <button id="btn-play" class="btn wide">🎾 Play (−8 ⚡)</button>
+      <button id="btn-work" class="btn wide accent">💼 Work: Off</button>
+      <button id="btn-sleep" class="btn wide">😴 Sleep: Off</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>🛠 Shop</h2>
+    <div id="shop" class="shop-grid"></div>
+  </section>
+
+  <footer>
+    <label class="toggle">
+      <input type="checkbox" id="open-login" />
+      Open at login
+    </label>
+    <button id="btn-reset" class="link danger">Reset progress</button>
+  </footer>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="dashboard.js"></script>
+</body>
+</html>
