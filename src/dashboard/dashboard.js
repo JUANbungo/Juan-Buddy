@@ -15,13 +15,14 @@ let toastTimer = null;
 
 const el = (id) => document.getElementById(id);
 
-function showToast(msg) {
+function showToast(msg, ms) {
   if (!msg) return;
   const t = el('toast');
   t.textContent = msg;
   t.classList.remove('hidden');
+  t.style.whiteSpace = 'pre-line';
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.add('hidden'), 2200);
+  toastTimer = setTimeout(() => t.classList.add('hidden'), ms || 2200);
 }
 
 function pct(v) {
@@ -233,7 +234,7 @@ function renderBuddyPicker(s) {
         const bank = sprites.ensurePetSprites(p.id);
         const cctx = cv.getContext('2d');
         cctx.imageSmoothingEnabled = false;
-        cctx.drawImage(bank.frames.IDLE[0], 0, 0, 32, 32);
+        cctx.drawImage(bank.IDLE[0], 0, 0, 32, 32);
       } catch (err) { /* preview only */ }
       const name = document.createElement('span');
       name.className = 'b-name';
@@ -295,6 +296,10 @@ el('food-search').addEventListener('input', (e) => {
 el('btn-play').addEventListener('click', () => act('play'));
 el('btn-work').addEventListener('click', () => act('toggleWork'));
 el('btn-sleep').addEventListener('click', () => act('toggleSleep'));
+el('btn-cheer').addEventListener('click', async () => {
+  const ev = await window.BuddyAPI.getEvent();
+  if (ev && ev.native) showToast(`✨ ${ev.native}\n${ev.romanization ? '(' + ev.romanization + ') — ' : ''}${ev.translation}`, 5000);
+});
 
 el('pet-name').addEventListener('click', () => {
   const name = window.prompt('Rename your buddy:', latest ? latest.state.pet.name : 'Buddy');

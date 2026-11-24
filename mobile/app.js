@@ -60,6 +60,10 @@ function run(action, payload) {
     case 'toggleWork': result = engine.toggleWork(state); break;
     case 'toggleSleep': result = engine.toggleSleep(state); break;
     case 'startActivity': result = engine.startActivity(state, payload && payload.activityId); break;
+    case 'cheer':
+      state.coins += Math.max(0, Math.round((payload && payload.coins) || 10));
+      result = { ok: true, message: '' };
+      break;
     default: break;
   }
   showToast(result.message);
@@ -68,6 +72,54 @@ function run(action, payload) {
 }
 
 $('m-play').addEventListener('click', () => run('play'));
+$('m-cheer').addEventListener('click', () => {
+  const def = sprites.getPetById(state.pet.species);
+  const api = window.JBMotivation;
+  if (!api) return;
+  const ev = api.fallbackEvent({
+    name: state.pet.name || def.name, country: def.country, flag: def.flag,
+  });
+  run('cheer', { coins: ev.bonusCoins });
+  showToast(`\u2728 ${def.flag || ''} ${ev.native}\n${ev.romanization ? '(' + ev.romanization + ') ' : ''}${ev.translation}\n+${ev.bonusCoins} coins`, 6000);
+  maybeNotify();
+});
+
+if ('Notification' in window) {
+  const askPermission = () => {
+    if (Notification.permission === 'default') Notification.requestPermission();
+  };
+  document.addEventListener('click', askPermission, { once: true });
+}
+
+let notifStamps = {};
+function maybeNotify() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const now = Date.now();
+  const send = (key, body) => {
+    if (now - (notifStamps[key] || 0) < 30 * 60 * 1000) return;
+    notifStamps[key] = now;
+    try { new Notification('Juan Buddy', { body }); } catch (err) { /* notifications optional */ }
+  };
+  if (state.meters.hunger < 15) send('hunger', `${state.pet.name} is really hungry! Time to feed.`);
+  if (state.meters.energy < 10) send('energy', `${state.pet.name} is exhausted. Time for a nap.`);
+}
+
+let quoteCountdown = 15 * 60;
+setInterval(() => {
+  quoteCountdown -= 1;
+  if (quoteCountdown <= 0) {
+    quoteCountdown = 15 * 60;
+    const def = sprites.getPetById(state.pet.species);
+    const api = window.JBMotivation;
+    if (api) {
+      const ev = api.fallbackEvent({ name: state.pet.name || def.name, country: def.country, flag: def.flag });
+      run('cheer', { coins: ev.bonusCoins });
+      showToast(`\u2728 ${ev.native}\n+${ev.bonusCoins} coins \ud83d\udcc5`, 5000);
+    }
+  }
+  maybeNotify();
+}, 1000);
+
 $('m-work').addEventListener('click', () => run('toggleWork'));
 $('m-sleep').addEventListener('click', () => run('toggleSleep'));
 
@@ -122,7 +174,8 @@ function drawPet(now) {
 
   const anim = petStateFor(now);
   const frame = Math.floor(now / 170) % sprites.FRAMES_PER_STATE;
-  const sprite = bank.frames[anim][frame];
+  const sprite = bank[anim] && bank[anim][frame % bank[anim].length];
+  if (!sprite) return;
 
   const yOff = anim === 'HAPPY' || anim === 'WALK' ? Math.round(Math.sin(now / 260) * 4) : 0;
   petCtx.imageSmoothingEnabled = false;
@@ -291,7 +344,7 @@ function renderBuddies() {
       try {
         const cctx = cv.getContext('2d');
         cctx.imageSmoothingEnabled = false;
-        cctx.drawImage(sprites.ensurePetSprites(p.id).frames.IDLE[0], 0, 0, 32, 32);
+        cctx.drawImage(sprites.ensurePetSprites(p.id).IDLE[0], 0, 0, 32, 32);
         tile.appendChild(cv);
       } catch (err) { /* skip preview */ }
       const name = document.createElement('span');

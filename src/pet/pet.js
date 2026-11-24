@@ -29,6 +29,46 @@ function petStateFor(now) {
   return s.activity || s.flags.working ? 'WALK' : 'IDLE';
 }
 
+function showEventBubble(ev) {
+  if (!ev || !ev.native) return;
+  bubble.textContent = '';
+  const lines = [];
+  const title = document.createElement('div');
+  title.textContent = `${ev.flag ? ev.flag + ' ' : ''}✨ ${ev.eventTitle}`;
+  title.style.color = '#fbbf24';
+  title.style.fontWeight = 'bold';
+  bubble.appendChild(title);
+  const quote = document.createElement('div');
+  quote.textContent = `“${ev.native}”`;
+  bubble.appendChild(quote);
+  if (ev.romanization) {
+    const rom = document.createElement('div');
+    rom.textContent = ev.romanization;
+    rom.style.opacity = '0.85';
+    rom.style.fontStyle = 'italic';
+    rom.style.fontSize = '11px';
+    bubble.appendChild(rom);
+  }
+  const tr = document.createElement('div');
+  tr.textContent = ev.translation;
+  tr.style.opacity = '0.7';
+  tr.style.fontSize = '10px';
+  bubble.appendChild(tr);
+  if (ev.bonusCoins > 0) {
+    const coins = document.createElement('div');
+    coins.textContent = `+${ev.bonusCoins} coins from ${ev.speaker || 'Buddy'}!`;
+    coins.style.color = '#ffd166';
+    bubble.appendChild(coins);
+  }
+  bubble.classList.remove('hidden', 'event');
+  bubble.classList.add('event');
+  clearTimeout(bubbleTimer);
+  bubbleTimer = setTimeout(() => {
+    bubble.classList.add('hidden');
+    bubble.classList.remove('event');
+  }, 8000);
+}
+
 function showBubble(text, ms) {
   bubble.textContent = text;
   bubble.classList.remove('hidden');
@@ -95,11 +135,11 @@ function drawPet(now) {
     currentSpecies = speciesId;
   }
   const bank = ensurePetSprites(speciesId);
-  if (!bank) return;
+  if (!bank || !bank[state]) return;
 
   const state = petStateFor(now);
   const frame = Math.floor(now / FRAME_MS) % FRAMES_PER_STATE;
-  const sprite = bank.frames[state][frame];
+  const sprite = bank[state][frame % bank[state].length];
 
   const bobbing = state === 'HAPPY' || state === 'WALK';
   const yOff = bobbing ? Math.round(Math.sin(now / 260) * 4) : 0;
@@ -172,6 +212,7 @@ setInterval(() => {
 }, 5200);
 
 api.onState(applySnapshot);
+api.onEvent(showEventBubble);
 api.getState().then(applySnapshot);
 
 (function loop() {
