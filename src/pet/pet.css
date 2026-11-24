@@ -38,6 +38,17 @@ html, body {
   transition: opacity 0.3s ease;
 }
 
+.bubble.event {
+  white-space: pre-line;
+  max-width: 230px;
+  text-align: center;
+  font-size: 11px;
+}
+
+#pet-canvas {
+  image-rendering: pixelated;
+}
+
 .bubble.hidden {
   opacity: 0;
   visibility: hidden;

@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, Notification } = require('electron');
 const engine = require('./src/engine/engine');
+const motivation = require('./src/pet/motivation');
 
 const isMac = process.platform === 'darwin';
 let tray = null;
@@ -107,6 +108,27 @@ function setSpeciesId(speciesId) {
   if (!pet || pet.id !== speciesId) return false;
   state.pet.species = speciesId;
   return true;
+}
+
+async function triggerMotivation(context) {
+  const { getPetById } = require('./src/pet/sprites');
+  const def = getPetById(state.pet.species);
+  const petInfo = {
+    name: state.pet.name || def.name,
+    species: def.species,
+    country: def.country,
+    flag: def.flag,
+  };
+  const event = await motivation.generatePetEvent(petInfo, context);
+  if (event.bonusCoins > 0) {
+    state.coins += event.bonusCoins;
+    dirty = true;
+  }
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) win.webContents.send('buddy:event', event);
+  }
+  updateTrayTooltip();
+  return event;
 }
 
 function resetState() {
@@ -219,6 +241,7 @@ function startTicking() {
   if (tickTimer) clearInterval(tickTimer);
   let last = Date.now();
   engine.addOfflineProgress(state);
+  let motivationCountdown = 15 * 60; 
   tickTimer = setInterval(() => {
     const now = Date.now();
     const dt = (now - last) / 1000;
@@ -227,6 +250,11 @@ function startTicking() {
     dirty = true;
     broadcastState(null);
     maybeNotify();
+    motivationCountdown -= dt;
+    if (motivationCountdown <= 0) {
+      motivationCountdown = 15 * 60;
+      triggerMotivation('random_blessing');
+    }
     if (now % 30000 < 1000) saveState();
   }, 1000);
 }
@@ -243,6 +271,10 @@ if (!app.requestSingleInstanceLock()) {
     ipcMain.handle('buddy:get', () => fullStateSnapshot());
     ipcMain.handle('buddy:action', (_event, action, payload) => runAction(action, payload));
     ipcMain.handle('buddy:saveNow', () => { saveState(); return true; });
+    ipcMain.handle('buddy:getEvent', async () => {
+      const event = await triggerMotivation('work_break');
+      return event;
+    });
     ipcMain.on('pet:openDashboard', createDashboardWindow);
     ipcMain.on('pet:hide', () => { if (petWindow) petWindow.hide(); });
 

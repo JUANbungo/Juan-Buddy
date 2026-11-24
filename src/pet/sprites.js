@@ -560,6 +560,61 @@
         }
       },
       {
+        id: 'raja', name: 'Raja', country: 'India', region: 'India', flag: '🇮🇳',
+        species: 'Royal Indian Elephant', favoriteFood: 'samosa', greeting: 'Namaste!',
+        skillName: 'Golden Tusk Charge', skillEmoji: '🐘', speed: 38,
+        dialogues: ['Namaste!', 'Samosa time!', 'Vanakkam!', 'Elephants never forget a snack!'],
+        drawFrame(g, state, f, wardrobe) {
+          const isSleep = state === 'SLEEP', isHappy = state === 'HAPPY', isEat = state === 'EAT';
+          const bob = isSleep ? (f >= 2 ? 1 : 0) : (isHappy ? (f % 2 === 1 ? -3 : -1) : (state === 'WALK' ? (f % 2 === 1 ? -1 : 0) : (f === 1 || f === 2 ? 1 : 0)));
+          const headY = (isSleep ? 14 : (isEat ? 15 : 11)) + bob;
+          const bodyY = (isSleep ? 21 : 19) + (isSleep ? 0 : Math.floor(bob * 0.5));
+          drawWardrobeBack(g, wardrobe.back, bodyY, f);
+
+          if (!isSleep) {
+            const s1 = state === 'WALK' ? (f === 1 ? -2 : f === 3 ? 1 : 0) : 0;
+            const s2 = state === 'WALK' ? (f === 3 ? -2 : f === 1 ? 1 : 0) : 0;
+            g.rect(11, bodyY + 6 + s1, 3, 5, '#4b5563');
+            g.rect(18, bodyY + 6 + s2, 3, 5, '#374151');
+          } else {
+            g.rect(10, 27, 4, 2, '#4b5563'); g.rect(18, 27, 4, 2, '#374151');
+          }
+
+          g.oval(15.5, bodyY + 3, 7, 5.2, '#6b7280');
+          g.oval(14, bodyY + 2, 4.6, 3.4, '#9ca3af');
+          g.rect(11, bodyY + 3, 9, 4, '#dc2626');
+          g.rect(11, bodyY + 3, 9, 1, '#fbbf24');
+          g.px(13, bodyY + 5, '#fbbf24'); g.px(17, bodyY + 5, '#fbbf24');
+
+          g.oval(8, headY + 3, 2.6, 3.2, '#4b5563');
+          g.oval(23, headY + 3, 2.6, 3.2, '#4b5563');
+
+          g.oval(15.5, headY + 2, 5.2, 4.4, '#6b7280');
+          g.oval(15.5, headY + 1, 3.8, 2.6, '#9ca3af');
+          g.rect(11, headY - 3, 9, 2, '#fbbf24');
+          g.rect(13, headY - 5, 2, 2, '#fbbf24');
+          g.rect(17, headY - 5, 2, 2, '#fbbf24');
+          g.px(15, headY - 6, '#ef4444');
+          g.rect(9, headY + 5, 2, 2, '#fffbeb');
+          g.rect(21, headY + 5, 2, 2, '#fffbeb');
+
+          if (isEat) {
+            if (f % 2 === 0) { g.rect(14, headY + 4, 3, 5, '#4b5563'); g.rect(12, headY + 8, 3, 2, '#4b5563'); }
+            else { g.rect(14, headY + 4, 3, 6, '#4b5563'); g.rect(11, headY + 8, 4, 2, '#4b5563'); }
+          } else if (isSleep) {
+            g.rect(14, headY + 5, 3, 7, '#4b5563');
+          } else {
+            const swing = state === 'WALK' && (f === 1 || f === 3) ? 1 : 0;
+            g.rect(14, headY + 4, 3, 6, '#4b5563');
+            g.rect(15 + swing, headY + 9, 3, 2, '#4b5563');
+          }
+
+          drawWardrobeFront(g, wardrobe, headY, bodyY, f);
+          g.applyOutline('#132030');
+          drawCuteFace(g, 12, 17, headY + 1, state, f, '#0f172a', '#fb923c');
+        }
+      },
+      {
         id: 'mochi', name: 'Mochi', country: 'Japan', region: 'East Asia', flag: '🇯🇵',
         species: 'Shiba Inu', favoriteFood: 'dango', greeting: 'Konnichiwa!',
         skillName: 'Sakura Dash', skillEmoji: '🍡', speed: 45,

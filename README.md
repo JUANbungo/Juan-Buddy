@@ -8,7 +8,7 @@ Built with Electron. No build step, no framework — plain HTML/CSS/JS.
 
 ## ✨ Features
 
-- **13 hand-crafted 16-bit pixel pets** from the Juan-Buddy Studio roster — Kala the carabao 🇵🇭, Bantay the aso, Tala, Chai 🇹🇭, Linh 🇻🇳, Bara 🇮🇩, Rimau 🇲🇾, Merli 🇸🇬, **Nila the peacock 🇮🇳**, Mochi 🇯🇵, Bao 🇨🇳, Misha 🇷🇺 and Gino 🇮🇹 — each with IDLE / WALK / HAPPY / EAT / SLEEP animations, drawn live with crisp outlines
+- **14 hand-crafted 16-bit pixel pets** from the Juan-Buddy Studio roster — Kala the carabao 🇵🇭, Bantay the aso, Tala, Chai 🇹🇭, Linh 🇻🇳, Bara 🇮🇩, Rimau 🇲🇾, Merli 🇸🇬, **Nila the peacock 🇮🇳 and Raja the Royal Elephant 🇮🇳**, Mochi 🇯🇵, Bao 🇨🇳, Misha 🇷🇺 and Gino 🇮🇹 — each with IDLE / WALK / HAPPY / EAT / SLEEP animations, drawn live with crisp outlines
 - **🍜 32 ASEAN & world delicacies** — Pad Thai, fresh bamboo stalks, Khao Lam, Mango Sticky Rice, Tom Yum, Halo-Halo, Pandesal, Ube Potion, Butter Chicken, Masala Dosa, Samosa, Gulab Jamun, Masala Chai (TEMP EXP boost +25%!) and more — with **region filter chips (🇵🇭 PH / 🇮🇳 India / 🌏 ASEAN / 🌍 World) and instant search**, so your pet's food is always one tap away. Each pet has a **cultural favorite** for a happiness + XP bonus (kala loves Halo-Halo, nila loves Butter Chicken 💛)
 - **Floating pet window** — pick any buddy in the dashboard, watch it react:
   - Click it to give a pat (hearts!) · double-click or right-click to open the dashboard
@@ -43,6 +43,16 @@ npm start
 - macOS: tray icon in the menu bar.
 - Linux: requires a tray-enabled desktop environment (GNOME needs an AppIndicator extension).
 
+## ✨ AI Motivation (optional)
+
+Every ~15 minutes (or via the **✨ Cheer Me Up** button) your buddy pops a motivational speech
+bubble **in their own language** — Tagalog, Thai, Vietnamese, Bahasa, Singlish, Hindi, Japanese,
+Mandarin, Russian or Italian — with romanization + English translation, plus bonus coins.
+
+- Set the `MISTRAL_API_KEY` environment variable to enable live generation with
+  `mistral-small-latest` (JSON mode). **Never hardcode or commit the key.**
+- No key? No problem — built-in per-country offline quotes are used as fallback.
+
 ## 📱 Get it on your phone
 
 **Android (APK)** — every push builds a debug APK via GitHub Actions:
@@ -59,7 +69,12 @@ version ships as an installable web app instead:
 1. Open the GitHub Pages URL (enabled automatically — repo **Settings → Pages** will show
    `https://juanbungo.github.io/Juan-Buddy/`) in **Safari**
 2. Tap **Share → Add to Home Screen** — Juan Buddy runs fullscreen with offline support
-   (service worker + localStorage save, up to 8 h catch-up progress)
+   (service worker + localStorage save, up to 8 h catch-up progress), plus minimalist
+   battery-friendly notifications when your buddy gets hungry or finishes a quest
+
+**One-time setup:** repo **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+The `mobile-pwa` workflow deploys the phone app automatically on every push (errors on that job
+are non-blocking until Pages is enabled).
 
 ## 📦 Package into an installer
 
@@ -85,6 +100,7 @@ preload.js              Secure IPC bridge (contextIsolation on)
 src/engine/engine.js    Pure game logic — stats, actions, economy, upgrades, offline progress
 src/pet/                Floating transparent pet window (canvas renderer)
 src/dashboard/          Control panel: stats, actions, shop, settings
+src/pet/motivation.js   AI motivational events (Mistral API + offline fallback quotes)
 mobile/                 Phone version: tabs Home / Foods / Quests / Buddies (Capacitor web app + PWA)
                         (sprites.js / engine.js baked here by scripts/prep-mobile.js)
 assets/icons.js         Tray/app icons as base64 data URLs (keeps the repo text-only)

@@ -210,5 +210,22 @@ assert(da.activities.length === 5, 'five activities offered');
 assert(da.activities.every((a) => !a.active), 'no activity active by default');
 assert(engine.startActivity(engine.defaultState(), 'nope').ok === false, 'unknown activity rejected');
 
+console.log('roster and motivation tests');
+
+const spritesMod = require('../src/pet/sprites');
+assert(spritesMod.getPetById('raja').country === 'India', 'Raja (India) is in the roster');
+assert(spritesMod.getPetById('nila').country === 'India', 'Nila (India) is in the roster');
+const requestedIds = ['pad_thai', 'bamboo_stalks', 'halo_halo', 'pandesal', 'mango_sticky_rice', 'pho_bowl', 'nasi_lemak', 'satay', 'kaya_toast', 'samosa', 'butter_chicken'];
+assert(requestedIds.every((id) => !!engine.FOODS[id]), 'all requested delicacies exist');
+assert(requestedIds.every((id) => engine.FOODS[id].cost >= 0 && engine.FOODS[id].hunger > 0), 'delicacies have valid stats');
+
+const motivation = require('../src/pet/motivation');
+const langMap = motivation.COUNTRY_LANG_MAP;
+assert(Object.keys(langMap).length >= 11, 'language map covers 11+ countries');
+assert(motivation.fallbackEvent({ name: 'Raja', country: 'India', flag: 'in' }).native.length > 0, 'fallback quote for India');
+assert(motivation.fallbackEvent({ name: 'Chai', country: 'Thailand' }).romanization.length > 0, 'fallback quote romanization for Thai');
+assert(langMap['Philippines'].needsRomanization === false, 'Tagalog needs no romanization');
+assert(langMap['Japan'].needsRomanization === true, 'Japanese needs romanization');
+
 console.log(`${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);
