@@ -1,10 +1,27 @@
 'use strict';
 
-const FOODS = {
-  snack: { id: 'snack', name: 'Snack', cost: 5, hunger: 25, happiness: 4, xp: 2 },
-  meal: { id: 'meal', name: 'Meal', cost: 15, hunger: 60, happiness: 8, xp: 5 },
-  feast: { id: 'feast', name: 'Feast', cost: 40, hunger: 100, happiness: 15, xp: 12 },
-};
+(function (root, factory) {
+  const api = factory(typeof module !== 'undefined' && module.exports ? require('../pet/sprites.js') : root.JBSprites);
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = api;
+  }
+  root.JBEngine = api;
+})(typeof self !== 'undefined' ? self : this, function (spritesApi) {
+const DELICACIES = spritesApi.DELICACIES;
+
+const FOODS = Object.fromEntries(DELICACIES.map((d) => [d.id, {
+  id: d.id,
+  name: d.name,
+  country: d.country,
+  flag: d.flag,
+  cost: d.cost,
+  hunger: d.hunger,
+  happiness: d.happy,
+  energy: d.energy,
+  buff: d.buff || null,
+}]));
+
+const BUFF_DURATION_MS = 10 * 60 * 1000;
 
 const UPGRADES = {
   bed: {
@@ -72,7 +89,7 @@ function defaultState() {
     upgrades: { bed: 0, toys: 0, job: 1, feeder: 0 },
     activity: null,
     activityCooldowns: {},
-    effects: { happyUntil: 0, eatUntil: 0 },
+    effects: { happyUntil: 0, eatUntil: 0, xpMulUntil: 0, xpMul: 1, buffUntil: 0, buffLabel: null },
     lastSeen: Date.now(),
   };
 }
@@ -127,7 +144,7 @@ function tick(state, dtSeconds, offline) {
     hungerDrain = 0.02;
   } else if (f.working) {
     state.coins += coinRate(state) * dt * (offline ? 0.5 : 1);
-    state.pet.xp += 0.05 * dt;
+    state.pet.xp += 0.05 * dt * (offline ? 1 : currentXpMul(state));
   }
 
   m.hunger = clamp100(m.hunger - hungerDrain * dt * scale);
@@ -143,7 +160,8 @@ function tick(state, dtSeconds, offline) {
   }
 
   if (!offline && state.upgrades.feeder >= 1 && !f.sleeping && m.hunger < 20) {
-    applyFood(state, FOODS.snack, { free: true });
+    const cheapest = DELICACIES.reduce((a, d) => (d.cost > 0 && d.cost < a.cost ? d : a));
+    applyFood(state, FOODS[cheapest.id], { free: true });
   }
 
   applyLevelUps(state);
@@ -162,7 +180,7 @@ function completeActivity(state) {
     message = `🍀 LUCKY! ${a.name} jackpot! +${Math.round(coins)} coins, +${a.xp} XP`;
   }
   state.coins += coins;
-  state.pet.xp += a.xp;
+  state.pet.xp += a.xp * currentXpMul(state);
   state.activity = null;
   state.activityCooldowns[a.id] = Date.now() + a.cooldown * 1000;
   state.effects.happyUntil = Date.now() + 5000;
@@ -194,19 +212,37 @@ function applyLevelUps(state) {
   }
 }
 
+function currentXpMul(state) {
+  return state.effects.xpMulUntil && Date.now() < state.effects.xpMulUntil
+    ? state.effects.xpMul || 1
+    : 1;
+}
+
 function applyFood(state, food, opts) {
   const free = !!(opts && opts.free);
   if (state.meters.hunger >= 99) return { ok: false, message: `${state.pet.name} is full!` };
   if (!free) {
-    if (state.coins < food.cost) return { ok: false, message: `Not enough coins for a ${food.name}.` };
+    if (state.coins < food.cost) return { ok: false, message: `Not enough coins for ${food.name}.` };
     state.coins -= food.cost;
   }
+  const speciesPet = spritesApi.getPetById(state.pet.species);
+  const isFavorite = speciesPet && speciesPet.favoriteFood === food.id;
+  const happyGain = food.happiness * (isFavorite ? 1.5 : 1);
   state.meters.hunger = clamp100(state.meters.hunger + food.hunger);
-  state.meters.happiness = clamp100(state.meters.happiness + food.happiness);
-  state.pet.xp += food.xp;
+  state.meters.happiness = clamp100(state.meters.happiness + happyGain);
+  if (food.energy) state.meters.energy = clamp100(state.meters.energy + food.energy);
+  state.pet.xp += isFavorite ? 4 : 2;
+  if (food.buff && food.buff.stat === 'EXP') {
+    state.effects.xpMul = 1 + food.buff.val / 100;
+    state.effects.xpMulUntil = Date.now() + BUFF_DURATION_MS;
+  } else if (food.buff) {
+    state.effects.buffLabel = food.buff.label;
+    state.effects.buffUntil = Date.now() + BUFF_DURATION_MS;
+  }
   state.effects.eatUntil = Math.max(state.effects.eatUntil, Date.now() + 6000);
   applyLevelUps(state);
-  return { ok: true, message: `${state.pet.name} enjoyed a ${food.name}!` };
+  const flavor = isFavorite ? ` ${food.flag || ''} CulturalFavorite! 💛` : '';
+  return { ok: true, message: `${state.pet.name} enjoyed ${food.name}!${flavor}` };
 }
 
 function feed(state, foodId, opts) {
@@ -221,7 +257,7 @@ function play(state) {
   if (state.meters.energy < 8) return { ok: false, message: 'Too tired to play.' };
   state.meters.energy = clamp100(state.meters.energy - 8);
   state.meters.happiness = clamp100(state.meters.happiness + 10 * (1 + 0.25 * state.upgrades.toys));
-  state.pet.xp += 4;
+  state.pet.xp += 4 * currentXpMul(state);
   state.effects.happyUntil = Math.max(state.effects.happyUntil, Date.now() + 5000);
   applyLevelUps(state);
   return { ok: true, message: `You played with ${state.pet.name}!` };
@@ -285,6 +321,9 @@ function derivedStats(state) {
       endsAt: state.activity ? state.activity.endsAt : 0,
       cooldownRemainingMs: Math.max(0, (state.activityCooldowns[a.id] || 0) - now),
     })),
+    xpMulUntil: state.effects.xpMulUntil || 0,
+    xpMul: currentXpMul(state),
+    buffLabel: state.effects.buffUntil && now < state.effects.buffUntil ? state.effects.buffLabel : null,
     upgradeCosts: {
       bed: upgradeCost('bed', state.upgrades.bed),
       toys: upgradeCost('toys', state.upgrades.toys),
@@ -294,8 +333,9 @@ function derivedStats(state) {
   };
 }
 
-module.exports = {
+return {
   FOODS,
+  DELICACIES,
   UPGRADES,
   ACTIVITIES,
   OFFLINE_CAP_SECONDS,
@@ -314,4 +354,7 @@ module.exports = {
   derivedStats,
   addOfflineProgress,
   xpForNextLevel,
+  currentXpMul,
 };
+
+});

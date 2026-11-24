@@ -1,7 +1,7 @@
 'use strict';
 
 const api = window.BuddyAPI;
-const sprites = require('../pet/sprites.js');
+const sprites = window.JBSprites;
 const UPGRADE_META = {
   bed: { icon: '🛏', title: 'Cozy Bed', desc: 'Energy drains 12% slower per level' },
   toys: { icon: '🧸', title: 'Toy Box', desc: 'Playing gives +25% happiness per level' },
@@ -50,7 +50,7 @@ function render(snapshot) {
   setMeter('happy', s.meters.happiness);
 
   const pill = el('status-pill');
-  pill.textContent = d.statusText;
+  pill.textContent = d.buffLabel ? `${d.statusText} · ${d.buffLabel}` : d.statusText;
   pill.classList.toggle('active', s.flags.working || s.flags.sleeping);
 
   el('btn-work').textContent = s.flags.working ? '💼 Working...' : '💼 Work: Off';
@@ -64,9 +64,106 @@ function render(snapshot) {
   el('btn-play').disabled = s.flags.sleeping || s.meters.energy < 8;
 
   renderShop(s, d);
+  renderFoods(s, d);
   renderActivities(s, d);
   renderBuddyPicker(s);
   if (toast) showToast(toast);
+}
+
+const FOOD_EMOJI = { pad_thai: '🍜', bamboo_stalks: '🎍', khao_lam: '🎋', mango_sticky_rice: '🥭' };
+const foodState = { filter: 'all', query: '' };
+const foodCards = {};
+let filterChips = null;
+
+function regionGroup(country) {
+  if (country === 'Philippines') return 'ph';
+  if (country === 'India') return 'india';
+  return ['Thailand', 'Vietnam', 'Laos', 'Cambodia', 'Malaysia', 'Indonesia', 'Singapore', 'Myanmar', 'Brunei'].includes(country) ? 'asean' : 'world';
+}
+
+function renderFoodFilters() {
+  const bar = el('food-filters');
+  if (!filterChips) {
+    filterChips = {};
+    const defs = [
+      ['all', '✨ All'],
+      ['ph', '🇵🇭 PH Favorites'],
+      ['asean', '🌴 ASEAN'],
+      ['india', '🇮🇳 India'],
+      ['world', '🌏 World'],
+    ];
+    for (const [key, label] of defs) {
+      const chip = document.createElement('button');
+      chip.className = 'filter-chip';
+      chip.textContent = label;
+      chip.addEventListener('click', () => {
+        foodState.filter = key;
+        renderFoodFilters();
+      });
+      bar.appendChild(chip);
+      filterChips[key] = chip;
+    }
+  }
+  for (const [key, chip] of Object.entries(filterChips)) {
+    chip.classList.toggle('on', foodState.filter === key);
+  }
+}
+
+function renderFoods(s, d) {
+  const grid = el('food-grid');
+  const fav = sprites.getPetById(s.pet.species);
+  renderFoodFilters();
+  for (const del of sprites.DELICACIES) {
+    const group = regionGroup(del.country);
+    const matchesRegion = foodState.filter === 'all' || foodState.filter === group;
+    const matchesQuery = !foodState.query
+      || del.name.toLowerCase().includes(foodState.query)
+      || del.country.toLowerCase().includes(foodState.query);
+    let card = foodCards[del.id];
+    if (!card) {
+      card = document.createElement('div');
+      card.className = 'food-card';
+      card.dataset.food = del.id;
+      const icon = document.createElement('canvas');
+      icon.width = 16;
+      icon.height = 16;
+      try {
+        const cctx = icon.getContext('2d');
+        cctx.imageSmoothingEnabled = false;
+        cctx.drawImage(sprites.ensureFoodSprite(del.id), 0, 0, 16, 16);
+      } catch (err) {
+        const fb = document.createElement('div');
+        fb.className = 'food-icon-fallback';
+        fb.textContent = FOOD_EMOJI[del.id] || '🍽';
+        card.appendChild(fb);
+      }
+      const mid = document.createElement('div');
+      mid.innerHTML = `<div class="f-name"></div><div class="f-meta"></div><div class="f-fav-tag"></div>`;
+      const btn = document.createElement('button');
+      btn.className = 'btn f-feed';
+      btn.addEventListener('click', () => act('feed', { foodId: del.id }));
+      card.appendChild(icon);
+      card.appendChild(mid);
+      card.appendChild(btn);
+      card._els = {
+        name: mid.querySelector('.f-name'),
+        meta: mid.querySelector('.f-meta'),
+        favTag: mid.querySelector('.f-fav-tag'),
+        btn,
+      };
+      grid.appendChild(card);
+      foodCards[del.id] = card;
+    }
+    const isFav = fav && fav.favoriteFood === del.id;
+    card.style.display = matchesRegion && matchesQuery ? '' : 'none';
+    card.classList.toggle('fav', isFav);
+    card._els.name.textContent = `${del.flag || ''} ${del.name}`;
+    card._els.meta.textContent = `🍖${del.hunger} · 💖${del.happy}${del.energy ? ` · ⚡${del.energy}` : ''}${del.buff ? ` · ${del.buff.label}` : ''}`;
+    card._els.favTag.textContent = isFav ? '★ ' + fav.name + "'s favorite!" : '';
+    const afford = s.coins >= del.cost;
+    card._els.btn.textContent = del.cost === 0 ? 'FREE' : `🪙${del.cost}`;
+    card._els.btn.disabled = s.flags.sleeping || !afford || s.meters.hunger >= 99;
+  }
 }
 
 let activityIndex = null;
@@ -190,9 +287,11 @@ function renderShop(s, d) {
   }
 }
 
-el('feed-snack').addEventListener('click', () => act('feed', { foodId: 'snack' }));
-el('feed-meal').addEventListener('click', () => act('feed', { foodId: 'meal' }));
-el('feed-feast').addEventListener('click', () => act('feed', { foodId: 'feast' }));
+el('food-search').addEventListener('input', (e) => {
+  foodState.query = e.target.value.trim().toLowerCase();
+  if (latest) renderFoods(latest.state, latest.derived);
+});
+
 el('btn-play').addEventListener('click', () => act('play'));
 el('btn-work').addEventListener('click', () => act('toggleWork'));
 el('btn-sleep').addEventListener('click', () => act('toggleSleep'));

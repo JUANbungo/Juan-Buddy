@@ -101,6 +101,8 @@ const tray = encodePNG(16, 16, drawBuddyFace(16));
 module.exports = {
   ICON_PNG_BASE64: icon256.toString('base64'),
   TRAY_PNG_BASE64: tray.toString('base64'),
+  encodePNG,
+  drawBuddyFace,
 };
 
 if (require.main === module) {

@@ -40,12 +40,19 @@
     </div>
   </section>
 
+  <section class="card">
+    <h2>🛠 Shop</h2>
+    <div id="shop" class="shop-grid"></div>
+  </section>
+
+  <section class="card">
+    <h2>🍜 Delicacies <small class="muted">— feed your buddy world foods</small></h2>
+    <div id="food-filters" class="filter-row"></div>
+    <input id="food-search" class="search-box" type="text" placeholder="Search foods... (e.g. pad thai, samosa)" />
+    <div id="food-grid" class="food-grid"></div>
+  </section>
+
   <section class="actions">
-    <div class="feed-group">
-      <button id="feed-snack" class="btn">🍳 Snack <small>🪙5</small></button>
-      <button id="feed-meal" class="btn">🍱 Meal <small>🪙15</small></button>
-      <button id="feed-feast" class="btn">🎉 Feast <small>🪙40</small></button>
-    </div>
     <div class="main-actions">
       <button id="btn-play" class="btn wide">🎾 Play (−8 ⚡)</button>
       <button id="btn-work" class="btn wide accent">💼 Work: Off</button>
@@ -77,6 +84,7 @@
   </footer>
 
   <div id="toast" class="toast hidden"></div>
+  <script src="../pet/sprites.js"></script>
   <script src="dashboard.js"></script>
 </body>
 </html>

@@ -8,7 +8,8 @@ Built with Electron. No build step, no framework — plain HTML/CSS/JS.
 
 ## ✨ Features
 
-- **12 hand-crafted 16-bit pixel pets** from the Juan-Buddy Studio roster — Kala the carabao 🇵🇭, Bantay the aso, Tala, Chai, Linh, Bara, Rimau, Merli, Mochi, Bao, Misha and Gino — each with IDLE / WALK / HAPPY / EAT / SLEEP animations, drawn live with crisp outlines
+- **13 hand-crafted 16-bit pixel pets** from the Juan-Buddy Studio roster — Kala the carabao 🇵🇭, Bantay the aso, Tala, Chai 🇹🇭, Linh 🇻🇳, Bara 🇮🇩, Rimau 🇲🇾, Merli 🇸🇬, **Nila the peacock 🇮🇳**, Mochi 🇯🇵, Bao 🇨🇳, Misha 🇷🇺 and Gino 🇮🇹 — each with IDLE / WALK / HAPPY / EAT / SLEEP animations, drawn live with crisp outlines
+- **🍜 32 ASEAN & world delicacies** — Pad Thai, fresh bamboo stalks, Khao Lam, Mango Sticky Rice, Tom Yum, Halo-Halo, Pandesal, Ube Potion, Butter Chicken, Masala Dosa, Samosa, Gulab Jamun, Masala Chai (TEMP EXP boost +25%!) and more — with **region filter chips (🇵🇭 PH / 🇮🇳 India / 🌏 ASEAN / 🌍 World) and instant search**, so your pet's food is always one tap away. Each pet has a **cultural favorite** for a happiness + XP bonus (kala loves Halo-Halo, nila loves Butter Chicken 💛)
 - **Floating pet window** — pick any buddy in the dashboard, watch it react:
   - Click it to give a pat (hearts!) · double-click or right-click to open the dashboard
   - Drag it anywhere on your desktop
@@ -42,6 +43,24 @@ npm start
 - macOS: tray icon in the menu bar.
 - Linux: requires a tray-enabled desktop environment (GNOME needs an AppIndicator extension).
 
+## 📱 Get it on your phone
+
+**Android (APK)** — every push builds a debug APK via GitHub Actions:
+
+1. Open the repo → **Actions** tab → the latest green **Build Installers** run
+2. Scroll to **Artifacts** → download **Juan-Buddy-android** → unzip to get `app-debug.apk`
+3. Copy it to your phone, open it, and allow "install from this source / unknown apps" if asked
+
+Or build locally with `npm run mobile:sync && cd android && ./gradlew assembleDebug`.
+
+**iPhone (PWA)** — Apple requires a paid developer account to install unsigned IPAs, so the phone
+version ships as an installable web app instead:
+
+1. Open the GitHub Pages URL (enabled automatically — repo **Settings → Pages** will show
+   `https://juanbungo.github.io/Juan-Buddy/`) in **Safari**
+2. Tap **Share → Add to Home Screen** — Juan Buddy runs fullscreen with offline support
+   (service worker + localStorage save, up to 8 h catch-up progress)
+
 ## 📦 Package into an installer
 
 ```bash
@@ -66,8 +85,13 @@ preload.js              Secure IPC bridge (contextIsolation on)
 src/engine/engine.js    Pure game logic — stats, actions, economy, upgrades, offline progress
 src/pet/                Floating transparent pet window (canvas renderer)
 src/dashboard/          Control panel: stats, actions, shop, settings
+mobile/                 Phone version: tabs Home / Foods / Quests / Buddies (Capacitor web app + PWA)
+                        (sprites.js / engine.js baked here by scripts/prep-mobile.js)
 assets/icons.js         Tray/app icons as base64 data URLs (keeps the repo text-only)
 scripts/generate-icons.js  Regenerates PNG assets from the base64 module
+scripts/prep-mobile.js  Copies engine + sprites into mobile/ and bakes phone icons (npm run mobile:sync)
+capacitor.config.json   Capacitor config (webDir: mobile)
+android/                Native Android project for the APK build
 test/engine.test.js     Engine test suite (plain node, no deps)
 ```
 

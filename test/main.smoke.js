@@ -78,7 +78,7 @@ setTimeout(async () => {
       throw new Error('snapshot invalid');
     }
 
-    const feed = await handlers['buddy:action']({}, 'feed', { foodId: 'snack' });
+    const feed = await handlers['buddy:action']({}, 'feed', { foodId: 'pandesal' });
     if (!feed.ok) throw new Error(`feed action failed: ${feed.message}`);
 
     const work = await handlers['buddy:action']({}, 'toggleWork', null);

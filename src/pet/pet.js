@@ -1,7 +1,7 @@
 'use strict';
 
 const api = window.BuddyAPI;
-const { PET_ROSTER, FRAMES_PER_STATE, ensurePetSprites } = require('../pet/sprites.js');
+const { PET_ROSTER, FRAMES_PER_STATE, ensurePetSprites } = window.JBSprites;
 
 const canvas = document.getElementById('pet-canvas');
 const ctx = canvas.getContext('2d');

@@ -102,9 +102,9 @@ function fullStateSnapshot(toast) {
 }
 
 function setSpeciesId(speciesId) {
-  const { petById } = require('./src/pet/sprites');
-  const pet = petById(speciesId);
-  if (!pet) return false;
+  const { getPetById } = require('./src/pet/sprites');
+  const pet = getPetById(speciesId);
+  if (!pet || pet.id !== speciesId) return false;
   state.pet.species = speciesId;
   return true;
 }

@@ -45,18 +45,38 @@ assert(s.meters.energy > energyBefore, 'sleeping restores energy');
 assert(s.meters.hunger < 80, 'sleeping still drains hunger (slowly)');
 
 s = engine.defaultState();
+s.coins = 100;
 s.meters.hunger = 50;
-let r = engine.feed(s, 'meal');
-assert(r.ok && s.meters.hunger === 100, 'meal restores hunger');
-assert(s.coins === 20 - engine.FOODS.meal.cost, 'meal costs coins');
+let r = engine.feed(s, 'pad_thai');
+assert(r.ok && s.meters.hunger === 82, 'pad thai restores hunger');
+assert(s.coins === 100 - engine.FOODS.pad_thai.cost, 'pad thai costs coins');
 s.meters.hunger = 99.5;
-r = engine.feed(s, 'snack');
+r = engine.feed(s, 'pandesal');
 assert(!r.ok, 'refuses to overfeed');
 s.coins = 1;
 s.meters.hunger = 50;
-r = engine.feed(s, 'feast');
-assert(!r.ok, 'cannot afford feast');
+r = engine.feed(s, 'butter_chicken');
+assert(!r.ok, 'cannot afford butter chicken');
 assert(s.meters.hunger === 50, 'failed feed leaves hunger untouched');
+assert(engine.FOODS.samosa.cost === 0, 'samosa is free');
+
+s = engine.defaultState();
+s.meters.energy = 40;
+r = engine.feed(s, 'masala_chai');
+assert(r.ok, 'chai feeds ok');
+assert(s.meters.energy > 40, 'chai restores energy');
+assert(s.effects.xpMul > 1, 'chai grants EXP buff');
+assert(engine.currentXpMul(s) > 1, 'xp multiplier active during buff');
+
+s = engine.defaultState();
+s.pet.species = 'kala';
+r = engine.feed(s, 'halo_halo');
+assert(r.ok && /Cultural/.test(r.message), 'kala loves halo-halo (cultural favorite)');
+s = engine.defaultState();
+s.pet.species = 'nila';
+s.coins = 100;
+r = engine.feed(s, 'butter_chicken');
+assert(r.ok && /Cultural/.test(r.message), 'nila loves butter chicken (cultural favorite)');
 
 s = engine.defaultState();
 s.meters.happiness = 50;
@@ -128,7 +148,7 @@ s.upgrades.feeder = 1;
 s.meters.hunger = 15;
 s.coins = 100;
 engine.tick(s, 0.01, false);
-assert(s.meters.hunger >= 39.5, 'auto-feeder feeds when hungry');
+assert(s.meters.hunger > 30, 'auto-feeder feeds cheapest food when hungry');
 
 const d = engine.derivedStats(engine.defaultState());
 assert(d.coinRate === 0, 'idle coin rate is 0');
