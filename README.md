@@ -8,10 +8,11 @@ Built with Electron. No build step, no framework — plain HTML/CSS/JS.
 
 ## ✨ Features
 
-- **Floating pet window** — a squishy canvas-rendered buddy that breathes, blinks, and reacts to its mood:
-  - 🧡 happy (high happiness) · 💚 chill · 💙 sad (low happiness) · 💜 sleeping
+- **12 hand-crafted 16-bit pixel pets** from the Juan-Buddy Studio roster — Kala the carabao 🇵🇭, Bantay the aso, Tala, Chai, Linh, Bara, Rimau, Merli, Mochi, Bao, Misha and Gino — each with IDLE / WALK / HAPPY / EAT / SLEEP animations, drawn live with crisp outlines
+- **Floating pet window** — pick any buddy in the dashboard, watch it react:
   - Click it to give a pat (hearts!) · double-click or right-click to open the dashboard
   - Drag it anywhere on your desktop
+- **🎯 Activities** — send your buddy on cooldown-based side quests for big coin & XP payouts: Tara Lakwatsa 🚶, Cook Adobo 🍳, Videoke Night 🎤, Study Session 📚 and Fishing Trip 🎣 (with a 15% lucky jackpot!)
 - **Idle economy** — send your buddy to **Work** to earn coins every second, even while the
   dashboard is closed. Coins keep trickling while the app runs.
 - **Care loop** — Hunger, Energy and Happiness drain in real time. Feed snacks/meals/feasts,

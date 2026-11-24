@@ -84,6 +84,14 @@ setTimeout(async () => {
     const work = await handlers['buddy:action']({}, 'toggleWork', null);
     if (!work.ok) throw new Error(`toggleWork failed: ${work.message}`);
 
+    const act1 = await handlers['buddy:action']({}, 'startActivity', { activityId: 'videoke' });
+    if (!act1.ok) throw new Error(`startActivity failed: ${act1.message}`);
+
+    const pick = await handlers['buddy:action']({}, 'setSpecies', { speciesId: 'tala' });
+    if (!pick.ok) throw new Error(`setSpecies failed: ${pick.message}`);
+    const snap2 = await handlers['buddy:get']();
+    if (snap2.state.pet.species !== 'tala') throw new Error('species not applied');
+
     await handlers['buddy:saveNow']();
     const saveFile = path.join(fakeApp.getPath(), 'buddy-save.json');
     if (!fs.existsSync(saveFile)) throw new Error('save file not written');

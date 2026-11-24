@@ -20,11 +20,15 @@ function loadState() {
   try {
     const raw = fs.readFileSync(savePath(), 'utf8');
     const saved = JSON.parse(raw);
-    return { ...engine.defaultState(), ...saved,
-      pet: { ...engine.defaultState().pet, ...(saved.pet || {}) },
-      meters: { ...engine.defaultState().meters, ...(saved.meters || {}) },
-      flags: { ...engine.defaultState().flags, ...(saved.flags || {}) },
-      upgrades: { ...engine.defaultState().upgrades, ...(saved.upgrades || {}) },
+    const d = engine.defaultState();
+    return { ...d, ...saved,
+      pet: { ...d.pet, ...(saved.pet || {}) },
+      meters: { ...d.meters, ...(saved.meters || {}) },
+      flags: { ...d.flags, ...(saved.flags || {}) },
+      upgrades: { ...d.upgrades, ...(saved.upgrades || {}) },
+      activity: saved.activity || null,
+      activityCooldowns: saved.activityCooldowns || {},
+      effects: { ...d.effects, ...(saved.effects || {}) },
     };
   } catch (err) {
     return engine.defaultState();
@@ -60,6 +64,14 @@ function runAction(action, payload) {
     case 'toggleWork': result = engine.toggleWork(state); break;
     case 'toggleSleep': result = engine.toggleSleep(state); break;
     case 'buyUpgrade': result = engine.buyUpgrade(state, payload && payload.upgradeId); break;
+    case 'startActivity': result = engine.startActivity(state, payload && payload.activityId); break;
+    case 'setSpecies':
+      if (payload && typeof payload.speciesId === 'string' && setSpeciesId(payload.speciesId)) {
+        result = { ok: true, message: 'Buddy chosen!' };
+      } else {
+        result = { ok: false, message: 'Unknown buddy.' };
+      }
+      break;
     case 'rename':
       if (payload && typeof payload.name === 'string' && payload.name.trim().length > 0) {
         state.pet.name = payload.name.trim().slice(0, 16);
@@ -89,12 +101,22 @@ function fullStateSnapshot(toast) {
   };
 }
 
+function setSpeciesId(speciesId) {
+  const { petById } = require('./src/pet/sprites');
+  const pet = petById(speciesId);
+  if (!pet) return false;
+  state.pet.species = speciesId;
+  return true;
+}
+
 function resetState() {
   const fresh = engine.defaultState();
   Object.keys(state).forEach((key) => { delete state[key]; });
   Object.assign(state, fresh);
   state.flags.sleeping = false;
   state.flags.working = false;
+  state.activity = null;
+  state.activityCooldowns = {};
   saveState();
   return { ok: true, message: 'Progress reset.' };
 }
@@ -136,8 +158,8 @@ function createDashboardWindow() {
     return;
   }
   dashboardWindow = new BrowserWindow({
-    width: 400,
-    height: 640,
+    width: 440,
+    height: 860,
     resizable: true,
     title: 'Juan Buddy',
     autoHideMenuBar: true,

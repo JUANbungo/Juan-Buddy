@@ -139,5 +139,56 @@ const w = engine.defaultState();
 w.flags.working = true;
 assert(engine.derivedStats(w).coinRate > 0, 'working coin rate positive');
 
+console.log('activity tests');
+
+s = engine.defaultState();
+r = engine.startActivity(s, 'walk');
+assert(r.ok, 'start activity works');
+assert(s.activity && s.activity.id === 'walk', 'activity is pending');
+assert(s.meters.energy === 90 - engine.ACTIVITIES.walk.energy, 'activity costs energy');
+r = engine.startActivity(s, 'cook');
+assert(!r.ok, 'only one activity at a time');
+
+s.flags.sleeping = true;
+s.activity = null;
+r = engine.startActivity(s, 'walk');
+assert(!r.ok, 'no activities while sleeping');
+s.flags.sleeping = false;
+
+s = engine.defaultState();
+s.meters.energy = 5;
+r = engine.startActivity(s, 'study');
+assert(!r.ok, 'insufficient energy blocks activity');
+
+s = engine.defaultState();
+s.activity = { id: 'walk', endsAt: Date.now() - 1000 };
+s.flags.working = false;
+const coinsAt = s.coins;
+const xpAt = s.pet.xp;
+const events = engine.tick(s, 1, false);
+assert(events.length === 1, 'activity completion produces event');
+assert(s.coins > coinsAt, 'completed activity grants coins');
+assert(s.pet.xp > xpAt, 'completed activity grants xp');
+assert(s.activity === null, 'activity cleared on completion');
+assert(s.activityCooldowns.walk > Date.now(), 'cooldown set after completion');
+assert(s.effects.happyUntil > Date.now(), 'happy after activity');
+
+const cooledCoins = s.coins;
+r = engine.startActivity(s, 'walk');
+assert(!r.ok, 'cooldown blocks restart');
+s.activityCooldowns.walk = Date.now() - 1;
+r = engine.startActivity(s, 'walk');
+assert(r.ok, 'activity restarts after cooldown');
+engine.tick(s, 1, false);
+assert(s.coins >= cooledCoins, 'no reward before completion');
+assert(engine.startActivity(s, 'walk').ok === false, 'still busy until timer');
+
+s = engine.defaultState();
+assert(s.pet.species === 'kala', 'default species');
+const da = engine.derivedStats(engine.defaultState());
+assert(da.activities.length === 5, 'five activities offered');
+assert(da.activities.every((a) => !a.active), 'no activity active by default');
+assert(engine.startActivity(engine.defaultState(), 'nope').ok === false, 'unknown activity rejected');
+
 console.log(`${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);
