@@ -1,0 +1,8 @@
+{
+  "appId": "com.juanbungo.juanbuddy",
+  "appName": "Juan Buddy",
+  "webDir": "mobile",
+  "server": {
+    "androidScheme": "https"
+  }
+}

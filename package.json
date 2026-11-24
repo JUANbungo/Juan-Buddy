@@ -11,9 +11,15 @@
     "icons": "node scripts/generate-icons.js",
     "postinstall": "node scripts/generate-icons.js",
     "test": "node test/engine.test.js && node test/main.smoke.js",
-    "dist": "electron-builder"
+    "dist": "electron-builder",
+    "mobile:prep": "node scripts/prep-mobile.js",
+    "mobile:sync": "npm run mobile:prep && npx cap copy android",
+    "mobile:open": "npx cap open android"
   },
   "devDependencies": {
+    "@capacitor/android": "^6.2.3",
+    "@capacitor/cli": "^6.2.3",
+    "@capacitor/core": "^6.2.3",
     "electron": "^33.2.0",
     "electron-builder": "^25.1.8"
   },
@@ -36,7 +42,12 @@
         "portable"
       ]
     },
-    "mac": { "icon": "assets/icon.png" },
-    "linux": { "icon": "assets/icon.png", "category": "Game" }
+    "mac": {
+      "icon": "assets/icon.png"
+    },
+    "linux": {
+      "icon": "assets/icon.png",
+      "category": "Game"
+    }
   }
 }

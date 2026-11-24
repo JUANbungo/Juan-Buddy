@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#171522" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <title>Juan Buddy</title>
+  <link rel="stylesheet" href="mobile.css" />
+</head>
+<body>
+  <header>
+    <div class="hrow">
+      <span id="m-name" class="name">Buddy</span>
+      <span id="m-level" class="pill">Lv 1</span>
+      <span id="m-status" class="pill status">Chilling</span>
+    </div>
+    <div class="hrow">
+      <span class="coinbox">🪙 <b id="m-coins">0</b> <span id="m-rate" class="muted"></span></span>
+      <span id="m-buff" class="pill buff hidden"></span>
+    </div>
+    <div class="bar xp"><div id="m-xpfill"></div></div>
+    <div class="xptext muted" id="m-xptext">0 / 40 XP</div>
+  </header>
+
+  <main>
+    <section id="tab-home">
+      <canvas id="m-pet" width="240" height="240"></canvas>
+      <div class="meters">
+        <div class="meter"><label>🍖 Hunger</label><div class="bar"><div id="m-hunger" class="fill hunger"></div></div></div>
+        <div class="meter"><label>⚡ Energy</label><div class="bar"><div id="m-energy" class="fill energy"></div></div></div>
+        <div class="meter"><label>💖 Happiness</label><div class="bar"><div id="m-happy" class="fill happy"></div></div></div>
+      </div>
+      <div class="btn-grid">
+        <button id="m-play" class="btn">🎾 Play</button>
+        <button id="m-work" class="btn">💼 Work</button>
+        <button id="m-sleep" class="btn">😴 Sleep</button>
+      </div>
+      <p class="muted hint">Tap your buddy to pat it 🤚</p>
+    </section>
+
+    <section id="tab-foods" class="hidden">
+      <div id="m-food-filters" class="filter-row"></div>
+      <input id="m-food-search" class="search-box" type="text" placeholder="Search foods..." />
+      <div id="m-food-grid" class="food-grid"></div>
+    </section>
+
+    <section id="tab-activities" class="hidden">
+      <div id="m-activities" class="activity-list"></div>
+    </section>
+
+    <section id="tab-buddies" class="hidden">
+      <div id="m-buddies" class="buddy-grid"></div>
+    </section>
+  </main>
+
+  <nav>
+    <button data-tab="home" class="tab on">🏠 Home</button>
+    <button data-tab="foods" class="tab">🍜 Foods</button>
+    <button data-tab="activities" class="tab">🎯 Quests</button>
+    <button data-tab="buddies" class="tab">🧸 Buddies</button>
+  </nav>
+
+  <div id="m-toast" class="toast hidden"></div>
+
+  <script src="sprites.js"></script>
+  <script src="engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
