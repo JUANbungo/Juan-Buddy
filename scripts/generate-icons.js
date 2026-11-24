@@ -95,7 +95,7 @@ function drawBuddyFace(size) {
   return px;
 }
 
-const icon256 = encodePNG(256, 256, drawBuddyFace(256));
+const icon256 = encodePNG(512, 512, drawBuddyFace(512));
 const tray = encodePNG(16, 16, drawBuddyFace(16));
 
 module.exports = {
@@ -112,5 +112,13 @@ if (require.main === module) {
   fs.mkdirSync(assetsDir, { recursive: true });
   fs.writeFileSync(path.join(assetsDir, 'icon.png'), icon256);
   fs.writeFileSync(path.join(assetsDir, 'tray.png'), tray);
-  console.log('Wrote assets/icon.png and assets/tray.png');
+  fs.writeFileSync(path.join(assetsDir, 'icons.js'),
+    `'use strict';
+
+const ICON_PNG_BASE64 = '${icon256.toString('base64')}';
+const TRAY_PNG_BASE64 = '${tray.toString('base64')}';
+
+module.exports = { ICON_PNG_BASE64, TRAY_PNG_BASE64 };
+`);
+  console.log('Wrote assets/icon.png, assets/tray.png and assets/icons.js');
 }
