@@ -29,7 +29,13 @@
       "assets/tray.png",
       "scripts/generate-icons.js"
     ],
-    "win": { "icon": "assets/icon.png" },
+    "win": {
+      "icon": "assets/icon.png",
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
     "mac": { "icon": "assets/icon.png" },
     "linux": { "icon": "assets/icon.png", "category": "Game" }
   }
