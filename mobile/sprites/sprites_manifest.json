@@ -1,0 +1,314 @@
+{
+  "version": "1.0",
+  "tile_size": 128,
+  "states": [
+    "idle",
+    "walk",
+    "happy",
+    "eat",
+    "sleep"
+  ],
+  "frames_per_state": 4,
+  "pets": [
+    {
+      "id": "kala",
+      "name": "Kala",
+      "country": "Philippines",
+      "species": "Carabao",
+      "favorite_food": "halo_halo",
+      "greeting": "Magandang araw! Kaya mo yan!",
+      "sheet": "sheets/kala_sheet.png",
+      "frames": {
+        "idle": "pets/kala_idle.png",
+        "walk": "pets/kala_walk.png",
+        "happy": "pets/kala_happy.png",
+        "eat": "pets/kala_eat.png",
+        "sleep": "pets/kala_sleep.png"
+      }
+    },
+    {
+      "id": "bantay",
+      "name": "Bantay",
+      "country": "Philippines",
+      "species": "Aspin Dog",
+      "favorite_food": "pandesal",
+      "greeting": "Arf! Kain muna tayo ng pandesal!",
+      "sheet": "sheets/bantay_sheet.png",
+      "frames": {
+        "idle": "pets/bantay_idle.png",
+        "walk": "pets/bantay_walk.png",
+        "happy": "pets/bantay_happy.png",
+        "eat": "pets/bantay_eat.png",
+        "sleep": "pets/bantay_sleep.png"
+      }
+    },
+    {
+      "id": "tala",
+      "name": "Tala",
+      "country": "Philippines",
+      "species": "Filipino Witchdog",
+      "favorite_food": "ube_potion",
+      "greeting": "May mahika ang araw mo ngayon!",
+      "sheet": "sheets/tala_sheet.png",
+      "frames": {
+        "idle": "pets/tala_idle.png",
+        "walk": "pets/tala_walk.png",
+        "happy": "pets/tala_happy.png",
+        "eat": "pets/tala_eat.png",
+        "sleep": "pets/tala_sleep.png"
+      }
+    },
+    {
+      "id": "chai",
+      "name": "Chai",
+      "country": "Thailand",
+      "species": "Baby Elephant",
+      "favorite_food": "pad_thai",
+      "greeting": "Sawasdee! Su-su na!",
+      "sheet": "sheets/chai_sheet.png",
+      "frames": {
+        "idle": "pets/chai_idle.png",
+        "walk": "pets/chai_walk.png",
+        "happy": "pets/chai_happy.png",
+        "eat": "pets/chai_eat.png",
+        "sleep": "pets/chai_sleep.png"
+      }
+    },
+    {
+      "id": "linh",
+      "name": "Linh",
+      "country": "Vietnam",
+      "species": "Lotus Cat",
+      "favorite_food": "pho",
+      "greeting": "Xin chao! Co len nhe!",
+      "sheet": "sheets/linh_sheet.png",
+      "frames": {
+        "idle": "pets/linh_idle.png",
+        "walk": "pets/linh_walk.png",
+        "happy": "pets/linh_happy.png",
+        "eat": "pets/linh_eat.png",
+        "sleep": "pets/linh_sleep.png"
+      }
+    },
+    {
+      "id": "bara",
+      "name": "Bara",
+      "country": "Indonesia",
+      "species": "Baby Komodo",
+      "favorite_food": "satay",
+      "greeting": "Halo! Semangat terus ya!",
+      "sheet": "sheets/bara_sheet.png",
+      "frames": {
+        "idle": "pets/bara_idle.png",
+        "walk": "pets/bara_walk.png",
+        "happy": "pets/bara_happy.png",
+        "eat": "pets/bara_eat.png",
+        "sleep": "pets/bara_sleep.png"
+      }
+    },
+    {
+      "id": "rimau",
+      "name": "Rimau",
+      "country": "Malaysia",
+      "species": "Malayan Tiger Cub",
+      "favorite_food": "nasi_lemak",
+      "greeting": "Hai kawan! Boleh punya!",
+      "sheet": "sheets/rimau_sheet.png",
+      "frames": {
+        "idle": "pets/rimau_idle.png",
+        "walk": "pets/rimau_walk.png",
+        "happy": "pets/rimau_happy.png",
+        "eat": "pets/rimau_eat.png",
+        "sleep": "pets/rimau_sleep.png"
+      }
+    },
+    {
+      "id": "merli",
+      "name": "Merli",
+      "country": "Singapore",
+      "species": "Mini Merlion",
+      "favorite_food": "kaya_toast",
+      "greeting": "Steady lah! Jiayou!",
+      "sheet": "sheets/merli_sheet.png",
+      "frames": {
+        "idle": "pets/merli_idle.png",
+        "walk": "pets/merli_walk.png",
+        "happy": "pets/merli_happy.png",
+        "eat": "pets/merli_eat.png",
+        "sleep": "pets/merli_sleep.png"
+      }
+    },
+    {
+      "id": "raja",
+      "name": "Raja",
+      "country": "India",
+      "species": "Royal Bengal Cub",
+      "favorite_food": "samosa",
+      "greeting": "Namaste! Tum bahut achha kar rahe ho!",
+      "sheet": "sheets/raja_sheet.png",
+      "frames": {
+        "idle": "pets/raja_idle.png",
+        "walk": "pets/raja_walk.png",
+        "happy": "pets/raja_happy.png",
+        "eat": "pets/raja_eat.png",
+        "sleep": "pets/raja_sleep.png"
+      }
+    },
+    {
+      "id": "mochi",
+      "name": "Mochi",
+      "country": "Japan",
+      "species": "Shiba Inu",
+      "favorite_food": "dango",
+      "greeting": "Ganbatte! Ippo zutsu susumou ne!",
+      "sheet": "sheets/mochi_sheet.png",
+      "frames": {
+        "idle": "pets/mochi_idle.png",
+        "walk": "pets/mochi_walk.png",
+        "happy": "pets/mochi_happy.png",
+        "eat": "pets/mochi_eat.png",
+        "sleep": "pets/mochi_sleep.png"
+      }
+    },
+    {
+      "id": "bao",
+      "name": "Bao",
+      "country": "China",
+      "species": "Giant Panda Cub",
+      "favorite_food": "bamboo_shoots",
+      "greeting": "Jiayou! Ni jintian zuo de feichang bang!",
+      "sheet": "sheets/bao_sheet.png",
+      "frames": {
+        "idle": "pets/bao_idle.png",
+        "walk": "pets/bao_walk.png",
+        "happy": "pets/bao_happy.png",
+        "eat": "pets/bao_eat.png",
+        "sleep": "pets/bao_sleep.png"
+      }
+    },
+    {
+      "id": "misha",
+      "name": "Misha",
+      "country": "Russia",
+      "species": "Bear Cub",
+      "favorite_food": "honey_blini",
+      "greeting": "U tebya vsyo poluchitsya!",
+      "sheet": "sheets/misha_sheet.png",
+      "frames": {
+        "idle": "pets/misha_idle.png",
+        "walk": "pets/misha_walk.png",
+        "happy": "pets/misha_happy.png",
+        "eat": "pets/misha_eat.png",
+        "sleep": "pets/misha_sleep.png"
+      }
+    },
+    {
+      "id": "gino",
+      "name": "Gino",
+      "country": "Italy",
+      "species": "Venetian Pup",
+      "favorite_food": "pizza",
+      "greeting": "Forza! Ogni piccolo passo conta!",
+      "sheet": "sheets/gino_sheet.png",
+      "frames": {
+        "idle": "pets/gino_idle.png",
+        "walk": "pets/gino_walk.png",
+        "happy": "pets/gino_happy.png",
+        "eat": "pets/gino_eat.png",
+        "sleep": "pets/gino_sleep.png"
+      }
+    }
+  ],
+  "foods": [
+    {
+      "id": "pad_thai",
+      "name": "Pad Thai",
+      "country": "Thailand",
+      "icon": "foods/pad_thai.png"
+    },
+    {
+      "id": "bamboo_shoots",
+      "name": "Bamboo Shoots",
+      "country": "ASEAN / China",
+      "icon": "foods/bamboo_shoots.png"
+    },
+    {
+      "id": "halo_halo",
+      "name": "Halo-Halo",
+      "country": "Philippines",
+      "icon": "foods/halo_halo.png"
+    },
+    {
+      "id": "pandesal",
+      "name": "Pandesal",
+      "country": "Philippines",
+      "icon": "foods/pandesal.png"
+    },
+    {
+      "id": "ube_potion",
+      "name": "Ube Potion",
+      "country": "Philippines",
+      "icon": "foods/ube_potion.png"
+    },
+    {
+      "id": "mango_sticky_rice",
+      "name": "Mango Sticky Rice",
+      "country": "Thailand",
+      "icon": "foods/mango_sticky_rice.png"
+    },
+    {
+      "id": "pho",
+      "name": "Mini Pho Bowl",
+      "country": "Vietnam",
+      "icon": "foods/pho.png"
+    },
+    {
+      "id": "satay",
+      "name": "Satay Skewers",
+      "country": "Indonesia",
+      "icon": "foods/satay.png"
+    },
+    {
+      "id": "nasi_lemak",
+      "name": "Nasi Lemak",
+      "country": "Malaysia",
+      "icon": "foods/nasi_lemak.png"
+    },
+    {
+      "id": "kaya_toast",
+      "name": "Kaya Toast",
+      "country": "Singapore",
+      "icon": "foods/kaya_toast.png"
+    },
+    {
+      "id": "samosa",
+      "name": "Crispy Samosa",
+      "country": "India",
+      "icon": "foods/samosa.png"
+    },
+    {
+      "id": "dango",
+      "name": "Tri-Color Dango",
+      "country": "Japan",
+      "icon": "foods/dango.png"
+    },
+    {
+      "id": "baozi",
+      "name": "Steamed Baozi",
+      "country": "China",
+      "icon": "foods/baozi.png"
+    },
+    {
+      "id": "honey_blini",
+      "name": "Honey Blini",
+      "country": "Russia",
+      "icon": "foods/honey_blini.png"
+    },
+    {
+      "id": "pizza",
+      "name": "Margherita Pizza",
+      "country": "Italy",
+      "icon": "foods/pizza.png"
+    }
+  ]
+}

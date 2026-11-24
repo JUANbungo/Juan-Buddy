@@ -16,6 +16,27 @@ const bubble = document.getElementById('bubble');
 const PX_SCALE = 7;
 const FRAME_MS = 170;
 
+const STATE_FILE = { IDLE: 'idle', WALK: 'walk', HAPPY: 'happy', EAT: 'eat', SLEEP: 'sleep' };
+const SPRITE_BASE = '../../assets/sprites/';
+const spriteImages = {};
+
+function preloadSpriteImages(speciesId) {
+  for (const st of spritesMod.STATES || ['IDLE', 'WALK', 'HAPPY', 'EAT', 'SLEEP']) {
+    const key = `${speciesId}_${st}`;
+    if (key in spriteImages) continue;
+    const img = new Image();
+    spriteImages[key] = img;
+    img.onerror = () => { spriteImages[key] = null; };
+    img.src = `${SPRITE_BASE}${speciesId}_${STATE_FILE[st]}.png`;
+  }
+}
+
+function spriteImageFor(speciesId, state) {
+  preloadSpriteImages(speciesId);
+  const img = spriteImages[`${speciesId}_${state}`];
+  return img && img.complete && img.naturalWidth > 0 ? img : null;
+}
+
 let snapshot = null;
 let bubbleTimer = null;
 const particles = [];
@@ -140,35 +161,40 @@ function drawPet(now) {
   if (speciesId !== currentSpecies) {
     currentSpecies = speciesId;
   }
+  const state = petStateFor(now);
+
   let bank = null;
   try {
     bank = ensurePetSprites(speciesId);
   } catch (err) {
     bank = null;
   }
-  if (!bank || !bank[state]) {
+
+  const pngSprite = spriteImageFor(speciesId, state);
+  if (!pngSprite && (!bank || !bank[state])) {
     if (!window.JBSprites) {
       ctx.fillStyle = "#ffb64d";
       ctx.beginPath();
       ctx.ellipse(cx, groundY - 60, 42, 34, 0, 0, Math.PI * 2);
       ctx.fill();
-      return;
     }
     return;
   }
-
-  const state = petStateFor(now);
-  const frame = Math.floor(now / FRAME_MS) % FRAMES_PER_STATE;
-  const sprite = bank[state][frame % bank[state].length];
 
   const bobbing = state === 'HAPPY' || state === 'WALK';
   const yOff = bobbing ? Math.round(Math.sin(now / 260) * 4) : 0;
 
   ctx.save();
   ctx.imageSmoothingEnabled = false;
-  const dw = 32 * PX_SCALE;
-  const dh = 32 * PX_SCALE;
-  ctx.drawImage(sprite, cx - dw / 2, groundY - dh + yOff - 26, dw, dh);
+  if (pngSprite) {
+    ctx.drawImage(pngSprite, cx - 112, groundY - 224 + yOff, 224, 224);
+  } else {
+    const frame = Math.floor(now / FRAME_MS) % FRAMES_PER_STATE;
+    const sprite = bank[state][frame % bank[state].length];
+    const dw = 32 * PX_SCALE;
+    const dh = 32 * PX_SCALE;
+    ctx.drawImage(sprite, cx - dw / 2, groundY - dh + yOff - 26, dw, dh);
+  }
   ctx.restore();
 
   if (state === 'SLEEP' && frame % 2 === 0 && Math.random() < 0.02) {

@@ -2,6 +2,8 @@ node_modules/
 dist/
 *.png
 !assets/icons.js
+!assets/sprites/*.png
+!assets/sprites/food/*.png
 !mobile/icons/*.png
 !android/app/src/main/res/**/*.png
 !android/app/src/main/res/**/*.xml

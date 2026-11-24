@@ -13,6 +13,35 @@ const UPGRADE_MAX = { bed: 5, toys: 5, job: 10, feeder: 1 };
 let latest = null;
 let toastTimer = null;
 
+const FOOD_PNG_BASE = '../assets/sprites/food/';
+const foodImages = {};
+
+function foodImage(id) {
+  if (!(id in foodImages)) {
+    const img = new Image();
+    foodImages[id] = img;
+    img.onload = () => {
+      const cv = img._canvas;
+      if (cv) drawFoodIcon(cv, id);
+    };
+    img.onerror = () => { foodImages[id] = null; };
+    img.src = `${FOOD_PNG_BASE}${id}.png`;
+  }
+  return foodImages[id];
+}
+
+function drawFoodIcon(canvasEl, id) {
+  const cctx = canvasEl.getContext('2d');
+  cctx.imageSmoothingEnabled = false;
+  cctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+  const img = foodImage(id);
+  if (img && img.complete && img.naturalWidth > 0) {
+    cctx.drawImage(img, 0, 0, canvasEl.width, canvasEl.height);
+    return;
+  }
+  cctx.drawImage(sprites.ensureFoodSprite(id), 0, 0, canvasEl.width, canvasEl.height);
+}
+
 const el = (id) => document.getElementById(id);
 
 function showToast(msg, ms) {
@@ -59,9 +88,6 @@ function render(snapshot) {
   el('btn-sleep').textContent = s.flags.sleeping ? '😴 Sleeping...' : '😴 Sleep: Off';
   el('btn-sleep').classList.toggle('on', s.flags.sleeping);
 
-  el('feed-snack').disabled = s.flags.sleeping || s.coins < 5;
-  el('feed-meal').disabled = s.flags.sleeping || s.coins < 15;
-  el('feed-feast').disabled = s.flags.sleeping || s.coins < 40;
   el('btn-play').disabled = s.flags.sleeping || s.meters.energy < 8;
 
   renderShop(s, d);
@@ -126,12 +152,11 @@ function renderFoods(s, d) {
       card.className = 'food-card';
       card.dataset.food = del.id;
       const icon = document.createElement('canvas');
-      icon.width = 16;
-      icon.height = 16;
+      icon.width = 32;
+      icon.height = 32;
+      foodImage(del.id)._canvas = icon;
       try {
-        const cctx = icon.getContext('2d');
-        cctx.imageSmoothingEnabled = false;
-        cctx.drawImage(sprites.ensureFoodSprite(del.id), 0, 0, 16, 16);
+        drawFoodIcon(icon, del.id);
       } catch (err) {
         const fb = document.createElement('div');
         fb.className = 'food-icon-fallback';

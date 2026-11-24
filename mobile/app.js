@@ -5,6 +5,23 @@ const sprites = window.JBSprites;
 
 const SAVE_KEY = 'juanbuddy-mobile-save';
 
+const STATE_FILE = { IDLE: 'idle', WALK: 'walk', HAPPY: 'happy', EAT: 'eat', SLEEP: 'sleep' };
+const spriteImages = {};
+
+function spriteImageFor(speciesId, anim) {
+  for (const st of ['IDLE', 'WALK', 'HAPPY', 'EAT', 'SLEEP']) {
+    const key = `${speciesId}_${st}`;
+    if (!(key in spriteImages)) {
+      const img = new Image();
+      spriteImages[key] = img;
+      img.onerror = () => { spriteImages[key] = null; };
+      img.src = `sprites/${speciesId}_${STATE_FILE[st]}.png`;
+    }
+  }
+  const img = spriteImages[`${speciesId}_${anim}`];
+  return img && img.complete && img.naturalWidth > 0 ? img : null;
+}
+
 function loadState() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
@@ -173,12 +190,18 @@ function drawPet(now) {
   if (!bank) return;
 
   const anim = petStateFor(now);
+  const yOff = anim === 'HAPPY' || anim === 'WALK' ? Math.round(Math.sin(now / 260) * 4) : 0;
+  petCtx.imageSmoothingEnabled = false;
+
+  const pngSprite = spriteImageFor(speciesId, anim);
+  if (pngSprite) {
+    petCtx.drawImage(pngSprite, 8, 214 - 224 + yOff, 224, 224);
+    return;
+  }
+
   const frame = Math.floor(now / 170) % sprites.FRAMES_PER_STATE;
   const sprite = bank[anim] && bank[anim][frame % bank[anim].length];
   if (!sprite) return;
-
-  const yOff = anim === 'HAPPY' || anim === 'WALK' ? Math.round(Math.sin(now / 260) * 4) : 0;
-  petCtx.imageSmoothingEnabled = false;
   petCtx.drawImage(sprite, 120 - 112, 214 - 224 + yOff, 224, 224);
 
   if (anim === 'SLEEP' && Math.random() < 0.02) particles.push({ kind: 'z', x: 150, y: 30, vy: -0.5, life: 1, size: 16, wobble: 0 });
