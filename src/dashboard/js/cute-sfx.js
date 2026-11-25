@@ -147,6 +147,26 @@
       tone(jitter(1175), 0.16, { type: 'sine', vol: 0.08, delay: 0.09 });
       tone(jitter(1760), 0.2, { type: 'sine', vol: 0.05, delay: 0.2 });
     },
+    tick() {
+      noise(0.03, { freq: 2200, vol: 0.04, q: 1.4 });
+      tone(jitter(720), 0.04, { type: 'triangle', vol: 0.05 });
+    },
+    bloom() {
+      tone(jitter(660), 0.1, { type: 'triangle', slide: 990, vol: 0.12 });
+      tone(jitter(990), 0.14, { type: 'sine', vol: 0.09, delay: 0.07 });
+      [1568, 2093].forEach((f, i) => tone(jitter(f), 0.14, { type: 'sine', vol: 0.05, delay: 0.14 + i * 0.05 }));
+      noise(0.08, { freq: 4200, vol: 0.025, delay: 0.16 });
+    },
+    victory() {
+      const seq = [523, 659, 784, 1047];
+      seq.forEach((f, i) => {
+        tone(f, 0.18, { type: 'triangle', vol: 0.11, delay: i * 0.13 });
+        tone(f * 2, 0.16, { type: 'sine', vol: 0.05, delay: i * 0.13 + 0.02 });
+      });
+      tone(2093, 0.4, { type: 'sine', vol: 0.07, delay: 0.56 });
+      tone(2637, 0.34, { type: 'sine', vol: 0.05, delay: 0.66 });
+      noise(0.22, { freq: 5200, vol: 0.03, delay: 0.58 });
+    },
   };
 
   function play(name) {
@@ -156,5 +176,5 @@
     try { unlock(); fn(); } catch (err) { /* audio unavailable */ }
   }
 
-  root.CuteSfx = { play };
+  root.CuteSfx = { play, playLevelUpVictory() { play('victory'); } };
 })(typeof self !== 'undefined' ? self : this);

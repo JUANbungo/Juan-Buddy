@@ -1,0 +1,18 @@
+{
+  "pack": "Juan-Buddy Eco-Friendly 16-bit Eating Assets",
+  "native_size": [
+    24,
+    20
+  ],
+  "scaled_4x_size": [
+    96,
+    80
+  ],
+  "options": {
+    "wood_bowl_sheet_4x": "wood_bowl/wood_bowl_eating_sheet_4x.png",
+    "banana_leaf_empty_base_4x": "banana_leaf/banana_leaf_03_empty_base_4x.png",
+    "banana_leaf_sheet_4x": "banana_leaf/banana_leaf_eating_sheet_4x.png",
+    "fx_crumbs_4x": "fx/fx_eating_crumbs_4x.png",
+    "fx_heart_4x": "fx/fx_eating_heart_4x.png"
+  }
+}

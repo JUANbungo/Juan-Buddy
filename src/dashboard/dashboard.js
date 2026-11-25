@@ -117,6 +117,13 @@ function maybeShowNameModal() {
 
 let perkKeyShown = null;
 
+const PERK_ICONS_PNG = {
+  coins: 'assets/icons/coin_gold_leaf.png',
+  xp: 'assets/icons/stat_exp_vine.png',
+  energy: 'assets/icons/stat_energy_sun.png',
+  rest: 'assets/icons/weather_night_firefly.png',
+};
+
 function maybeShowPerkModal(d) {
   const modal = el('perk-modal');
   if (!modal || !d.perks) return;
@@ -137,19 +144,26 @@ function maybeShowPerkModal(d) {
     (pending.choices || []).forEach((c, i) => {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = `perk-choice ${c.rarity === 'epic' ? 'epic' : ''}`;
+      btn.className = `perk-choice ${c.rarity === 'epic' ? 'epic' : 'common'}`;
       btn.dataset.perkIdx = String(i);
-      btn.innerHTML = `<span class="pk-ico"></span><span class="pk-name"></span><span class="pk-desc"></span><span class="pk-badge"></span>`;
-      btn.querySelector('.pk-ico').textContent = c.icon || '\uD83E\uDDF0';
+      const icoSrc = PERK_ICONS_PNG[c.type] || '';
+      btn.innerHTML = `<span class="pk-ico">${icoSrc ? `<img class="pixelated" src="${icoSrc}" alt="" draggable="false" onerror="this.style.display='none'"/>` : ''}</span><span class="pk-name"></span><span class="pk-desc"></span><span class="pk-badge"></span>`;
+      if (!icoSrc) btn.querySelector('.pk-ico').textContent = c.icon || '\uD83E\uDDF0';
       btn.querySelector('.pk-name').textContent = c.name || c.type;
       btn.querySelector('.pk-desc').textContent = c.desc || '';
       const badge = btn.querySelector('.pk-badge');
-      badge.textContent = c.rarity === 'epic' ? '\u2728 EPIC (1%)' : 'COMMON';
+      badge.textContent = c.rarity === 'epic' ? '\u2728 EPIC (1% luck)' : 'COMMON';
+      btn.addEventListener('mouseenter', () => { if (cuteSfx) cuteSfx.play('tick'); });
       wrap.appendChild(btn);
     });
   }
   modal.classList.remove('hidden');
+  if (cuteSfx) cuteSfx.playLevelUpVictory();
   sfxOnce('levelup');
+  try {
+    const wrapRect = modal.getBoundingClientRect();
+    if (window.JuanBuddyEco) window.JuanBuddyEco.burst(wrapRect.left + wrapRect.width / 2, wrapRect.top + 120, 'petals');
+  } catch (err) { /* decorative only */ }
 }
 
 function sfxOnce(name) {
@@ -517,7 +531,11 @@ function renderFoods(s, d) {
       mid.querySelector('.f-name').appendChild(document.createElement('span')).className = 'f-name-text';
       const btn = document.createElement('button');
       btn.className = 'btn f-feed';
-      btn.addEventListener('click', () => act('feed', { foodId: del.id }));
+      btn.addEventListener('click', () => {
+        lastFed = { foodId: del.id };
+        lastBiteStage = -1;
+        return act('feed', { foodId: del.id });
+      });
       card.appendChild(icon);
       card.appendChild(mid);
       card.appendChild(btn);
@@ -604,14 +622,26 @@ function renderBuddyPicker(s) {
       tile.title = p.description || p.species;
       if (s.pet.species === p.id) tile.classList.add('selected');
       else if (s.pet.stage === 'egg') tile.classList.add('mystery');
-      const animInfo = STAGE_PNG_ANIMS[p.id];
+      const animInfo = PET_PREVIEW_PNG[p.id] ? { src: PET_PREVIEW_PNG[p.id] } : null;
       let vis;
       if (animInfo) {
         vis = document.createElement('img');
         vis.className = 'pixelated';
         vis.draggable = false;
         vis.alt = p.name;
-        vis.src = `../../assets/sprites/${animInfo.dir}/frames/${animInfo.name}_frame_01.png`;
+        vis.src = animInfo.src;
+        vis.addEventListener('error', () => {
+          const cv = document.createElement('canvas');
+          cv.width = 32;
+          cv.height = 32;
+          try {
+            const bank = sprites.ensurePetSprites(p.id);
+            const cctx = cv.getContext('2d');
+            cctx.imageSmoothingEnabled = false;
+            cctx.drawImage(bank.IDLE[0], 0, 0, 32, 32);
+          } catch (err) { /* preview only */ }
+          vis.replaceWith(cv);
+        });
       } else {
         vis = document.createElement('canvas');
         vis.width = 32;
@@ -647,12 +677,10 @@ function updateBrandFace(s) {
   const face = el('brand-face');
   if (!face) return;
   const pid = s.pet && s.pet.species;
-  const animInfo = pid ? STAGE_PNG_ANIMS[pid] : null;
+  const animInfo = pid ? PET_PREVIEW_PNG[pid] : null;
   const src = !pid || s.pet.stage === 'egg'
     ? BRAND_FACE_PAW
-    : animInfo
-      ? `../../assets/sprites/${animInfo.dir}/frames/${animInfo.name}_frame_01.png`
-      : `../../assets/sprites/${pid}_idle_0.png`;
+    : animInfo || `../../assets/sprites/${pid}_idle_0.png`;
   if (face.dataset.src !== src) {
     face.dataset.src = src;
     face.src = src;
@@ -809,6 +837,7 @@ const petWalk = { x: STAGE_CX, y: 312, dir: 1, target: null, moving: false };
 const stageFx = [];
 let lastStageNow = 0;
 let petDraw = { cx: STAGE_CX, size: 264, dir: 1 };
+let petDrawInfo = null;
 
 function spawnFx(kind, x, y, opts) {
   const o = opts || {};
@@ -818,12 +847,13 @@ function spawnFx(kind, x, y, opts) {
 const STAGE_STATE_FILE = { IDLE: 'idle', WALK: 'walk', HAPPY: 'happy', EAT: 'eat', SLEEP: 'sleep' };
 const stageFrames = {};
 
-const STAGE_PNG_ANIMS = {
-  pusa: { dir: 'pusa/pusa', name: 'pusa', frames: 8 },
-  agila: { dir: 'pusa/agila', name: 'agila', frames: 8 },
-  uwak: { dir: 'pusa/uwak', name: 'uwak', frames: 8 },
-  ahas: { dir: 'pusa/ahas', name: 'ahas', frames: 8 },
-  dragon: { dir: 'pusa/dragon_flame', name: 'dragon_flame', frames: 12 },
+const STAGE_PNG_ANIMS = {};
+const PET_PREVIEW_PNG = {
+  pusa: '../../assets/sprites/pusa_idle_0.png',
+  agila: '../../assets/sprites/agila_idle_0.png',
+  uwak: '../../assets/sprites/uwak_idle_0.png',
+  ahas: '../../assets/sprites/ahas_idle_0.png',
+  dragon: '../../assets/sprites/dragon_idle_0.png',
 };
 
 function stageFramesFor(id, state) {
@@ -1688,28 +1718,71 @@ function equippedOverlays(d2) {
   return out.filter((o) => o.pngId || o.emo);
 }
 
+const PET_ANCHORS = {
+  default: {
+    Head: { fx: 0.0, fy: 0.02, w: 0.46, snug: 0.07 },
+    Neck: { fx: 0.08, fy: 0.3, w: 0.36 },
+    Back: { fx: -0.52, fy: 0.38, w: 0.5 },
+    Weapon: { fx: 0.56, fy: 0.5, w: 0.44 },
+    Armor: { fx: -0.22, fy: 0.52, w: 0.44 },
+    Relic: { fx: -0.56, fy: 0.74, w: 0.36 },
+  },
+  pusa: { Head: { fx: 0.02, fy: 0.02, w: 0.46, snug: 0.07 } },
+  agila: { Head: { fx: 0.0, fy: 0.03, w: 0.44, snug: 0.08 } },
+  uwak: { Head: { fx: 0.0, fy: 0.02, w: 0.42, snug: 0.06 } },
+  ahas: { Head: { fx: 0.06, fy: 0.18, w: 0.4, snug: 0.05 } },
+  dragon: { Head: { fx: 0.0, fy: 0.03, w: 0.5, snug: 0.08 } },
+};
+
+const contentBoxCache = new WeakMap();
+function contentBoxOf(img) {
+  if (!img || !img.naturalWidth) return { top: 0.06, bottom: 0.94 };
+  if (contentBoxCache.has(img)) return contentBoxCache.get(img);
+  let out = { top: 0.06, bottom: 0.94 };
+  try {
+    const s = Math.min(64, img.naturalWidth);
+    const c = document.createElement('canvas');
+    c.width = s;
+    c.height = s;
+    const icmp = c.getContext('2d', { willReadFrequently: true });
+    icmp.imageSmoothingEnabled = false;
+    icmp.drawImage(img, 0, 0, s, s);
+    const data = icmp.getImageData(0, 0, s, s).data;
+    let top = null;
+    let bottom = null;
+    for (let y = 0; y < s && top === null; y += 1) {
+      for (let x = 0; x < s; x += 1) if (data[(y * s + x) * 4 + 3] > 24) { top = y; break; }
+    }
+    for (let y = s - 1; y >= 0 && bottom === null; y -= 1) {
+      for (let x = 0; x < s; x += 1) if (data[(y * s + x) * 4 + 3] > 24) { bottom = y; break; }
+    }
+    if (top !== null && bottom !== null) out = { top: top / s, bottom: (bottom + 1) / s };
+  } catch (err) { /* tainted or missing frame */ }
+  contentBoxCache.set(img, out);
+  return out;
+}
+
 function drawEquippedOnPet(now) {
   const overlays = equippedOverlays();
   if (!overlays.length) return;
-  const dir = petWalk.dir || 1;
-  const cx = petWalk.x;
-  const gy = petWalk.y;
-  const sz = petDraw && petDraw.size ? petDraw.size : 64;
-  const bob = Math.round(Math.sin(now / 260) * 4) / 2;
-  const anchors = {
-    Head: { fx: 0, fy: 1.04, w: 0.5 },
-    Neck: { fx: 0.14, fy: 0.72, w: 0.4 },
-    Back: { fx: -0.58, fy: 0.6, w: 0.56 },
-    Weapon: { fx: 0.52, fy: 0.54, w: 0.5 },
-    Armor: { fx: -0.34, fy: 0.44, w: 0.5 },
-    Relic: { fx: -0.5, fy: 0.8, w: 0.4 },
-  };
+  const info = petDrawInfo || { cx: petWalk.x, topY: petWalk.y - 56, contentH: 52, yOff: 0, dir: petWalk.dir || 1 };
+  const dir = info.dir;
+  const cx = info.cx;
+  const ch = info.contentH || 52;
+  const species = latest && latest.state && latest.state.pet ? latest.state.pet.species : null;
+  const petSet = PET_ANCHORS[species] || {};
+  const anchors = { ...PET_ANCHORS.default, ...petSet };
   stageCtx.save();
   for (const o of overlays) {
     const a = anchors[o.slot] || anchors.Relic;
-    const iw = Math.max(14, Math.round(sz * a.w));
-    const x = cx + dir * sz * a.fx;
-    const y = gy - sz * a.fy + bob;
+    const iw = Math.max(14, Math.round(ch * a.w));
+    const x = cx + dir * ch * a.fx;
+    let y;
+    if (o.slot === 'Head') {
+      y = info.topY + ch * a.fy - iw / 2 + ch * a.snug;
+    } else {
+      y = info.topY + ch * a.fy + info.yOff;
+    }
     if (o.pngId) {
       const img = overlayImg(`../../assets/sprites/items/${o.pngId.startsWith('cos_') ? 'cosmetics' : 'equipment'}/${o.pngId}.png`);
       if (img) {
@@ -1718,9 +1791,9 @@ function drawEquippedOnPet(now) {
         continue;
       }
     }
-    stageCtx.font = '17px sans-serif';
+    stageCtx.font = `${Math.max(12, Math.round(ch * 0.32))}px sans-serif`;
     stageCtx.textAlign = 'center';
-    stageCtx.fillText(o.emo, x, y);
+    stageCtx.fillText(o.emo, x, y + iw / 3);
   }
   stageCtx.restore();
 }
@@ -1995,6 +2068,7 @@ function drawStagePet(now) {
   const depthF = (petWalk.y - WALK_Y_MIN) / (WALK_Y_MAX - WALK_Y_MIN);
   const boxSize = Math.round(264 * stageScale * (0.8 + 0.28 * depthF));
   petDraw = { cx: petWalk.x, gy: petWalk.y, size: boxSize, dir: petWalk.dir };
+  petDrawInfo = null;
 
   stageCtx.save();
   stageCtx.globalAlpha = 0.22;
@@ -2019,7 +2093,7 @@ function drawStagePet(now) {
     stageCtx.restore();
   }
 
-  if (st === 'EAT') drawFoodBowl(petWalk.x + 40 * petWalk.dir, petWalk.y);
+  if (st === 'EAT') drawFoodBowl(petWalk.x + 42 * petWalk.dir, petWalk.y, now);
 
   const phaseTint = d.phase && d.phase.tint;
   const wTint = weatherOverlay(d.weather ? d.weather.id : 'clear');
@@ -2073,8 +2147,8 @@ function drawStagePet(now) {
     stageCtx.fillText(prog > 0.8 ? 'crack... crack!' : `keep caring... ${Math.round(prog * 100)}%`, STAGE_CX, petWalk.y + 26);
     stageCtx.restore();
   } else {
-    const bobbing = st === 'HAPPY' || st === 'WALK';
-    const yOff = bobbing ? Math.round(Math.sin(now / 260) * 4) : 0;
+    const bobbing = st === 'HAPPY' || st === 'WALK' || st === 'EAT';
+    const yOff = bobbing ? Math.round(Math.sin(now / (st === 'EAT' ? 130 : 260)) * (st === 'EAT' ? 2 : 4)) : 0;
 
     stageCtx.save();
     stageCtx.imageSmoothingEnabled = smoothGraphics;
@@ -2115,6 +2189,14 @@ function drawStagePet(now) {
         const by = petWalk.y - Math.round(boxSize * spriteFootFrac(img)) + yOff;
         if (sub) g.drawImage(img, sub.sx, sub.sy, sub.sw, sub.sh, bx, by, boxSize, boxSize);
         else g.drawImage(img, bx, by, boxSize, boxSize);
+        const cb = sub ? { top: 0.06, bottom: 0.94 } : contentBoxOf(img);
+        petDrawInfo = {
+          cx: petWalk.x,
+          topY: by + boxSize * cb.top,
+          contentH: Math.max(20, boxSize * (cb.bottom - cb.top)),
+          yOff,
+          dir: petWalk.dir,
+        };
       }
       g.restore();
     };
@@ -2124,7 +2206,6 @@ function drawStagePet(now) {
     stageCtx.restore();
 
     if (st === 'SLEEP' && Math.random() < 0.02) spawnFx('z', petWalk.x + 20, petWalk.y - boxSize + 24, { vy: -0.35, size: 15 });
-    if (st === 'EAT' && Math.random() < 0.02) spawnFx('crumb', petWalk.x + 40, petWalk.y - 12, { vy: -0.3, size: 10 });
     if ((s.flags.working || s.activity) && Math.random() < 0.012) spawnFx('coin', petWalk.x + (Math.random() < 0.5 ? -50 : 50), 90, { vy: -0.4, size: 18 });
     if (petWalk.moving && Math.random() < 0.09) spawnFx('spark', petWalk.x - petWalk.dir * boxSize * 0.3, petWalk.y - 4, { vy: -0.15, size: 10 });
   }
@@ -2143,35 +2224,82 @@ function drawStagePet(now) {
     }
     stageCtx.save();
     stageCtx.globalAlpha = Math.min(1, p2.life);
-    stageCtx.font = `${p2.size}px sans-serif`;
-    stageCtx.textAlign = 'center';
-    stageCtx.fillStyle = p2.kind === 'heart' ? '#ff6b81' : p2.kind === 'coin' ? '#ffd166' : 'rgba(240, 240, 255, 0.9)';
-    const glyph = p2.kind === 'heart' ? '\u2764' : p2.kind === 'coin' ? '\u{1F4B0}' : p2.kind === 'crumb' ? '\u00b7' : p2.kind === 'z' ? 'z' : '\u2726';
-    stageCtx.fillText(glyph, p2.x, p2.y);
+    if (p2.kind === 'imgfx' && p2.img) {
+      stageCtx.imageSmoothingEnabled = false;
+      stageCtx.drawImage(p2.img, p2.x - p2.size / 2, p2.y - p2.size / 2, p2.size, p2.size);
+    } else {
+      stageCtx.font = `${p2.size}px sans-serif`;
+      stageCtx.textAlign = 'center';
+      stageCtx.fillStyle = p2.kind === 'heart' ? '#ff6b81' : p2.kind === 'coin' ? '#ffd166' : 'rgba(240, 240, 255, 0.9)';
+      const glyph = p2.kind === 'heart' ? '\u2764' : p2.kind === 'coin' ? '\u{1F4B0}' : p2.kind === 'crumb' ? '\u00b7' : p2.kind === 'z' ? 'z' : '\u2726';
+      stageCtx.fillText(glyph, p2.x, p2.y);
+    }
     stageCtx.restore();
   }
 }
 
-function drawFoodBowl(x, gy) {
-  const by1 = (gy || STAGE_GROUND) - 9;
-  const by2 = (gy || STAGE_GROUND) + 3;
+const eatingImgCache = {};
+function eatingImg(file) {
+  if (!(file in eatingImgCache)) {
+    const img = new Image();
+    img.onerror = () => { img.bad = true; };
+    img.src = `../../assets/sprites/eating/${file}`;
+    eatingImgCache[file] = img;
+  }
+  const im = eatingImgCache[file];
+  return im && !im.bad && im.complete && im.naturalWidth > 0 ? im : null;
+}
+
+let lastFed = null;
+let lastBiteStage = -1;
+
+function drawFoodBowl(x, gy, now) {
+  const s = latest && latest.state;
+  const eatUntil = s && s.effects ? s.effects.eatUntil : 0;
+  const t = Date.now();
+  const remaining = Math.max(0, eatUntil - t);
+  const frac = Math.max(0, Math.min(1, remaining / 6000));
+  const leaf = eatingImg('banana_leaf/banana_leaf_01_full_4x.png');
+  const leafHalf = eatingImg('banana_leaf/banana_leaf_02_half_4x.png');
+  const leafEmpty = eatingImg('banana_leaf/banana_leaf_03_empty_base_4x.png');
+  const lw = 48;
+  const lh = 40;
+  const lx = x - lw / 2;
+  const ly = (gy || STAGE_GROUND) - lh + 6;
   stageCtx.save();
-  stageCtx.fillStyle = '#be123c';
-  stageCtx.beginPath();
-  stageCtx.moveTo(x - 17, by1);
-  stageCtx.lineTo(x + 17, by1);
-  stageCtx.lineTo(x + 12, by2);
-  stageCtx.lineTo(x - 12, by2);
-  stageCtx.closePath();
-  stageCtx.fill();
-  stageCtx.strokeStyle = '#881337';
-  stageCtx.lineWidth = 2;
-  stageCtx.stroke();
-  stageCtx.fillStyle = Math.sin(Date.now() / 300) > 0 ? '#eab308' : '#d97706';
-  stageCtx.beginPath();
-  stageCtx.ellipse(x, by1, 13, 5, 0, 0, Math.PI * 2);
-  stageCtx.fill();
+  stageCtx.imageSmoothingEnabled = false;
+  if (leafEmpty) stageCtx.drawImage(leafEmpty, lx, ly, lw, lh);
+  let stage = 2;
+  if (frac > 0.66) stage = 0;
+  else if (frac > 0.33) stage = 1;
+  if (stage === 0 || stage === 1) {
+    const base = stage === 0 ? leaf : leafHalf;
+    if (base) stageCtx.drawImage(base, lx, ly, lw, lh);
+    if (lastFed && lastFed.foodId) {
+      const food = foodImage(lastFed.foodId);
+      const okFood = food && food.complete && food.naturalWidth > 0;
+      const fw = Math.round(lw * (stage === 0 ? 0.62 : 0.42));
+      if (okFood) {
+        const munch = Math.sin(now / 130) * 1.5;
+        stageCtx.drawImage(food, lx + lw / 2 - fw / 2, ly + lh * 0.18 - fw * 0.45 + munch, fw, fw);
+      }
+    }
+  }
+  if (stage !== lastBiteStage && lastBiteStage >= 0) {
+    for (let i = 0; i < 3; i += 1) {
+      spawnImgFx('fx/fx_eating_crumbs_4x.png', x + (Math.random() * 16 - 8), ly + 6, { vy: -0.25, size: 12 });
+    }
+    if (cuteSfx) cuteSfx.play('munch');
+  }
+  lastBiteStage = stage;
   stageCtx.restore();
+}
+
+function spawnImgFx(file, x, y, opts) {
+  const img = eatingImg(file);
+  if (!img) return;
+  const o = opts || {};
+  stageFx.push({ kind: 'imgfx', img, x, y, vy: o.vy !== undefined ? o.vy : -0.5, life: 1, size: o.size || 16, wobble: Math.random() * 6 });
 }
 
 function eggToCtx(g, now, prog) {
@@ -2301,6 +2429,8 @@ if (stageMenuBtn && stageMenu) {
 }
 
 let lastStepAt = 0;
+let eatPrevState = null;
+let eatMunchAt = 0;
 (function stageLoop() {
   const stageNow = performance.now();
   drawStagePet(stageNow);
@@ -2309,6 +2439,16 @@ let lastStepAt = 0;
     if (cuteSfx) cuteSfx.play('step');
     if (Math.random() < 0.45) spawnFx('crumb', petWalk.x - 14 * petWalk.dir, petWalk.y + 2, { vy: -0.12, size: 8 });
   }
+  const nowState = stageStateFor();
+  if (nowState === 'EAT' && stageNow - eatMunchAt > 520) {
+    eatMunchAt = stageNow;
+    if (cuteSfx) cuteSfx.play('munch');
+  }
+  if (eatPrevState === 'EAT' && nowState !== 'EAT') {
+    spawnImgFx('fx/fx_eating_heart_4x.png', petWalk.x, petWalk.y - 40, { vy: -0.45, size: 20 });
+    lastFed = null;
+  }
+  eatPrevState = nowState;
   requestAnimationFrame(stageLoop);
 })();
 
@@ -2627,6 +2767,11 @@ if (perkModal && perkChoices) {
     const idx = Number(btn.dataset.perkIdx);
     const res = await api.action('choosePerk', { index: idx });
     if (res && res.ok) {
+      if (cuteSfx) cuteSfx.play('bloom');
+      try {
+        const r = btn.getBoundingClientRect();
+        if (window.JuanBuddyEco) window.JuanBuddyEco.burst(r.left + r.width / 2, r.top + r.height / 2, 'leaves');
+      } catch (err) { /* decorative only */ }
       perkModal.classList.add('hidden');
       perkKeyShown = null;
       const epic = res.perk && res.perk.rarity === 'epic';
@@ -3028,7 +3173,7 @@ on('path-cards','click', async (e) => {
   if (pathPending !== card.dataset.choosepath) {
     pathPending = card.dataset.choosepath;
     if (cuteSfx) cuteSfx.play('pop');
-    renderRpg(latest);
+    renderRpg(latest && latest.derived);
     showToast('\u2728 Tap the card again to lock in this Destiny \u2014 it is permanent!', 2600);
     return;
   }
@@ -3112,9 +3257,9 @@ function renderPetShop(d) {
       card.className = 'pet-shop-card';
       card.dataset.shoppet = pt.id;
       const img = document.createElement('img');
-      const anim = STAGE_PNG_ANIMS[pt.id];
+      const anim = PET_PREVIEW_PNG[pt.id];
       img.className = 'pixelated petshop-ico';
-      img.src = anim ? `../../assets/sprites/${anim.dir}/frames/${anim.name}_frame_01.png` : '';
+      img.src = anim || '';
       const body = document.createElement('div');
       body.innerHTML = '<div class="b-name"></div><div class="b-bonus small muted"></div>';
       const btn = document.createElement('button');

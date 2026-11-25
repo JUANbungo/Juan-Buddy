@@ -6,6 +6,7 @@ dist/
 !assets/sprites/food/*.png
 !assets/sprites/battle/monsters/**/*.png
 !assets/sprites/pusa/**/*.png
+!assets/sprites/eating/**/*.png
 !assets/sprites/evolutions/**/*.png
 !assets/sprites/items/**/*.png
 !assets/sprites/ui/**/*.png
