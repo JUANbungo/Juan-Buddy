@@ -1593,3 +1593,91 @@ header.topbar { padding-right: 262px; }
 @media (prefers-reduced-motion: reduce) {
   .btn-graphic, .btn-graphic:hover { transition: none; transform: none; }
 }
+
+/* ==== Flag icons (Windows-10-safe, drawn on canvas) ==== */
+.flag-node {
+  width: 20px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(60, 45, 20, 0.35);
+  display: inline-block;
+  vertical-align: -2px;
+  margin-right: 5px;
+  flex: 0 0 auto;
+}
+.filter-chip .flag-node { vertical-align: -3px; }
+.f-name { display: flex; align-items: center; min-width: 0; }
+.f-name .f-name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b-flag { display: inline-flex; align-items: center; }
+
+/* ==== Splash / loading screen ==== */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255, 213, 74, 0.15), transparent 42%),
+    radial-gradient(circle at 78% 82%, rgba(255, 143, 92, 0.14), transparent 45%),
+    linear-gradient(160deg, #241c10 0%, #171310 58%, #100d0b 100%);
+}
+.splash::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--bg, #fbf3e4) url('../../assets/wallpapers/juan_buddy_paw_06_peach.png') repeat;
+  background-size: 606px 1016px;
+  opacity: 0.07;
+}
+.splash-card {
+  position: relative;
+  width: min(430px, 88vw);
+  padding: 30px 34px 24px;
+  text-align: center;
+  background: var(--cream, #fff3d9);
+  border: 3px solid #6b5030;
+  border-radius: 16px;
+  box-shadow: 0 14px 0 rgba(0, 0, 0, 0.35), 0 22px 60px rgba(0, 0, 0, 0.5);
+}
+.splash-logo {
+  height: 84px;
+  max-width: 92%;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+.splash-title {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: #4a3b28;
+  margin-top: 4px;
+}
+.splash-tag { color: #7a6850; margin: 3px 0 16px; }
+.splash-load {
+  height: 14px;
+  border: 2px solid #6b5030;
+  border-radius: 8px;
+  background: #f7ecd4;
+  overflow: hidden;
+}
+.splash-load > div {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #f5a623, #ffd54a);
+  transition: width 0.18s ease;
+}
+#splash-status { margin-top: 7px; }
+.splash-actions { display: flex; gap: 12px; justify-content: center; margin: 18px 0 6px; }
+.splash-actions .btn { min-width: 132px; }
+.splash-links { display: flex; gap: 18px; justify-content: center; margin-top: 8px; }
+.splash-credits {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 2px dashed rgba(107, 80, 48, 0.4);
+}
+.splash-credits p { margin: 5px 0; }
+@media (prefers-reduced-motion: reduce) {
+  .splash-load > div { transition: none; }
+}

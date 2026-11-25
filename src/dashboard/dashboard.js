@@ -97,6 +97,12 @@ function namedAlready() {
   } catch (err) { return false; }
 }
 
+function clearNamedFlag() {
+  try {
+    if (typeof localStorage !== 'undefined') localStorage.removeItem('juanbuddy-named');
+  } catch (err) { /* ignore */ }
+}
+
 function maybeShowNameModal() {
   const modal = el('name-modal');
   if (!modal || namedAlready() || !latest) return;
@@ -326,6 +332,97 @@ const foodState = { filter: 'all', query: '' };
 const foodCards = {};
 let filterChips = null;
 
+function flagCanvas(country, w, h) {
+  const cw = w || 22;
+  const ch = h || 15;
+  const cv = document.createElement('canvas');
+  cv.width = cw;
+  cv.height = ch;
+  cv.className = 'flag-node pixelated';
+  const ctx = cv.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  const t = ch / 3;
+  const star = (cx, cy, r, color) => {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    for (let i = 0; i < 10; i += 1) {
+      const ang = -Math.PI / 2 + (i * Math.PI) / 5;
+      const rad = i % 2 === 0 ? r : r * 0.45;
+      const sx = cx + Math.cos(ang) * rad;
+      const sy = cy + Math.sin(ang) * rad;
+      if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+    }
+    ctx.closePath();
+    ctx.fill();
+  };
+  const stripes = (colors) => {
+    colors.forEach((c, i) => {
+      ctx.fillStyle = c;
+      ctx.fillRect(0, (ch / colors.length) * i, cw, ch / colors.length + 1);
+    });
+  };
+  switch (country) {
+    case 'Philippines':
+      ctx.fillStyle = '#0038a8'; ctx.fillRect(0, 0, cw, ch / 2);
+      ctx.fillStyle = '#ce1126'; ctx.fillRect(0, ch / 2, cw, ch / 2);
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(cw * 0.45, ch / 2); ctx.lineTo(0, ch); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#fcd116'; ctx.fillRect(cw * 0.16 - 2, ch / 2 - 2, 4, 4);
+      break;
+    case 'Thailand':
+      stripes(['#a51931', '#f4f5f8', '#2d2a4a', '#f4f5f8', '#a51931']);
+      break;
+    case 'Vietnam':
+      ctx.fillStyle = '#da251d'; ctx.fillRect(0, 0, cw, ch);
+      star(cw / 2, ch / 2, ch * 0.25, '#ffff00');
+      break;
+    case 'Indonesia':
+      ctx.fillStyle = '#ce1126'; ctx.fillRect(0, 0, cw, ch / 2);
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, ch / 2, cw, ch / 2);
+      break;
+    case 'Malaysia': {
+      for (let i = 0; i < 7; i += 1) {
+        ctx.fillStyle = i % 2 === 0 ? '#cc0001' : '#fff';
+        ctx.fillRect(0, (ch / 7) * i, cw, ch / 7 + 1);
+      }
+      ctx.fillStyle = '#010066'; ctx.fillRect(0, 0, cw * 0.5, ch / 2);
+      ctx.fillStyle = '#ffcc00'; ctx.beginPath(); ctx.arc(cw * 0.25, ch / 4, ch * 0.13, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#010066'; ctx.beginPath(); ctx.arc(cw * 0.29, ch / 4, ch * 0.11, 0, Math.PI * 2); ctx.fill();
+      break;
+    }
+    case 'Singapore':
+      ctx.fillStyle = '#ce1126'; ctx.fillRect(0, 0, cw, ch / 2);
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, ch / 2, cw, ch / 2);
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cw * 0.25, ch * 0.25, ch * 0.13, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ce1126'; ctx.beginPath(); ctx.arc(cw * 0.29, ch * 0.25, ch * 0.11, 0, Math.PI * 2); ctx.fill();
+      break;
+    case 'India':
+      stripes(['#ff9933', '#ffffff', '#138808']);
+      ctx.fillStyle = '#000080'; ctx.beginPath(); ctx.arc(cw / 2, ch / 2, ch * 0.13, 0, Math.PI * 2); ctx.fill();
+      break;
+    case 'Japan':
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cw, ch);
+      ctx.fillStyle = '#bc002d'; ctx.beginPath(); ctx.arc(cw / 2, ch / 2, ch * 0.3, 0, Math.PI * 2); ctx.fill();
+      break;
+    case 'China':
+      ctx.fillStyle = '#de2910'; ctx.fillRect(0, 0, cw, ch);
+      star(cw * 0.2, ch * 0.3, ch * 0.18, '#ffde00');
+      break;
+    case 'Russia':
+      stripes(['#ffffff', '#0039a6', '#d52b1e']);
+      break;
+    case 'Italy':
+      ctx.fillStyle = '#009246'; ctx.fillRect(0, 0, cw / 3, ch);
+      ctx.fillStyle = '#fff'; ctx.fillRect(cw / 3, 0, cw / 3, ch);
+      ctx.fillStyle = '#ce2b37'; ctx.fillRect(cw * 2 / 3, 0, cw / 3 + 1, ch);
+      break;
+    default:
+      ctx.fillStyle = '#9a8f7d'; ctx.fillRect(0, 0, cw, ch);
+      break;
+  }
+  return cv;
+}
+
 function regionGroup(country) {
   if (country === 'Philippines') return 'ph';
   if (country === 'India') return 'india';
@@ -337,16 +434,17 @@ function renderFoodFilters() {
   if (!filterChips) {
     filterChips = {};
     const defs = [
-      ['all', '✨ All'],
-      ['ph', '🇵🇭 PH Favorites'],
-      ['asean', '🌴 SE Asia'],
-      ['india', '🇮🇳 India'],
-      ['world', '🌏 World'],
+      ['all', '✨ All', ''],
+      ['ph', 'PH Favorites', 'Philippines'],
+      ['asean', '🌴 SE Asia', ''],
+      ['india', 'India', 'India'],
+      ['world', '🌏 World', ''],
     ];
-    for (const [key, label] of defs) {
+    for (const [key, label, flagCountry] of defs) {
       const chip = document.createElement('button');
       chip.className = 'filter-chip';
-      chip.textContent = label;
+      if (flagCountry && key !== 'all') chip.appendChild(flagCanvas(flagCountry, 20, 14));
+      chip.appendChild(document.createTextNode(` ${label}`));
       chip.addEventListener('click', () => {
         foodState.filter = key;
         renderFoodFilters();
@@ -389,6 +487,8 @@ function renderFoods(s, d) {
       }
       const mid = document.createElement('div');
       mid.innerHTML = `<div class="f-name"></div><div class="f-meta"></div><div class="f-fav-tag"></div>`;
+      mid.querySelector('.f-name').appendChild(flagCanvas(del.country, 20, 14));
+      mid.querySelector('.f-name').appendChild(document.createElement('span')).className = 'f-name-text';
       const btn = document.createElement('button');
       btn.className = 'btn f-feed';
       btn.addEventListener('click', () => act('feed', { foodId: del.id }));
@@ -407,11 +507,11 @@ function renderFoods(s, d) {
     const isFav = fav && fav.favoriteFood === del.id;
     card.style.display = matchesRegion && matchesQuery ? '' : 'none';
     card.classList.toggle('fav', isFav);
-    card._els.name.textContent = `${del.flag || ''} ${del.name}`;
+    card._els.name.textContent = del.name;
     card._els.meta.textContent = `🍖${del.hunger} · 💖${del.happy}${del.energy ? ` · ⚡${del.energy}` : ''}${del.buff ? ` · ${del.buff.label}` : ''}`;
     card._els.favTag.textContent = isFav ? '★ ' + fav.name + "'s favorite!" : '';
     const afford = s.coins >= del.cost;
-    card._els.btn.textContent = del.cost === 0 ? 'FREE' : `🪙${del.cost}`;
+    card._els.btn.textContent = del.cost === 0 ? 'FREE' : `💰${del.cost}`;
     card._els.btn.disabled = s.flags.sleeping || !afford || s.meters.hunger >= 99;
   }
 }
@@ -441,7 +541,7 @@ function renderActivities(s, d) {
     row.querySelector('.a-name').textContent = `${a.icon} ${a.name}`;
     row.querySelector('.a-desc').textContent = a.desc;
     row.querySelector('.a-rewards').textContent =
-      `⚡${a.energy} · 🪙${a.coins[0]}–${a.coins[1]} · +${a.xp} XP · ${a.duration}s · CD ${a.cooldown}s`;
+      `⚡${a.energy} · 💰${a.coins[0]}–${a.coins[1]} · +${a.xp} XP · ${a.duration}s · CD ${a.cooldown}s`;
     const btn = row.querySelector('.a-btn');
     const anyActive = d.activities.some((x) => x.active);
     if (a.active) {
@@ -492,7 +592,8 @@ function renderBuddyPicker(s) {
       name.textContent = p.name;
       const flag = document.createElement('span');
       flag.className = 'b-flag';
-      flag.textContent = `${p.flag || ''} ${p.country}`;
+      flag.appendChild(flagCanvas(p.country, 20, 14));
+      flag.appendChild(document.createTextNode(` ${p.country}`));
       tile.appendChild(cv);
       tile.appendChild(name);
       tile.appendChild(flag);
@@ -537,7 +638,7 @@ function renderShop(s, d) {
     card.querySelector('.desc').textContent = meta.desc;
     const btn = card.querySelector('.buy-btn');
     btn.disabled = maxed || s.coins < cost;
-    btn.textContent = maxed ? 'Maxed out' : `Upgrade — 🪙${cost}`;
+    btn.textContent = maxed ? 'Maxed out' : `Upgrade — 💰${cost}`;
   }
 }
 
@@ -565,15 +666,62 @@ el('open-login').addEventListener('change', (e) => {
 
 el('btn-reset').addEventListener('click', async () => {
   if (!window.confirm('Reset all progress? This cannot be undone.')) return;
-  await api.action('reset');
+  const res = await api.action('reset');
+  if (res && res.ok) clearNamedFlag();
   showToast('Progress reset.');
 });
+
+// ==== Splash / loading screen ====
+let splashReadyShown = false;
+function splashSetup() {
+  const splash = el('splash');
+  if (!splash) return;
+  const fill = el('splash-fill');
+  const status = el('splash-status');
+  const start = el('btn-splash-start');
+  let progress = 0;
+  const timer = setInterval(() => {
+    progress = Math.min(100, progress + (splashReadyShown ? 12 : 7));
+    if (fill) fill.style.width = `${progress}%`;
+    if (status && progress >= 100) status.textContent = 'Ready!';
+    if (progress >= 100) {
+      clearInterval(timer);
+      if (start) start.disabled = false;
+    }
+  }, 95);
+  if (start) start.addEventListener('click', () => {
+    splash.classList.add('hidden');
+    startBgmOnGesture();
+    if (sfx) sfx.play('happy');
+  });
+  const exit = el('btn-splash-exit');
+  if (exit) exit.addEventListener('click', () => {
+    if (api && api.action) api.action('exitApp');
+    else if (typeof window.close === 'function') window.close();
+  });
+  const creditsBox = el('splash-credits');
+  const creditsBtn = el('btn-splash-credits');
+  const creditsBack = el('btn-splash-credits-back');
+  if (creditsBtn && creditsBox && creditsBack) {
+    creditsBtn.addEventListener('click', () => { creditsBox.classList.remove('hidden'); if (sfx) sfx.play('click'); });
+    creditsBack.addEventListener('click', () => creditsBox.classList.add('hidden'));
+  }
+  const updatesBtn = el('btn-splash-updates');
+  if (updatesBtn) updatesBtn.addEventListener('click', () => {
+    const url = 'https://github.com/JUANbungo/Juan-Buddy/releases/latest';
+    if (api && api.action) api.action('openUrl', { url });
+    else if (typeof window.open === 'function') window.open(url, '_blank');
+    if (sfx) sfx.play('click');
+  });
+}
+splashSetup();
 
 api.onState(render);
 api.getState().then((snap) => {
   if (snap) el('open-login').checked = !!snap.openAtLogin;
   render(snap);
-});
+  splashReadyShown = true;
+}).catch(() => { splashReadyShown = true; });
 
 const petStageCanvas = document.getElementById('dash-pet');
 const stageCtx = petStageCanvas.getContext('2d');
@@ -1752,7 +1900,7 @@ function renderExtras(d) {
     nm.textContent = sk.name;
     const btn = document.createElement('button');
     btn.className = 'btn f-feed';
-    btn.textContent = sk.equipped ? '✓ Equipped' : sk.owned ? 'Equip' : sk.gachaOnly ? '🎰 Gacha only' : `🪙 ${sk.cost}`;
+    btn.textContent = sk.equipped ? '✓ Equipped' : sk.owned ? 'Equip' : sk.gachaOnly ? '🎰 Gacha only' : `💰 ${sk.cost}`;
     btn.disabled = sk.equipped || (!!sk.gachaOnly && !sk.owned);
     btn.addEventListener('click', async () => {
       const res = await api.action(sk.owned ? 'setSkin' : 'buySkin', { skinId: sk.id });
@@ -1998,8 +2146,20 @@ el('btn-import').addEventListener('click', async () => {
 el('btn-new-game').addEventListener('click', async () => {
   if (!window.confirm('Start over with a new egg? Your buddy will be gone forever, but your achievements stay.')) return;
   const res = await api.action('newGame');
+  if (res && res.ok) clearNamedFlag();
   showToast(res && res.message, 4000);
 });
+
+const brandLogoEl = el('brand-logo');
+if (brandLogoEl) {
+  brandLogoEl.style.cursor = 'pointer';
+  brandLogoEl.addEventListener('click', () => {
+    const url = 'https://www.instagram.com/juanbungo/';
+    if (api && api.action) api.action('openUrl', { url });
+    else if (typeof window.open === 'function') window.open(url, '_blank');
+    if (sfx) sfx.play('click');
+  });
+}
 
 const monsterCards = {};
 const gearShopCards = {};
@@ -2296,7 +2456,7 @@ function bonusText(it) {
   if (it.agi) parts.push(`+${it.agi} AGI`);
   if (it.mag) parts.push(`+${it.mag} MAG`);
   if (it.luk) parts.push(`+${it.luk} LUK`);
-  return parts.length ? parts.join(' ') : (it.id === engine.EVO_STONE_ID ? 'Unlocks Stage 2 Evolution' : 'Keepsake');
+  return parts.length ? parts.join(' ') : (it.id === 'eq_evo_stone' ? 'Unlocks Stage 2 Evolution' : 'Keepsake');
 }
 
 function renderBag(d) {
@@ -2389,7 +2549,8 @@ el('bag-grid').addEventListener('click', (e) => {
   const card = e.target.closest('.bag-card');
   if (!card || !card.dataset.item) return;
   const itemId = card.dataset.item;
-  const it = engine.ITEMS.find((x) => x.id === itemId);
+  const shop = latest && latest.derived && latest.derived.rpg && latest.derived.rpg.items ? latest.derived.rpg.items.shop : [];
+  const it = shop.find((x) => x.id === itemId);
   if (!it) return;
   if (!it.owned) act('buyItem', { itemId });
   else act('equipItem', { itemId });

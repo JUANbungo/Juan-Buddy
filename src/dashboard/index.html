@@ -6,6 +6,29 @@
   <link rel="stylesheet" href="dashboard.css" />
 </head>
 <body>
+  <div id="splash" class="splash">
+    <div class="splash-card">
+      <img class="splash-logo pixelated" src="../../assets/branding/juan_buddy_logo.png" alt="Juan Buddy" />
+      <div class="splash-title">JUAN BUDDY</div>
+      <div class="splash-tag">Your cozy idle pet buddy 🐾</div>
+      <div class="splash-load"><div id="splash-fill"></div></div>
+      <div id="splash-status" class="muted small">Loading…</div>
+      <div class="splash-actions">
+        <button id="btn-splash-start" class="btn btn-amber" disabled>▶ Start</button>
+        <button id="btn-splash-exit" class="btn btn-danger">✖ Exit</button>
+      </div>
+      <div class="splash-links">
+        <button id="btn-splash-credits" class="link">📝 Credits</button>
+        <button id="btn-splash-updates" class="link">🔄 Updates</button>
+      </div>
+      <div id="splash-credits" class="splash-credits hidden">
+        <p>Crafted with ❤️ by <strong>John Albert Tancio Datu</strong></p>
+        <p class="muted small">Juan Buddy — a cozy idle pet RPG. Feed, play, explore, and grow together.</p>
+        <button id="btn-splash-credits-back" class="link">← Back</button>
+      </div>
+    </div>
+  </div>
+
   <header class="topbar">
     <div class="topbar-row">
       <div class="brand">
@@ -199,8 +222,8 @@
                 <div id="gear-gacha-result" class="gacha-result hidden"></div>
               </div>
               <div class="gacha-actions">
-                <button id="btn-gear-gacha-1" class="btn btn-amber">🗡️ Wish ×1 — 🪙100</button>
-                <button id="btn-gear-gacha-10" class="btn btn-violet">✨ Wish ×10 — 🪙900</button>
+                <button id="btn-gear-gacha-1" class="btn btn-amber">🗡️ Wish ×1 — 💰100</button>
+                <button id="btn-gear-gacha-10" class="btn btn-violet">✨ Wish ×10 — 💰900</button>
               </div>
               <div id="gear-gacha-rates" class="gacha-rates muted small"></div>
               <div id="gear-gacha-stats" class="muted small"></div>

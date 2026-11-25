@@ -2,7 +2,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, Notification } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, Notification, shell } = require('electron');
 const engine = require('./src/engine/engine');
 const motivation = require('./src/pet/motivation');
 
@@ -104,6 +104,16 @@ function runAction(action, payload) {
     case 'setOpenAtLogin':
       app.setLoginItemSettings({ openAtLogin: !!(payload && payload.open) });
       result = { ok: true, message: payload && payload.open ? 'Will open at login.' : 'Autostart disabled.' };
+      break;
+    case 'openUrl':
+      if (payload && typeof payload.url === 'string' && /^https:\/\//.test(payload.url)) {
+        shell.openExternal(payload.url);
+        result = { ok: true };
+      }
+      break;
+    case 'exitApp':
+      app.quit();
+      result = { ok: true };
       break;
     case 'reset':
       result = resetState();
