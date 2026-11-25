@@ -75,6 +75,43 @@ function maybeShowNameModal() {
   if (s && s.pet && s.pet.name === 'Buddy' && s.pet.stage === 'egg') modal.classList.remove('hidden');
 }
 
+let perkKeyShown = null;
+
+function maybeShowPerkModal(d) {
+  const modal = el('perk-modal');
+  if (!modal || !d.perks) return;
+  const pending = d.perks.pending;
+  if (!pending) {
+    if (perkKeyShown) {
+      modal.classList.add('hidden');
+      perkKeyShown = null;
+    }
+    return;
+  }
+  const key = `${pending.at}:${(pending.choices || []).map((c) => `${c.type}${c.rarity}`).join(',')}`;
+  if (perkKeyShown === key && !modal.classList.contains('hidden')) return;
+  perkKeyShown = key;
+  const wrap = el('perk-choices');
+  if (wrap) {
+    wrap.innerHTML = '';
+    (pending.choices || []).forEach((c, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `perk-choice ${c.rarity === 'epic' ? 'epic' : ''}`;
+      btn.dataset.perkIdx = String(i);
+      btn.innerHTML = `<span class="pk-ico"></span><span class="pk-name"></span><span class="pk-desc"></span><span class="pk-badge"></span>`;
+      btn.querySelector('.pk-ico').textContent = c.icon || '\uD83E\uDDF0';
+      btn.querySelector('.pk-name').textContent = c.name || c.type;
+      btn.querySelector('.pk-desc').textContent = c.desc || '';
+      const badge = btn.querySelector('.pk-badge');
+      badge.textContent = c.rarity === 'epic' ? '\u2728 EPIC (1%)' : 'COMMON';
+      wrap.appendChild(btn);
+    });
+  }
+  modal.classList.remove('hidden');
+  sfxOnce('levelup');
+}
+
 function sfxOnce(name) {
   if (!sfx) return;
   const now = Date.now();
@@ -96,7 +133,7 @@ function playActionSound(action, res) {
     rename: 'click', setSpecies: 'happy',
     battleMonster: 'happy', allocateStat: 'levelup', buyGear: 'buy', equipGear: 'happy',
     pullGearGacha: 'coin', choosePath: 'achv', cleanWaste: 'click',
-    buyItem: 'buy', equipItem: 'happy', useEvoStone: 'evolve',
+    buyItem: 'buy', equipItem: 'happy', useEvoStone: 'evolve', choosePerk: 'levelup',
   };
   sfxOnce(map[action] || 'click');
 }
@@ -173,6 +210,7 @@ function render(snapshot) {
     if (wantSmooth !== smoothGraphics) applyGraphics(wantSmooth);
   }
   maybeShowNameModal();
+  maybeShowPerkModal(d);
 
   if (toast && sfx) {
     const msg = String(toast);
@@ -1760,6 +1798,28 @@ if (nameModal && nameInput) {
   el('btn-name-skip').addEventListener('click', () => {
     closeNameModal();
     showToast('Your buddy keeps the name Buddy — rename it later by clicking its name! 💛');
+  });
+}
+
+// ==== Perk choice modal (every level-up) ====
+const perkModal = el('perk-modal');
+const perkChoices = el('perk-choices');
+if (perkModal && perkChoices) {
+  perkChoices.addEventListener('click', async (e) => {
+    const btn = e.target.closest ? e.target.closest('button[data-perk-idx]') : null;
+    if (!btn) return;
+    const idx = Number(btn.dataset.perkIdx);
+    const res = await api.action('choosePerk', { index: idx });
+    if (res && res.ok) {
+      perkModal.classList.add('hidden');
+      perkKeyShown = null;
+      const epic = res.perk && res.perk.rarity === 'epic';
+      sfxOnce(epic ? 'evolve' : 'levelup');
+      if (epic && typeof spawnConfetti === 'function') spawnConfetti(perkModal, 5);
+      showToast((res && res.message) || '. ..', 3200);
+    } else {
+      if (res) showToast(res.message || '. ..');
+    }
   });
 }
 

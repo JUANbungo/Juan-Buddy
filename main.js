@@ -85,6 +85,7 @@ function runAction(action, payload) {
     case 'choosePath': result = engine.choosePath(state, payload && payload.pathId); break;
     case 'cleanWaste': result = engine.cleanWaste(state, payload ? payload.index : undefined); break;
     case 'setSettings': result = engine.setSettings(state, payload); break;
+    case 'choosePerk': result = engine.choosePerk(state, payload ? payload.index : undefined); break;
     case 'buySkin': result = engine.buySkin(state, payload && payload.skinId); break;
     case 'setSkin': result = engine.setSkin(state, payload && payload.skinId); break;
     case 'exportSave':

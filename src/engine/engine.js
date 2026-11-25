@@ -574,6 +574,8 @@ const ACHIEVEMENTS = [
   { id: 'path_1', icon: '🌀', name: 'Destiny Chosen', desc: 'Commit to a path', check: (s) => !!s.path },
   { id: 'evo_1', icon: '\ud83d\udcab', name: 'Ascended', desc: 'Evolve to Stage 2 form', check: (s) => !!(s.pet && s.pet.evolved) },
   { id: 'items_3', icon: '\ud83c\udf92', name: 'Glammed Up', desc: 'Own 3 cozy items', check: (s) => !!(s.items && s.items.owned.length >= 3) },
+  { id: 'perk_1', icon: '\ud83e\uDDF0', name: 'Growth Spurt', desc: 'Claim your first level-up perk', check: (s) => (s.perksClaimed || 0) >= 1 },
+  { id: 'perk_epic', icon: '\u2728', name: 'Epic Fate', desc: 'Roll an EPIC perk (1% luck!)', check: (s) => (s.epicPerks || 0) >= 1 },
 ];
 
 const WEATHER_POOL = ['clear', 'clear', 'cloudy', 'clear', 'rainy', 'cloudy', 'clear', 'stormy', 'cloudy', 'clear', 'snowy', 'clear'];
@@ -617,6 +619,10 @@ function defaultState() {
     skin: 'classic',
     skinsOwned: ['classic'],
     settings: { bgmOn: true, bgmVol: 0.5, sfxVol: 0.7, pixelGraphics: true },
+    perks: { coins: 0, xp: 0, energy: 0, rest: 0 },
+    pendingPerk: null,
+    perksClaimed: 0,
+    epicPerks: 0,
     neglect: 0,
     dead: null,
     lastSeen: Date.now(),
@@ -625,9 +631,12 @@ function defaultState() {
 
 function ensureState(state) {
   const fresh = defaultState();
-  for (const key of ['stats', 'achievements', 'daily', 'gacha', 'playdays', 'allocated', 'gear', 'gearOwned', 'gearGacha', 'battle', 'waste', 'skin', 'skinsOwned', 'neglect', 'dead', 'settings']) {
+  for (const key of ['stats', 'achievements', 'daily', 'gacha', 'playdays', 'allocated', 'gear', 'gearOwned', 'gearGacha', 'battle', 'waste', 'skin', 'skinsOwned', 'neglect', 'dead', 'settings', 'perks']) {
     if (state[key] === undefined) state[key] = fresh[key];
   }
+  if (state.pendingPerk === undefined) state.pendingPerk = null;
+  if (state.epicPerks === undefined) state.epicPerks = 0;
+  if (state.perksClaimed === undefined) state.perksClaimed = 0;
   if (state.settings) {
     for (const k of ['bgmOn', 'pixelGraphics']) if (state.settings[k] === undefined) state.settings[k] = fresh.settings[k];
     for (const k of ['bgmVol', 'sfxVol']) if (typeof state.settings[k] !== 'number' || Number.isNaN(state.settings[k])) state.settings[k] = fresh.settings[k];
@@ -681,6 +690,7 @@ function coinRate(state) {
   let rate = 0.5 * Math.pow(1.6, job - 1) * petBonus;
   if (state.meters.happiness < 25) rate *= 0.6;
   if (state.path === 'work') rate *= 1.5;
+  rate *= 1 + perkPct(state, 'coins');
   rate += itemBonus(state).luk * 0.02;
   return rate;
 }
@@ -723,7 +733,7 @@ function tick(state, dtSeconds, offline) {
   const isBabyGrace = state.pet.stage !== 'egg' && state.pet.level <= 3;
   const careScale = state.pet.stage === 'egg' ? 0.35 : isBabyGrace ? 0.65 : 1;
 
-  let energyDrain = 0.021 * bedFactor * (f.working ? 1.8 : 1);
+  let energyDrain = 0.021 * bedFactor * (f.working ? 1.8 : 1) * (1 - Math.min(0.6, perkPct(state, 'energy')));
   let hungerDrain = 0.028 * (f.working ? 1.5 : 1);
   let happinessDrain = 0.017;
   if (m.hunger < 25) happinessDrain += 0.03;
@@ -731,7 +741,7 @@ function tick(state, dtSeconds, offline) {
   if ((state.waste || []).length > 0) happinessDrain += 0.02 * state.waste.length;
 
   if (f.sleeping) {
-    m.energy = clamp100(m.energy + 0.8 * dt);
+    m.energy = clamp100(m.energy + 0.8 * (1 + perkPct(state, 'rest')) * dt);
     hungerDrain = 0.02;
   } else if (f.working) {
     const gained = coinRate(state) * dt * (offline ? 0.5 : 1);
@@ -853,14 +863,19 @@ function startActivity(state, id) {
 
 function applyLevelUps(state) {
   let need = xpForNextLevel(state.pet.level);
+  let levelsGained = 0;
   while (state.pet.xp >= need) {
     state.pet.xp -= need;
     state.pet.level += 1;
     state.statPoints = (state.statPoints || 0) + 2;
+    levelsGained += 1;
     need = xpForNextLevel(state.pet.level);
     if (state.pet.level >= EVOLVE_LEVEL && !state.pet.evolved && state.pet.stage !== 'egg') {
       evolvePet(state);
     }
+  }
+  if (levelsGained > 0 && !state.pendingPerk) {
+    state.pendingPerk = rollPerkChoices();
   }
   const curIdx = Math.max(0, STAGES.findIndex((st) => st.id === state.pet.stage));
   const levelStageIdx = STAGES.findIndex((st) => st.id === stageForLevel(state.pet.level).id);
@@ -896,10 +911,76 @@ function deadGate(state) {
   return null;
 }
 
+const PERK_TYPES = {
+  coins: { id: 'coins', icon: '\u{1FA99}', name: 'Golden Touch' },
+  xp: { id: 'xp', icon: '\u2B50', name: 'Star Spirit' },
+  energy: { id: 'energy', icon: '\u{1F50B}', name: 'Iron Heart' },
+  rest: { id: 'rest', icon: '\uD83D\uDE34', name: 'Deep Dreams' },
+};
+const PERK_COMMON = { coins: 0.05, xp: 0.05, energy: 0.04, rest: 0.1 };
+const PERK_EPIC_MUL = 3;
+const PERK_EPIC_CHANCE = 0.01;
+
+function perkPct(state, kind) {
+  const p = state.perks;
+  return p && typeof p[kind] === 'number' ? p[kind] : 0;
+}
+
 function currentXpMul(state) {
-  return state.effects.xpMulUntil && Date.now() < state.effects.xpMulUntil
+  const effectMul = state.effects.xpMulUntil && Date.now() < state.effects.xpMulUntil
     ? state.effects.xpMul || 1
     : 1;
+  return effectMul * (1 + perkPct(state, 'xp'));
+}
+
+function perkDesc(perk) {
+  const b = Math.round(perk.bonus * 100);
+  if (perk.type === 'coins') return `+${b}% coin earnings (work & battles)`;
+  if (perk.type === 'xp') return `+${b}% XP from everything`;
+  if (perk.type === 'energy') return `Energy drains ${b}% slower (longer life!)`;
+  return `Sleep recovers +${b}% energy`;
+}
+
+function perkName(perk) {
+  const base = PERK_TYPES[perk.type] ? PERK_TYPES[perk.type].name : perk.type;
+  return perk.rarity === 'epic' ? `\u2728 Epic ${base}` : base;
+}
+
+function perkIcon(type) {
+  return PERK_TYPES[type] ? PERK_TYPES[type].icon : '\uD83E\uDDF0';
+}
+
+function rollPerkChoices() {
+  const types = ['coins', 'xp', 'energy', 'rest'].sort(() => Math.random() - 0.5).slice(0, 3);
+  return {
+    at: Date.now(),
+    choices: types.map((type) => {
+      const epic = Math.random() < PERK_EPIC_CHANCE;
+      return { type, rarity: epic ? 'epic' : 'common', bonus: PERK_COMMON[type] * (epic ? PERK_EPIC_MUL : 1) };
+    }),
+  };
+}
+
+function choosePerk(state, index) {
+  const gate = deadGate(state);
+  if (gate) return gate;
+  const pending = state.pendingPerk;
+  if (!pending || !Array.isArray(pending.choices) || !pending.choices.length) {
+    return { ok: false, message: 'No perk to claim right now \u2014 level up first! \u2B50' };
+  }
+  const perk = pending.choices[index];
+  if (!perk) return { ok: false, message: 'Perk index out of range.' };
+  state.perks = state.perks || { coins: 0, xp: 0, energy: 0, rest: 0 };
+  state.perks[perk.type] = (state.perks[perk.type] || perkPct(state, perk.type)) + perk.bonus;
+  state.pendingPerk = null;
+  state.perksClaimed = (state.perksClaimed || 0) + 1;
+  if (perk.rarity === 'epic') state.epicPerks = (state.epicPerks || 0) + 1;
+  state.achievements = state.achievements || [];
+  if (!state.achievements.includes('perk_1')) state.achievements.push('perk_1');
+  const label = perkName(perk);
+  state.stageEvents = state.stageEvents || [];
+  state.stageEvents.push(`${perk.rarity === 'epic' ? '\u2728' : '\uD83E\uDDF0'} Perk claimed: ${label} \u2014 ${perkDesc(perk)}!`);
+  return { ok: true, message: `\uD83E\uDDF0 ${label} unlocked: ${perkDesc(perk)}!`, perk };
 }
 
 function applyFood(state, food, opts) {
@@ -1223,6 +1304,15 @@ function derivedStats(state) {
     stats: state.stats,
     waste: (state.waste || []).map((w, i) => ({ ...w, index: i })),
     rpg: rpgStats(state),
+    perks: {
+      bonuses: state.perks ? { ...state.perks } : { coins: 0, xp: 0, energy: 0, rest: 0 },
+      pending: state.pendingPerk && Array.isArray(state.pendingPerk.choices) ? {
+        at: state.pendingPerk.at,
+        choices: state.pendingPerk.choices.map((c) => ({ ...c, name: perkName(c), desc: perkDesc(c), icon: perkIcon(c.type) })),
+      } : null,
+      claimed: state.perksClaimed || 0,
+      epics: state.epicPerks || 0,
+    },
     settings: state.settings ? { ...state.settings } : { bgmOn: true, bgmVol: 0.5, sfxVol: 0.7, pixelGraphics: true },
   };
 }
@@ -1385,6 +1475,9 @@ return {
   useEvoStone,
   itemBonus,
   setSettings,
+  choosePerk,
+  PERK_TYPES,
+  PERK_EPIC_CHANCE,
   allocateStat,
   battleMonster,
   buyGear,

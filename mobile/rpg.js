@@ -381,6 +381,62 @@ function renderItems(d) {
   }
 }
 
+// ==== Level-up perk modal ====
+let perkKeyShownMobile = null;
+
+function perkDescMobile(perk) {
+  const b = Math.round(perk.bonus * 100);
+  if (perk.type === 'coins') return `+${b}% coins (work & battles)`;
+  if (perk.type === 'xp') return `+${b}% XP from everything`;
+  if (perk.type === 'energy') return `Energy drains ${b}% slower (longer life!)`;
+  return `Sleep recovers +${b}% energy`;
+}
+
+const PERK_LABELS = { coins: ['\u{1FA99}', 'Golden Touch'], xp: ['\u2B50', 'Star Spirit'], energy: ['\u{1F50B}', 'Iron Heart'], rest: ['\uD83D\uDE34', 'Deep Dreams'] };
+
+function renderPerkModal(d) {
+  const modal = document.getElementById('m-perk-modal');
+  if (!modal || !d.perks) return;
+  const pending = d.perks.pending;
+  if (!pending) {
+    if (perkKeyShownMobile) { modal.classList.add('hidden'); perkKeyShownMobile = null; }
+    return;
+  }
+  const key = `${pending.at}:${(pending.choices || []).map((c) => `${c.type}${c.rarity}`).join(',')}`;
+  if (perkKeyShownMobile === key && !modal.classList.contains('hidden')) return;
+  perkKeyShownMobile = key;
+  const wrap = document.getElementById('m-perk-choices');
+  if (wrap) {
+    wrap.innerHTML = '';
+    (pending.choices || []).forEach((c, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `btn wide m-perk-choice ${c.rarity === 'epic' ? 'epic' : ''}`;
+      btn.dataset.perkIdx = String(i);
+      const info = PERK_LABELS[c.type] || ['\uD83E\uDDF0', c.type];
+      btn.innerHTML = '<b class="pk-name"></b><span class="pk-desc"></span>';
+      btn.querySelector('.pk-name').textContent = `${info[0]} ${c.rarity === 'epic' ? '\u2728 Epic ' : ''}${info[1]}`;
+      btn.querySelector('.pk-desc').textContent = perkDescMobile(c);
+      wrap.appendChild(btn);
+    });
+  }
+  modal.classList.remove('hidden');
+}
+
+document.addEventListener('click', async (e) => {
+  const btn = e.target && e.target.closest ? e.target.closest('button[data-perk-idx]') : null;
+  if (!btn) return;
+  const res = run('choosePerk', { index: Number(btn.dataset.perkIdx) });
+  const modal = document.getElementById('m-perk-modal');
+  if (res && res.ok) {
+    if (modal) modal.classList.add('hidden');
+    perkKeyShownMobile = null;
+    if (sfx) sfx.play(res.perk && res.perk.rarity === 'epic' ? 'evolve' : 'levelup');
+    showToast((res && res.message) || 'Perk claimed!', 3200);
+    render(engine.derivedStats(state));
+  }
+});
+
 const baseWrapped = render;
 render = function renderWithItems(d) {
   baseWrapped(d);
@@ -389,6 +445,12 @@ render = function renderWithItems(d) {
   } catch (err) {
     /* keep UI alive */
   }
+  try {
+    renderPerkModal(d);
+  } catch (err) {
+    /* keep UI alive */
+  }
 };
 
 renderItems(engine.derivedStats(state));
+renderPerkModal(engine.derivedStats(state));

@@ -522,5 +522,59 @@ check('settings: ensureState backfills settings for old saves', () => {
   assert(s.settings && s.settings.bgmOn === true, 'settings backfilled');
 });
 
+check('perk system: level-up rolls 3 choices, epic roll at 1% gives triple bonus', () => {
+  const s = engine.defaultState();
+  s.pet.stage = 'adult';
+  s.pet.species = 'kala';
+  const realRandom = Math.random;
+  Math.random = () => 0.001;
+  s.pet.xp = 9999;
+  engine.tick(s, 1, false);
+  Math.random = realRandom;
+  assert(s.pendingPerk && s.pendingPerk.choices.length === 3, 'pending perk offered after level up');
+  assert(s.pendingPerk.choices.every((c) => c.rarity === 'epic'), '0.001 roll <= 1% => all epic');
+  assert(s.pendingPerk.choices.every((c) => c.bonus >= 0.04 * 3), 'epic bonus is 3x');
+  const d = engine.derivedStats(s);
+  assert(d.perks.pending && d.perks.pending.choices[0].name && d.perks.pending.choices[0].desc, 'choices enriched for UI');
+});
+
+check('perk system: choosePerk applies coin/xp bonuses and clamps bad input', () => {
+  const s = engine.defaultState();
+  s.pet.stage = 'adult';
+  s.pet.species = 'kala';
+  s.pendingPerk = { at: 1, choices: [
+    { type: 'coins', rarity: 'common', bonus: 0.05 },
+    { type: 'xp', rarity: 'epic', bonus: 0.15 },
+  ] };
+  const bad = engine.choosePerk(s, 5);
+  assert(bad.ok === false, 'bad index rejected');
+  const ok = engine.choosePerk(s, 0);
+  assert(ok.ok === true, `claim ok: ${ok.message}`);
+  assert(s.perks.coins === 0.05, 'coins bonus stored');
+  const base = 0.5 * 1 * (1 + 0.05);
+  assert(Math.abs(engine.coinRate(s) - base) < 1e-9, `coinRate boosted (${engine.coinRate(s)})`);
+  assert(Math.abs(engine.currentXpMul(s) - 1) < 1e-9, 'xp bonus not applied until chosen');
+  s.pendingPerk = { at: 2, choices: [{ type: 'xp', rarity: 'epic', bonus: 0.15 }] };
+  const ok2 = engine.choosePerk(s, 0);
+  assert(ok2.ok === true, `claim2 ok: ${ok2.message}`);
+  assert(Math.abs(engine.currentXpMul(s) - 1.15) < 1e-9, `xpMul=${engine.currentXpMul(s)}`);
+  assert(s.perksClaimed === 2 && s.epicPerks === 1, 'counters tracked');
+});
+
+check('perk system: rest and energy perks affect tick recovery/drain', () => {
+  const s = engine.defaultState();
+  s.pet.stage = 'adult';
+  s.pet.species = 'kala';
+  s.pendingPerk = { at: 3, choices: [
+    { type: 'rest', rarity: 'common', bonus: 0.1 },
+    { type: 'energy', rarity: 'common', bonus: 0.04 },
+  ] };
+  engine.choosePerk(s, 0);
+  s.meters.energy = 50;
+  s.flags.sleeping = true;
+  engine.tick(s, 10, false);
+  assert(Math.abs(s.meters.energy - (50 + 8.8)) < 0.001, `rest recovery +10% (${s.meters.energy})`);
+});
+
 console.log(`  ${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);
