@@ -790,7 +790,7 @@
           g.oval(8, 5, 3.2, 2.2, '#9333ea'); g.line(10, 2, 9, 6, '#cbd5e1');
         }
       },
-      { id: 'pandesal', name: 'Warm Pandesal', country: 'Philippines', region: 'Philippines', flag: '🇵🇭', cost: 0, hunger: 24, happy: 15, energy: 14, buff: { stat: 'DEF', val: 2, label: '+2 DEF' },
+      { id: 'pandesal', name: 'Warm Pandesal', country: 'Philippines', region: 'Philippines', flag: '🇵🇭', cost: 15, hunger: 24, happy: 15, energy: 14, buff: { stat: 'DEF', val: 2, label: '+2 DEF' },
         draw(g) {
           g.oval(6, 10, 3.2, 2.5, '#d97706'); g.oval(10, 10, 3.2, 2.5, '#b45309');
           g.oval(8, 7, 3.2, 2.5, '#f59e0b'); g.px(7, 6, '#fde68a');

@@ -2019,6 +2019,14 @@ function renderExtras(d) {
   el('btn-daily').textContent = d.daily.claimedToday ? '✅ Claimed — come back tomorrow!' : `🎁 Claim Daily (+${d.daily.nextReward})`;
   el('btn-daily').disabled = d.daily.claimedToday;
   el('daily-info').textContent = `Streak: ${d.daily.streak} day${d.daily.streak === 1 ? '' : 's'} (best ${d.daily.best})`;
+  const fmEl = el('free-food-note');
+  if (fmEl) fmEl.textContent = d.rewards && d.rewards.freeFoodAvailable ? '1 free random meal — resets at midnight' : 'Claimed — come back tomorrow';
+  const ffb = el('btn-free-food');
+  if (ffb) { const on = d.rewards && d.rewards.freeFoodAvailable; ffb.disabled = !on; ffb.textContent = on ? '🎁 Free Daily Meal!' : '✅ Claimed today'; }
+  const chipC = el('btn-gacha-free');
+  if (chipC) { const on = d.rewards && d.rewards.freePullAvailable; chipC.disabled = !on; chipC.textContent = on ? '🎁 Free Daily Pull!' : 'Free pull used — resets at midnight'; }
+  const chipG = el('btn-gear-gacha-free');
+  if (chipG) { const on = d.rewards && d.rewards.freePullAvailable; chipG.disabled = !on; chipG.textContent = on ? '🎁 Free Daily Wish!' : 'Free wish used — resets at midnight'; }
 
   if (d.gacha && d.gacha.rates) {
     el('gacha-rates').textContent = `Rates: ${d.gacha.rates.map((g) => `${'★'.repeat(g.stars)} ${g.name} ${g.rate < 1 ? g.rate : g.rate + '%'}`).join(' · ')}`;
@@ -2051,6 +2059,7 @@ function renderExtras(d) {
 }
 
 el('btn-daily').addEventListener('click', () => act('claimDaily'));
+el('btn-free-food').addEventListener('click', async () => { await act('claimFreeFood'); });
 
 let gachaBusy = false;
 
@@ -2105,6 +2114,10 @@ async function pullGacha(times) {
   coinLine.className = 'gacha-reward';
   const totalCoins = (res.results || []).reduce((sum, r) => sum + (r.coins || 0), 0);
   coinLine.textContent = times === 10 ? `${best.name} best of 10 — +${totalCoins} coins total` : `+${best.coins} coins`;
+  const iconLine = document.createElement('div');
+  iconLine.className = 'gacha-icon';
+  iconLine.textContent = best.icon || '🎰';
+  resultEl.appendChild(iconLine);
   resultEl.appendChild(starsLine);
   resultEl.appendChild(nameLine);
   resultEl.appendChild(coinLine);
@@ -2121,6 +2134,7 @@ async function pullGacha(times) {
   gachaBusy = false;
 }
 
+el('btn-gacha-free').addEventListener('click', () => pullGacha(1));
 el('btn-gacha-1').addEventListener('click', () => pullGacha(1));
 el('btn-gacha-10').addEventListener('click', () => pullGacha(10));
 
@@ -2567,11 +2581,12 @@ async function pullGearWish(times) {
   sfxOnce(best.rarity === 'mythic' ? 'levelup' : 'coin');
   if (best.stars >= 4) spawnConfetti(frame, best.stars);
   resultEl.className = `gacha-result r-${best.rarity}`;
-  resultEl.innerHTML = `<div class="gacha-stars">${'\u2b50'.repeat(best.stars)}</div><div class="gacha-rarity">${best.rarity.toUpperCase()}</div><div class="gacha-reward">${best.gearUnlocked ? `\ud83d\udee1\ufe0f NEW GEAR: ${best.gearUnlocked}<br>` : ''}+\ud83e\ude99${best.coins}</div>`;
+  resultEl.innerHTML = `<div class="gacha-icon">${best.gearIcon || best.icon || '🎰'}</div><div class="gacha-stars">${'\u2b50'.repeat(best.stars)}</div><div class="gacha-rarity">${best.rarity.toUpperCase()}</div><div class="gacha-reward">${best.gearUnlocked ? `\ud83d\udee1\ufe0f NEW GEAR: ${best.gearUnlocked}<br>` : ''}+\ud83e\ude99${best.coins}</div>`;
   resultEl.classList.remove('hidden');
   setTimeout(() => resultEl.classList.add('hidden'), 3400);
 }
 
+el('btn-gear-gacha-free').addEventListener('click', () => pullGearWish(1));
 el('btn-gear-gacha-1').addEventListener('click', () => pullGearWish(1));
 el('btn-gear-gacha-10').addEventListener('click', () => pullGearWish(10));
 

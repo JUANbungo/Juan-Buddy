@@ -1645,3 +1645,6 @@ header.topbar { padding-right: 262px; }
 @media (prefers-reduced-motion: reduce) {
   .splash-load > div { transition: none; }
 }
+
+.free-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.gacha-icon { font-size: 34px; line-height: 1.2; margin: 4px 0 2px; image-rendering: pixelated; }

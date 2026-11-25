@@ -249,8 +249,14 @@ check('gacha x10 costs 900 and rolls 10 times', () => {
 check('gacha refuses without enough coins', () => {
   const s = engine.defaultState();
   s.coins = 50;
-  const res = engine.pullGacha(s, 1);
-  assert(res.ok === false, 'should refuse');
+  const free = engine.pullGacha(s, 1);
+  assert(free.ok === true && free.freePull === true, 'first daily pull is free');
+  const broke = engine.defaultState();
+  broke.coins = 50;
+  const now = new Date();
+  broke.freePulls = { last: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}` };
+  const res = engine.pullGacha(broke, 1);
+  assert(res.ok === false, 'should refuse when free pull already used');
   assert(res.results === undefined, 'no results when refused');
 });
 

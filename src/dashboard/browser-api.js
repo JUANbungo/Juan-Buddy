@@ -95,6 +95,7 @@
         }
         break;
       case 'claimDaily': result = engine.claimDaily(state); break;
+      case 'claimFreeFood': result = engine.claimFreeFood(state); break;
       case 'pullGacha': result = engine.pullGacha(state, payload && payload.times); break;
       case 'pullGearGacha': result = engine.pullGearGacha(state, payload && payload.times); break;
       case 'allocateStat': result = engine.allocateStat(state, payload && payload.statId); break;

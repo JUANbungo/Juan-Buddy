@@ -242,11 +242,15 @@ function pullGacha(state, times) {
   const gate = deadGate(state);
   if (gate) return gate;
   const count = times === GACHA.multiCount ? GACHA.multiCount : 1;
-  const cost = count === GACHA.multiCount ? GACHA.multiCost : GACHA.cost;
+  if (!state.freePulls) state.freePulls = { last: null };
+  const freePull = count === 1 && state.freePulls.last !== todayKey(Date.now());
+  let cost = count === GACHA.multiCount ? GACHA.multiCost : GACHA.cost;
+  if (freePull) cost = 0;
   if (state.coins < cost) {
     return { ok: false, message: `\ud83e\ude99 Not enough coins \u2014 a \u00d7${count} summon costs ${cost}. Work para sa coins!` };
   }
   state.coins -= cost;
+  if (freePull) state.freePulls.last = todayKey(Date.now());
   if (!state.gacha) state.gacha = { pulls: 0, fiveStars: 0, mythics: 0 };
   const out = [];
   const results = [];
@@ -264,7 +268,7 @@ function pullGacha(state, times) {
       state.skinsOwned.push(g.skin);
       skinUnlocked = SKINS[g.skin].name;
     }
-    results.push({ rarity: g.id, stars: g.stars, name: g.name, coins, skinUnlocked });
+    results.push({ rarity: g.id, stars: g.stars, name: g.name, coins, skinUnlocked, icon: g.id === 'mythic' ? '\ud83d\udcab' : g.id === 'legendary' ? '\ud83c\udf1f' : g.id === 'epic' ? '\ud83d\udd2e' : '\ud83c\udfb0' });
     if (!best || best.stars < g.stars) best = results[results.length - 1];
   }
   checkAchievements(state, out);
@@ -272,8 +276,9 @@ function pullGacha(state, times) {
   let msg = `${starStr} ${best.name} pull! +${best.coins} coins`;
   if (best.skinUnlocked) msg = `${starStr} ${best.name}!! \u2014 unlocked ${best.skinUnlocked} skin! +${best.coins} coins`;
   if (best.rarity === 'mythic') msg = `\ud83c\udfaf \u2b50 MYTHIC!! 0.0001% JACKPOT!! \u2b50 \ud83c\udfaf Unlocked Cosmic Mythic skin + ${best.coins} coins!`;
+  if (freePull) msg += ' (FREE daily pull! \ud83c\udf81)';
   out.push({ ok: true, message: msg });
-  return { ok: true, results, best, events: out, message: msg };
+  return { ok: true, results, best, events: out, message: msg, freePull };
 }
 
 
@@ -346,12 +351,41 @@ function petBattleStats(state) {
   };
 }
 
+function grantMilestones(state) {
+  if (!state.milestones) state.milestones = { rename60: false, pathReset100: false, coins150: false, badge300: false };
+  const days = (state.playdays && state.playdays.count) || 0;
+  const M = state.milestones;
+  if (days >= 60 && !M.rename60) {
+    M.rename60 = true;
+    state.stageEvents = state.stageEvents || [];
+    state.stageEvents.push('\ud83c\udfC5 60-Day milestone! Free Rename unlocked \u2014 rename your buddy anytime!');
+  }
+  if (days >= 100 && !M.pathReset100) {
+    M.pathReset100 = true;
+    state.stageEvents = state.stageEvents || [];
+    state.stageEvents.push('\ud83d\udd04 100-Day milestone! FREE Destiny Path reset unlocked \u2014 change Work/Battle path anytime!');
+  }
+  if (days >= 150 && !M.coins150) {
+    M.coins150 = true;
+    state.coins += 10000;
+    state.stats.coinsEarned += 10000;
+    state.stageEvents = state.stageEvents || [];
+    state.stageEvents.push('\ud83d\udcb0 150-Day milestone! +10,000 coins gifted by your buddy!');
+  }
+  if (days >= 300 && !M.badge300) {
+    M.badge300 = true;
+    state.stageEvents = state.stageEvents || [];
+    state.stageEvents.push('\ud83c\udf89 300-DAY ANNIVERSARY! Anniversary Badge earned \u2014 legend status!');
+  }
+}
+
 function trackPlayday(state) {
   if (!state.playdays) state.playdays = { last: null, count: 0 };
   const tk = todayKey(Date.now());
   if (state.playdays.last !== tk) {
     state.playdays.last = tk;
     state.playdays.count = (state.playdays.count || 0) + 1;
+    grantMilestones(state);
   }
 }
 
@@ -511,11 +545,15 @@ function pullGearGacha(state, times) {
   if (gate) return gate;
   if (!rpgUnlocked(state, 'gear')) return { ok: false, message: '\ud83c\udfb0 Equipment Wish unlocks at 14 days played!' };
   const count = times === GEAR_GACHA.multiCount ? GEAR_GACHA.multiCount : 1;
-  const cost = count === GEAR_GACHA.multiCount ? GEAR_GACHA.multiCost : GEAR_GACHA.cost;
+  if (!state.freePulls) state.freePulls = { last: null };
+  const freePull = count === 1 && state.freePulls.last !== todayKey(Date.now());
+  let cost = count === GEAR_GACHA.multiCount ? GEAR_GACHA.multiCost : GEAR_GACHA.cost;
+  if (freePull) cost = 0;
   if (state.coins < cost) {
     return { ok: false, message: `\ud83e\ude99 Not enough coins \u2014 a \u00d7${count} Equipment Wish costs ${cost}.` };
   }
   state.coins -= cost;
+  if (freePull) state.freePulls.last = todayKey(Date.now());
   if (!state.gearGacha) state.gearGacha = { pulls: 0, fiveStars: 0, mythics: 0 };
   const out = [];
   const results = [];
@@ -527,10 +565,12 @@ function pullGearGacha(state, times) {
     if (g.id === 'mythic') state.gearGacha.mythics += 1;
     const pool = GEAR_GACHA.pool[g.id] || [];
     let gearUnlocked = null;
+    let gearIcon = null;
     let coins = g.id === 'common' ? 15 + Math.floor(Math.random() * 26) : 60 + Math.floor(Math.random() * 120);
     if (pool.length > 0) {
       const pickId = pool[Math.floor(Math.random() * pool.length)];
       const pg = gearDef(pickId);
+      if (pg) gearIcon = pg.icon;
       if (!state.gearOwned.includes(pickId)) {
         state.gearOwned.push(pickId);
         gearUnlocked = `${pg.icon} ${pg.name}`;
@@ -540,7 +580,7 @@ function pullGearGacha(state, times) {
     }
     state.coins += coins;
     state.stats.coinsEarned += coins;
-    results.push({ rarity: g.id, stars: g.stars, name: g.name, coins, gearUnlocked });
+    results.push({ rarity: g.id, stars: g.stars, name: g.name, coins, gearUnlocked, gearIcon, icon: gearIcon || '\ud83c\udfb0' });
     if (!best || best.stars < g.stars) best = results[results.length - 1];
   }
   checkAchievements(state, out);
@@ -548,8 +588,9 @@ function pullGearGacha(state, times) {
   let msg = `${starStr} Equipment Wish: ${best.name}! +\ud83e\ude99${best.coins}`;
   if (best.gearUnlocked) msg = `${starStr} NEW GEAR \u2014 ${best.gearUnlocked}! +\ud83e\ude99${best.coins}`;
   if (best.rarity === 'mythic') msg = `\ud83c\udfaf \u2b50 MYTHIC GEAR!! 0.0001% JACKPOT!! \u2b50 \ud83c\udfaf ${best.gearUnlocked || 'Legendary relic'} + \ud83e\ude99${best.coins}!`;
+  if (freePull) msg += ' (FREE daily pull! \ud83c\udf81)';
   out.push({ ok: true, message: msg });
-  return { ok: true, results, best, events: out, message: msg };
+  return { ok: true, results, best, events: out, message: msg, freePull };
 }
 
 function choosePath(state, pathId) {
@@ -557,11 +598,15 @@ function choosePath(state, pathId) {
   if (gate) return gate;
   if (!rpgUnlocked(state, 'path')) return { ok: false, message: '\ud83c\udf00 Destiny Path unlocks at 30 days played!' };
   if (!['work', 'battle'].includes(pathId)) return { ok: false, message: 'Unknown path.' };
-  if (state.path) return { ok: false, message: `\ud83c\udf00 Destiny already chosen: ${state.path === 'work' ? '\ud83d\udcbc Work Master' : '\u2694\ufe0f Battle Master'}!` };
+  const hadPath = !!state.path;
+  const freeReset = hadPath && !!(state.milestones && state.milestones.pathReset100);
+  if (hadPath && !freeReset) return { ok: false, message: `\ud83c\udf00 Destiny already chosen: ${state.path === 'work' ? '\ud83d\udcbc Work Master' : '\u2694\ufe0f Battle Master'}! (Path reset unlocks at the 100-day milestone.)` };
   state.path = pathId;
-  const msg = pathId === 'work'
-    ? '\ud83d\udcbc Work Master! +50% coin rate for life \u2014 the idle tycoon road.'
-    : '\u2694\ufe0f Battle Master! +15% battle power for life \u2014 the warrior road.';
+  const msg = freeReset
+    ? `\ud83d\udd04 Path RESET free (100-day milestone)! Now: ${pathId === 'work' ? '\ud83d\udcbc Work Master' : '\u2694\ufe0f Battle Master'}!`
+    : pathId === 'work'
+      ? '\ud83d\udcbc Work Master! +50% coin rate for life \u2014 the idle tycoon road.'
+      : '\u2694\ufe0f Battle Master! +15% battle power for life \u2014 the warrior road.';
   return { ok: true, message: msg };
 }
 
@@ -644,7 +689,7 @@ function defaultState() {
 
 function ensureState(state) {
   const fresh = defaultState();
-  for (const key of ['stats', 'achievements', 'daily', 'gacha', 'playdays', 'allocated', 'gear', 'gearOwned', 'gearGacha', 'battle', 'waste', 'skin', 'skinsOwned', 'neglect', 'dead', 'settings', 'perks', 'items']) {
+  for (const key of ['stats', 'achievements', 'daily', 'gacha', 'playdays', 'allocated', 'gear', 'gearOwned', 'gearGacha', 'battle', 'waste', 'skin', 'skinsOwned', 'neglect', 'dead', 'settings', 'perks', 'items', 'milestones', 'freePulls', 'freeFood']) {
     if (state[key] === undefined) state[key] = fresh[key];
   }
   if (state.pendingPerk === undefined) state.pendingPerk = null;
@@ -739,6 +784,7 @@ function tick(state, dtSeconds, offline) {
   }
 
   trackPlayday(state);
+  fireStageEvents(state, events);
   careLevel(state);
   if (!f.sleeping && state.pet.stage !== 'egg') {
     const pottyRate = 0.004 + ((state.effects.eatUntil || 0) > Date.now() ? 0.005 : 0);
@@ -1123,7 +1169,9 @@ function todayKey(now) {
 }
 
 function dailyReward(state) {
-  return 10 + Math.min(7, ((state.daily && state.daily.streak) || 0) + 1) * 5;
+  const streak = ((state.daily && state.daily.streak) || 0);
+  const cycleDay = (streak % 7) + 1;
+  return (cycleDay <= 5 ? 15 : cycleDay === 6 ? 50 : 300) + 10;
 }
 
 function claimDaily(state) {
@@ -1136,14 +1184,38 @@ function claimDaily(state) {
   dc.streak = dc.last === yesterday ? dc.streak + 1 : 1;
   dc.best = Math.max(dc.best || 0, dc.streak);
   dc.last = today;
-  const reward = 10 + Math.min(7, dc.streak) * 5;
-  state.coins += reward;
-  state.stats.coinsEarned += reward;
+  if (typeof dc.attendance !== 'number') dc.attendance = 0;
+  dc.attendance += 1;
+  const cycleDay = ((dc.streak - 1) % 7) + 1;
+  const streakReward = cycleDay <= 5 ? 15 : cycleDay === 6 ? 50 : 300;
+  const attendanceBonus = 10;
+  let total = streakReward + attendanceBonus;
+  state.coins += total;
+  state.stats.coinsEarned += total;
+  let extra = '';
+  if (dc.attendance >= 30) {
+    const gearPool = GEAR.filter((g) => g.rarity === 'rare' || g.rarity === 'epic');
+    const gift = gearPool[Math.floor(Math.random() * gearPool.length)];
+    dc.attendance = 0;
+    if (Math.random() < 0.7) {
+      if (!state.gearOwned.includes(gift.id)) {
+        state.gearOwned.push(gift.id);
+        extra = ` 🎉 30-DAY ATTENDANCE GIFT: ${gift.icon} ${gift.name} unlocked in the Gear Forge!`;
+      } else {
+        state.coins += 500;
+        extra = ' 🎉 30-day attendance gift: +500 bonus coins (gear duplicate)!';
+      }
+    } else {
+      state.coins += 200;
+      state.stats.coinsEarned += 200;
+      extra = ' 🎁 30-day attendance — gift gods felt shy today: +200 consolation coins!';
+    }
+  }
   state.effects.happyUntil = Math.max(state.effects.happyUntil, Date.now() + 5000);
   const events = [];
   checkAchievements(state, events);
   fireStageEvents(state, events);
-  return { ok: true, message: `🔥 Day ${dc.streak} streak! +${reward} coins bonus!${events.length ? '\n' + events[events.length - 1].message : ''}` };
+  return { ok: true, message: `🔥 Day ${dc.streak} streak! +${streakReward} coins +${attendanceBonus} attendance!${extra}${events.length ? '\n' + events[events.length - 1].message : ''}` };
 }
 
 function fireStageEvents(state, out) {
@@ -1151,6 +1223,21 @@ function fireStageEvents(state, out) {
     for (const msg of state.stageEvents) out.push({ ok: true, message: msg });
     state.stageEvents = null;
   }
+}
+
+function claimFreeFood(state) {
+  const gate = deadGate(state);
+  if (gate) return gate;
+  if (!state.freeFood) state.freeFood = { last: null };
+  const tk = todayKey(Date.now());
+  if (state.freeFood.last === tk) return { ok: false, message: '\ud83c\udf81 Free meal na-claim na today \u2014 balik ka ng 12:00mn!' };
+  const foodIds = Object.keys(FOODS);
+  const pick = foodIds[Math.floor(Math.random() * foodIds.length)];
+  const food = FOODS[pick];
+  const res = applyFood(state, food, { free: true });
+  if (!res.ok) return res;
+  state.freeFood.last = tk;
+  return { ok: true, message: `\ud83c\udf81 FREE meal today: ${food.flag || ''} ${food.name}! ${res.message}` };
 }
 
 function buySkin(state, skinId) {
@@ -1295,7 +1382,13 @@ function derivedStats(state) {
       best: (state.daily && state.daily.best) || 0,
       claimedToday: (state.daily && state.daily.last) === todayKey(now),
       nextReward: dailyReward(state),
+      attendance: (state.daily && state.daily.attendance) || 0,
     },
+    rewards: {
+      freePullAvailable: !(state.freePulls && state.freePulls.last === todayKey(now)),
+      freeFoodAvailable: !(state.freeFood && state.freeFood.last === todayKey(now)),
+    },
+    milestones: state.milestones ? { ...state.milestones } : { rename60: false, pathReset100: false, coins150: false, badge300: false },
     achievements: ACHIEVEMENTS.map((a) => ({
       id: a.id, icon: a.icon, name: a.name, desc: a.desc,
       unlocked: Array.isArray(state.achievements) && state.achievements.includes(a.id),
@@ -1470,6 +1563,7 @@ return {
   stageOf,
   stageForLevel,
   claimDaily,
+  claimFreeFood,
   pullGacha,
   buySkin,
   setSkin,

@@ -129,6 +129,10 @@
           <section class="card">
             <h2>🍜 Delicacies <small class="muted">— feed your buddy world foods</small></h2>
             <div id="food-filters" class="filter-row"></div>
+            <div class="free-row">
+              <button id="btn-free-food" class="btn btn-teal">🎁 Free Daily Meal</button>
+              <span id="free-food-note" class="muted small"></span>
+            </div>
             <input id="food-search" class="search-box" type="text" placeholder="Search foods... (e.g. pad thai, samosa)" />
             <div id="food-grid" class="food-grid"></div>
           </section>
@@ -152,6 +156,7 @@
           <section class="card">
             <h2>🎁 Daily Bonus</h2>
             <div id="daily-info" class="muted">Streak: 0 days (best 0)</div>
+            <div id="daily-milestones" class="muted small"></div>
             <button id="btn-daily" class="btn btn-amber daily-btn">🎁 Claim Daily Bonus</button>
           </section>
           <section class="card">
@@ -179,6 +184,7 @@
               <div id="gacha-result" class="gacha-result hidden"></div>
             </div>
             <div class="gacha-actions">
+              <button id="btn-gacha-free" class="btn btn-teal">🎁 Free Daily Pull</button>
               <button id="btn-gacha-1" class="btn btn-amber">🔮 Summon ×1 — 💰100</button>
               <button id="btn-gacha-10" class="btn btn-violet">✨ Summon ×10 — 💰900</button>
             </div>
@@ -216,6 +222,7 @@
                 <div id="gear-gacha-result" class="gacha-result hidden"></div>
               </div>
               <div class="gacha-actions">
+                <button id="btn-gear-gacha-free" class="btn btn-teal">🎁 Free Daily Wish</button>
                 <button id="btn-gear-gacha-1" class="btn btn-amber">🗡️ Wish ×1 — 💰100</button>
                 <button id="btn-gear-gacha-10" class="btn btn-violet">✨ Wish ×10 — 💰900</button>
               </div>
