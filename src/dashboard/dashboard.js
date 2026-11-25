@@ -408,6 +408,21 @@ api.getState().then((snap) => {
 const petStageCanvas = document.getElementById('dash-pet');
 const stageCtx = petStageCanvas.getContext('2d');
 
+const STAGE_W = 480;
+const STAGE_H = 360;
+const STAGE_CX = 240;
+const STAGE_GROUND = 284;
+
+const petWalk = { x: STAGE_CX, dir: 1, target: null, moving: false };
+const stageFx = [];
+let lastStageNow = 0;
+let petDraw = { cx: STAGE_CX, size: 264, dir: 1 };
+
+function spawnFx(kind, x, y, opts) {
+  const o = opts || {};
+  stageFx.push({ kind, x, y, vy: o.vy !== undefined ? o.vy : -0.5, life: 1, size: o.size || 16, wobble: Math.random() * 6 });
+}
+
 const STAGE_STATE_FILE = { IDLE: 'idle', WALK: 'walk', HAPPY: 'happy', EAT: 'eat', SLEEP: 'sleep' };
 const stageFrames = {};
 
@@ -450,11 +465,6 @@ function stageStateFor() {
   if (s.effects && s.effects.happyUntil > t) return 'HAPPY';
   return s.activity || s.flags.working ? 'WALK' : 'IDLE';
 }
-
-const STAGE_W = 480;
-const STAGE_H = 360;
-const STAGE_CX = 240;
-const STAGE_GROUND = 284;
 
 const skinCanvas = document.createElement('canvas');
 skinCanvas.width = STAGE_W;
@@ -697,6 +707,52 @@ function drawRoom(now, phaseId, weatherId) {
     }
   }
 
+  stageCtx.fillStyle = '#efe6d0';
+  stageCtx.beginPath();
+  stageCtx.arc(330, 78, 20, 0, Math.PI * 2);
+  stageCtx.fill();
+  stageCtx.strokeStyle = '#784421';
+  stageCtx.lineWidth = 4;
+  stageCtx.stroke();
+  stageCtx.strokeStyle = '#2d2d3a';
+  stageCtx.lineWidth = 2;
+  stageCtx.beginPath();
+  stageCtx.moveTo(330, 78);
+  stageCtx.lineTo(330 - Math.sin((Date.now() / 1000 % 60) / 60 * Math.PI * 2) * 7, 78 - Math.cos((Date.now() / 1000 % 60) / 60 * Math.PI * 2) * 3 - 2);
+  stageCtx.stroke();
+  const nw = new Date();
+  const hourA = ((nw.getHours() % 12) + nw.getMinutes() / 60) / 12 * Math.PI * 2;
+  const minA = nw.getMinutes() / 60 * Math.PI * 2;
+  stageCtx.strokeStyle = '#2d2d3a';
+  stageCtx.lineWidth = 2.5;
+  stageCtx.beginPath();
+  stageCtx.moveTo(330, 78);
+  stageCtx.lineTo(330 + Math.sin(hourA) * 8, 78 - Math.cos(hourA) * 8);
+  stageCtx.moveTo(330, 78);
+  stageCtx.lineTo(330 + Math.sin(minA) * 13, 78 - Math.cos(minA) * 13);
+  stageCtx.stroke();
+
+  stageCtx.strokeStyle = '#6b5d43';
+  stageCtx.lineWidth = 1.5;
+  stageCtx.beginPath();
+  stageCtx.moveTo(166, 24);
+  stageCtx.quadraticCurveTo(240, 34, 314, 24);
+  stageCtx.stroke();
+  const flagCols = ['#f87171', '#4ade80', '#60a5fa', '#fbbf24', '#f472b6', '#a78bfa'];
+  let fi = 0;
+  for (let fx = 174; fx < 310; fx += 19) {
+    const t = (fx - 166) / 148;
+    const fy2 = 24 + 10 * (t * (2 - t)) * 0.25;
+    stageCtx.fillStyle = flagCols[fi % flagCols.length];
+    stageCtx.beginPath();
+    stageCtx.moveTo(fx - 6, fy2);
+    stageCtx.lineTo(fx + 6, fy2);
+    stageCtx.lineTo(fx, fy2 + 12);
+    stageCtx.closePath();
+    stageCtx.fill();
+    fi += 1;
+  }
+
   const floorGrad = stageCtx.createLinearGradient(0, fy, 0, STAGE_H);
   floorGrad.addColorStop(0, '#cfa06e');
   floorGrad.addColorStop(1, '#a97d4e');
@@ -765,6 +821,44 @@ function drawRoom(now, phaseId, weatherId) {
   }
   stageCtx.lineCap = 'butt';
 
+  stageCtx.save();
+  stageCtx.globalAlpha = 0.2;
+  stageCtx.fillStyle = '#000';
+  stageCtx.beginPath();
+  stageCtx.ellipse(112, 284, 17, 5, 0, 0, Math.PI * 2);
+  stageCtx.fill();
+  stageCtx.restore();
+  stageCtx.fillStyle = 'rgba(190, 225, 250, 0.4)';
+  stageCtx.beginPath();
+  stageCtx.arc(112, 266, 17, 0, Math.PI * 2);
+  stageCtx.fill();
+  stageCtx.fillStyle = '#7dd3fc';
+  stageCtx.beginPath();
+  stageCtx.arc(112, 268, 14, 0, Math.PI * 2);
+  stageCtx.fill();
+  const fishTail = Math.sin(Date.now() / 240) * 3;
+  stageCtx.fillStyle = '#fb923c';
+  stageCtx.beginPath();
+  stageCtx.ellipse(116 + fishTail, 266, 6, 3, fishTail / 6, 0, Math.PI * 2);
+  stageCtx.fill();
+  stageCtx.beginPath();
+  stageCtx.moveTo(110 + fishTail, 266);
+  stageCtx.lineTo(105 + fishTail, 263);
+  stageCtx.lineTo(105 + fishTail, 269);
+  stageCtx.closePath();
+  stageCtx.fill();
+  stageCtx.fillStyle = 'rgba(255,255,255,0.55)';
+  stageCtx.fillRect(100, 30, 0, 0);
+  stageCtx.beginPath();
+  stageCtx.arc(106, 258, 1.5, 0, Math.PI * 2);
+  stageCtx.arc(118, 252, 1, 0, Math.PI * 2);
+  stageCtx.fill();
+  stageCtx.strokeStyle = 'rgba(255,255,255,0.65)';
+  stageCtx.lineWidth = 2;
+  stageCtx.beginPath();
+  stageCtx.arc(112, 266, 17, 0, Math.PI * 2);
+  stageCtx.stroke();
+
   const matX = 130;
   const matY = 318;
   const matW = 220;
@@ -812,22 +906,51 @@ function drawRoom(now, phaseId, weatherId) {
 }
 
 function drawStagePet(now) {
-  const cx = STAGE_CX;
   const groundY = STAGE_GROUND;
   stageCtx.clearRect(0, 0, petStageCanvas.width, petStageCanvas.height);
   const pre = latest && latest.derived;
   drawRoom(now, pre && pre.phase ? pre.phase.id : 'day', pre && pre.weather ? pre.weather.id : 'clear');
 
+  const dt = Math.min(0.12, Math.max(0, (now - lastStageNow) / 1000));
+  lastStageNow = now;
+
+  if (!latest) return;
+  const d = latest.derived;
+  const s = latest.state;
+
+  const st0 = stageStateFor();
+  if (st0 === 'SLEEP' || st0 === 'EAT') petWalk.target = null;
+  if (petWalk.target !== null) {
+    const dx = petWalk.target - petWalk.x;
+    if (Math.abs(dx) > 4) {
+      petWalk.dir = dx > 0 ? 1 : -1;
+      petWalk.x = Math.max(70, Math.min(STAGE_W - 70, petWalk.x + petWalk.dir * 95 * dt));
+      petWalk.moving = true;
+    } else {
+      petWalk.target = null;
+      petWalk.moving = false;
+    }
+  } else {
+    petWalk.moving = false;
+  }
+  if (st0 === 'IDLE' && !petWalk.target && !s.flags.working && !s.activity && Math.random() < 0.004) {
+    petWalk.target = 110 + Math.random() * 260;
+  }
+
+  const st = petWalk.moving ? 'WALK' : st0;
+  const stageScale = d.stage ? d.stage.scale : 1;
+  const boxSize = Math.round(264 * stageScale);
+  petDraw = { cx: petWalk.x, size: boxSize, dir: petWalk.dir };
+
   stageCtx.save();
   stageCtx.globalAlpha = 0.22;
   stageCtx.fillStyle = '#000';
   stageCtx.beginPath();
-  stageCtx.ellipse(cx, groundY + 4, 64, 10, 0, 0, Math.PI * 2);
+  stageCtx.ellipse(petWalk.x, groundY + 4, 64, 10, 0, 0, Math.PI * 2);
   stageCtx.fill();
   stageCtx.restore();
 
-  if (!latest) return;
-  const d = latest.derived;
+  if (st === 'EAT') drawFoodBowl(petWalk.x + 52 * petWalk.dir);
 
   const phaseTint = d.phase && d.phase.tint;
   const wTint = weatherOverlay(d.weather ? d.weather.id : 'clear');
@@ -846,57 +969,104 @@ function drawStagePet(now) {
   }
   drawWeatherFx(d.weather ? d.weather.id : 'clear', now);
 
-  if (latest.state.dead) {
+  if (s.dead) {
     drawGrave();
     return;
   }
 
-  const isEgg = latest.state.pet.stage === 'egg';
+  const isEgg = s.pet.stage === 'egg';
   const skinDef = d.skins ? d.skins.find((sk) => sk.equipped) : null;
   const tint = skinDef ? skinDef.tint : null;
 
   if (isEgg) {
-    const prog = Math.max(0.04, Math.min(1, (latest.state.pet.xp || 0) / 14));
+    const prog = Math.max(0.04, Math.min(1, (s.pet.xp || 0) / 14));
+    if (prog > 0.8 && Math.random() < 0.05) spawnFx('spark', STAGE_CX + (Math.random() * 40 - 20), 220, { vy: -0.3, size: 10 });
     stageCtx.save();
     stageCtx.imageSmoothingEnabled = false;
     drawWithSkin((g) => eggToCtx(g, now, prog), tint);
     stageCtx.restore();
-    return;
+  } else {
+    const bobbing = st === 'HAPPY' || st === 'WALK';
+    const yOff = bobbing ? Math.round(Math.sin(now / 260) * 4) : 0;
+
+    stageCtx.save();
+    stageCtx.imageSmoothingEnabled = false;
+
+    const drawPath = (g) => {
+      g.save();
+      g.translate(petWalk.x, 0);
+      if (petWalk.dir < 0) g.scale(-1, 1);
+      const bx = -boxSize / 2;
+      const by = groundY - boxSize + yOff;
+      const pngs = stageFramesFor(s.pet.species || 'kala', st);
+      const single = stageSingleFor(s.pet.species || 'kala', st);
+      if (pngs.length > 0) {
+        const img = pngs[Math.floor(now / 170) % pngs.length];
+        g.drawImage(img, bx, by, boxSize, boxSize);
+      } else if (single) {
+        g.drawImage(single, bx, by, boxSize, boxSize);
+      } else {
+        let bank = null;
+        try {
+          bank = sprites.ensurePetSprites(s.pet.species || 'kala');
+        } catch (err) {
+          bank = null;
+        }
+        if (bank && bank[st]) {
+          const frame = bank[st][Math.floor(now / 170) % bank[st].length];
+          g.drawImage(frame, bx, by, boxSize, boxSize);
+        }
+      }
+      g.restore();
+    };
+
+    if (tint) drawWithSkin(drawPath, tint);
+    else drawPath(stageCtx);
+    stageCtx.restore();
+
+    if (st === 'SLEEP' && Math.random() < 0.02) spawnFx('z', petWalk.x + 20, groundY - boxSize + 24, { vy: -0.35, size: 15 });
+    if (st === 'EAT' && Math.random() < 0.02) spawnFx('crumb', petWalk.x + 40, groundY - 12, { vy: -0.3, size: 10 });
+    if ((s.flags.working || s.activity) && Math.random() < 0.012) spawnFx('coin', petWalk.x + (Math.random() < 0.5 ? -50 : 50), 90, { vy: -0.4, size: 18 });
+    if (petWalk.moving && Math.random() < 0.09) spawnFx('spark', petWalk.x - petWalk.dir * boxSize * 0.3, groundY - 4, { vy: -0.15, size: 10 });
   }
 
-  const st = stageStateFor();
-  const stageScale = d.stage ? d.stage.scale : 1;
-  const boxSize = Math.round(264 * stageScale);
-  const bobbing = st === 'HAPPY' || st === 'WALK';
-  const yOff = bobbing ? Math.round(Math.sin(now / 260) * 4) : 0;
-
-  stageCtx.save();
-  stageCtx.imageSmoothingEnabled = false;
-
-  const drawPath = (g) => {
-    const pngs = stageFramesFor(latest.state.pet.species || 'kala', st);
-    const single = stageSingleFor(latest.state.pet.species || 'kala', st);
-    if (pngs.length > 0) {
-      const img = pngs[Math.floor(now / 170) % pngs.length];
-      g.drawImage(img, cx - boxSize / 2, groundY - boxSize + yOff, boxSize, boxSize);
-    } else if (single) {
-      g.drawImage(single, cx - boxSize / 2, groundY - boxSize + yOff, boxSize, boxSize);
-    } else {
-      let bank = null;
-      try {
-        bank = sprites.ensurePetSprites(latest.state.pet.species || 'kala');
-      } catch (err) {
-        bank = null;
-      }
-      if (bank && bank[st]) {
-        const frame = bank[st][Math.floor(now / 170) % bank[st].length];
-        g.drawImage(frame, cx - boxSize / 2, groundY - boxSize + yOff, boxSize, boxSize);
-      }
+  for (let i = stageFx.length - 1; i >= 0; i -= 1) {
+    const p2 = stageFx[i];
+    p2.y += p2.vy;
+    p2.x += Math.sin((p2.wobble += 0.06)) * 0.6;
+    p2.life -= 0.011;
+    if (p2.life <= 0) {
+      stageFx.splice(i, 1);
+      continue;
     }
-  };
+    stageCtx.save();
+    stageCtx.globalAlpha = Math.min(1, p2.life);
+    stageCtx.font = `${p2.size}px sans-serif`;
+    stageCtx.textAlign = 'center';
+    stageCtx.fillStyle = p2.kind === 'heart' ? '#ff6b81' : p2.kind === 'coin' ? '#ffd166' : 'rgba(240, 240, 255, 0.9)';
+    const glyph = p2.kind === 'heart' ? '\u2764' : p2.kind === 'coin' ? '\u{1FA99}' : p2.kind === 'crumb' ? '\u00b7' : p2.kind === 'z' ? 'z' : '\u2726';
+    stageCtx.fillText(glyph, p2.x, p2.y);
+    stageCtx.restore();
+  }
+}
 
-  if (tint) drawWithSkin(drawPath, tint);
-  else drawPath(stageCtx);
+function drawFoodBowl(x) {
+  stageCtx.save();
+  stageCtx.fillStyle = '#be123c';
+  stageCtx.beginPath();
+  stageCtx.moveTo(x - 17, 275);
+  stageCtx.lineTo(x + 17, 275);
+  stageCtx.lineTo(x + 12, 287);
+  stageCtx.lineTo(x - 12, 287);
+  stageCtx.closePath();
+  stageCtx.fill();
+  stageCtx.strokeStyle = '#881337';
+  stageCtx.lineWidth = 2;
+  stageCtx.stroke();
+  stageCtx.fillStyle = Math.sin(Date.now() / 300) > 0 ? '#eab308' : '#d97706';
+  stageCtx.beginPath();
+  stageCtx.ellipse(x, 275, 13, 5, 0, 0, Math.PI * 2);
+  stageCtx.fill();
   stageCtx.restore();
 }
 
@@ -937,12 +1107,25 @@ function eggToCtx(g, now, prog) {
 }
 
 let lastStagePat = 0;
-petStageCanvas.addEventListener('click', async () => {
-  const now = performance.now();
-  if (now - lastStagePat < 900) return;
-  lastStagePat = now;
-  const res = await api.action('pat');
-  showToast((res && res.message) || 'hehe~', 1500);
+petStageCanvas.addEventListener('click', async (e) => {
+  const rect = petStageCanvas.getBoundingClientRect();
+  const x = ((e.clientX - rect.left) / rect.width) * STAGE_W;
+  const y = ((e.clientY - rect.top) / rect.height) * STAGE_H;
+  if (latest && !latest.state.dead && Math.abs(x - petDraw.cx) < petDraw.size / 2 + 14 && y > 20 && y < STAGE_GROUND + 16) {
+    const now = performance.now();
+    if (now - lastStagePat < 900) return;
+    lastStagePat = now;
+    for (let i = 0; i < 3; i += 1) {
+      stageFx.push({ kind: 'heart', x: petDraw.cx + (Math.random() * 26 - 13), y: STAGE_GROUND - petDraw.size * 0.3, vy: -0.9, life: 1, size: 14 + Math.random() * 10, wobble: Math.random() * 6 });
+    }
+    sfxOnce('pat');
+    const res = await api.action('pat');
+    showToast((res && res.message) || 'hehe~', 1500);
+    return;
+  }
+  if (latest && latest.state.dead) return;
+  petWalk.target = Math.max(70, Math.min(STAGE_W - 70, x));
+  if (sfx) sfx.play('click');
 });
 
 document.querySelectorAll('#tab-bar .studio-tab').forEach((btn) => {
