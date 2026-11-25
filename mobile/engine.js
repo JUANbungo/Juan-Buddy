@@ -558,7 +558,7 @@ const ACHIEVEMENTS = [
   { id: 'feast_40', icon: '👨‍🍳', name: 'Gourmet Buddy', desc: 'Feed 40 meals', check: (s) => s.stats.feedCount >= 40 },
   { id: 'playful_10', icon: '🎾', name: 'Playtime!', desc: 'Play 10 times', check: (s) => s.stats.playCount >= 10 },
   { id: 'worker_10', icon: '💼', name: 'Hard Worker', desc: 'Work 10 minutes total', check: (s) => s.stats.workSeconds >= 600 },
-  { id: 'rich_500', icon: '🪙', name: 'Coin Collector', desc: 'Earn 500 coins total', check: (s) => s.stats.coinsEarned >= 500 },
+  { id: 'rich_500', icon: '💰', name: 'Coin Collector', desc: 'Earn 500 coins total', check: (s) => s.stats.coinsEarned >= 500 },
   { id: 'rich_2500', icon: '💰', name: 'Idle Tycoon', desc: 'Earn 2,500 coins total', check: (s) => s.stats.coinsEarned >= 2500 },
   { id: 'hatch', icon: '🐣', name: 'Hello World!', desc: 'Hatch your buddy', check: (s) => !!s.pet.species && s.pet.stage !== 'egg' },
   { id: 'teen', icon: '🌟', name: 'Growing Up', desc: 'Reach Teen form', check: (s) => ['teen', 'adult'].includes(s.pet.stage) },

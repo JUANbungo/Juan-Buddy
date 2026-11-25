@@ -858,6 +858,16 @@ function rainFlash(id, now) {
   return id === 'stormy' && Math.floor(now / 2400) % 4 === 0 && (now % 2400) < 90;
 }
 
+const gradientCache = new Map();
+function cachedGradient(key, make) {
+  let g = gradientCache.get(key);
+  if (!g) {
+    g = make();
+    gradientCache.set(key, g);
+  }
+  return g;
+}
+
 function drawWeatherFx(id, now) {
   if (id !== 'rainy' && id !== 'stormy' && id !== 'snowy') return;
   stageCtx.save();
@@ -921,9 +931,12 @@ function drawRoom(now, phaseId, weatherId) {
   const wallBot = {
     day: '#e3d7b8', dawn: '#eecfa6', dusk: '#9c7452', night: '#2b3050',
   }[phaseId] || '#e3d7b8';
-  const wallGrad = stageCtx.createLinearGradient(0, 0, 0, fy);
-  wallGrad.addColorStop(0, wallTop);
-  wallGrad.addColorStop(1, wallBot);
+  const wallGrad = cachedGradient(`wall:${phaseId}`, () => {
+    const wg = stageCtx.createLinearGradient(0, 0, 0, fy);
+    wg.addColorStop(0, wallTop);
+    wg.addColorStop(1, wallBot);
+    return wg;
+  });
   stageCtx.fillStyle = wallGrad;
   stageCtx.fillRect(0, 0, STAGE_W, fy);
   stageCtx.fillStyle = 'rgba(0,0,0,0.10)';
@@ -933,17 +946,20 @@ function drawRoom(now, phaseId, weatherId) {
   const wy = 40;
   const ww = 108;
   const wh = 80;
-  const skyGrad = stageCtx.createLinearGradient(0, wy, 0, wy + wh);
-  if (phaseId === 'night') {
-    skyGrad.addColorStop(0, '#0f172a');
-    skyGrad.addColorStop(1, '#312e81');
-  } else if (phaseId === 'dusk' || phaseId === 'dawn') {
-    skyGrad.addColorStop(0, '#f97316');
-    skyGrad.addColorStop(1, '#fde047');
-  } else {
-    skyGrad.addColorStop(0, '#60a5fa');
-    skyGrad.addColorStop(1, '#bae6fd');
-  }
+  const skyGrad = cachedGradient(`winsky:${phaseId}`, () => {
+    const sg = stageCtx.createLinearGradient(0, wy, 0, wy + wh);
+    if (phaseId === 'night') {
+      sg.addColorStop(0, '#0f172a');
+      sg.addColorStop(1, '#312e81');
+    } else if (phaseId === 'dusk' || phaseId === 'dawn') {
+      sg.addColorStop(0, '#f97316');
+      sg.addColorStop(1, '#fde047');
+    } else {
+      sg.addColorStop(0, '#60a5fa');
+      sg.addColorStop(1, '#bae6fd');
+    }
+    return sg;
+  });
   stageCtx.fillStyle = skyGrad;
   stageCtx.fillRect(wx, wy, ww, wh);
   stageCtx.save();
@@ -1071,9 +1087,12 @@ function drawRoom(now, phaseId, weatherId) {
   stageCtx.lineTo(330 + Math.sin(minA) * 13, 78 - Math.cos(minA) * 13);
   stageCtx.stroke();
 
-  const floorGrad = stageCtx.createLinearGradient(0, fy, 0, STAGE_H);
-  floorGrad.addColorStop(0, '#cfa06e');
-  floorGrad.addColorStop(1, '#a97d4e');
+  const floorGrad = cachedGradient('floor', () => {
+    const fg = stageCtx.createLinearGradient(0, fy, 0, STAGE_H);
+    fg.addColorStop(0, '#cfa06e');
+    fg.addColorStop(1, '#a97d4e');
+    return fg;
+  });
   stageCtx.fillStyle = floorGrad;
   stageCtx.fillRect(0, fy, STAGE_W, STAGE_H - fy);
   stageCtx.fillStyle = '#8a5a33';
@@ -1353,18 +1372,24 @@ function drawPark(now, phaseId, mode) {
     const dw = sw2 * scale;
     const dh = sh2 * scale;
     stageCtx.drawImage(scene, (STAGE_W - dw) / 2, (STAGE_H - dh) / 2, dw, dh);
-    const fade = stageCtx.createLinearGradient(0, 250, 0, STAGE_H);
-    fade.addColorStop(0, 'rgba(10, 12, 20, 0)');
-    fade.addColorStop(1, 'rgba(10, 12, 20, 0.30)');
+    const fade = cachedGradient('photo-fade', () => {
+      const fg = stageCtx.createLinearGradient(0, 250, 0, STAGE_H);
+      fg.addColorStop(0, 'rgba(10, 12, 20, 0)');
+      fg.addColorStop(1, 'rgba(10, 12, 20, 0.30)');
+      return fg;
+    });
     stageCtx.fillStyle = fade;
     stageCtx.fillRect(0, 250, STAGE_W, STAGE_H - 250);
     return;
   }
   const skies = PARK_SKIES[mode] || PARK_SKIES.park;
   const night = phaseId === 'night';
-  const sky = stageCtx.createLinearGradient(0, 0, 0, 284);
-  sky.addColorStop(0, night ? '#0f172a' : skies[0]);
-  sky.addColorStop(1, night ? '#312e81' : skies[1]);
+  const sky = cachedGradient(`psky:${mode}:${night}`, () => {
+    const sg = stageCtx.createLinearGradient(0, 0, 0, 284);
+    sg.addColorStop(0, night ? '#0f172a' : skies[0]);
+    sg.addColorStop(1, night ? '#312e81' : skies[1]);
+    return sg;
+  });
   stageCtx.fillStyle = sky;
   stageCtx.fillRect(0, 0, STAGE_W, 284);
   stageCtx.fillStyle = night ? '#fef9c3' : '#fef08a';
@@ -1379,9 +1404,12 @@ function drawPark(now, phaseId, mode) {
     stageCtx.fillRect(cx, 40 + i * 26, 46, 10);
   }
   if (['park', 'terraces', 'temple'].includes(mode)) {
-    const grass = stageCtx.createLinearGradient(0, 284, 0, STAGE_H);
-    grass.addColorStop(0, night ? '#14532d' : mode === 'temple' ? '#86efac' : '#4ade80');
-    grass.addColorStop(1, night ? '#052e16' : '#16a34a');
+    const grass = cachedGradient(`grass:${mode}:${night}`, () => {
+      const gg = stageCtx.createLinearGradient(0, 284, 0, STAGE_H);
+      gg.addColorStop(0, night ? '#14532d' : mode === 'temple' ? '#86efac' : '#4ade80');
+      gg.addColorStop(1, night ? '#052e16' : '#16a34a');
+      return gg;
+    });
     stageCtx.fillStyle = grass;
     stageCtx.fillRect(0, 284, STAGE_W, STAGE_H - 284);
     if (mode === 'terraces') {
@@ -1516,6 +1544,8 @@ function spriteFootFrac(img) {
 function drawStagePet(now) {
   const groundY = STAGE_GROUND;
   stageCtx.clearRect(0, 0, petStageCanvas.width, petStageCanvas.height);
+  const splashEl = document.getElementById('splash');
+  if (splashEl && !splashEl.classList.contains('hidden')) return;
   const pre = latest && latest.derived;
   const activeAct = pre && pre.activities ? pre.activities.find((a) => a.active) : null;
   if (activeAct && activeAct.outdoor) {

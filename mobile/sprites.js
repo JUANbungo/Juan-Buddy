@@ -965,7 +965,7 @@
     // ==========================================================================
     const PLACES = [
       { id: 'cozy_home', name: 'Cozy Pet Home', icon: '🏡' },
-      { id: 'bahay_kubo', name: 'PH Bahay Kubo Sunset', icon: '🇵🇭' },
+      { id: 'bahay_kubo', name: 'Bahay Kubo Sunset', icon: '🇵🇭' },
       { id: 'thai_temple', name: 'Thai Golden Temple', icon: '🇹🇭' },
       { id: 'india_taj', name: 'India Taj Courtyard', icon: '🇮🇳' },
       { id: 'kyoto_shrine', name: 'Kyoto Sakura Shrine', icon: '🇯🇵' },
