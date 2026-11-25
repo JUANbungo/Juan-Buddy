@@ -1538,6 +1538,112 @@ function spriteFootFrac(img) {
   return frac;
 }
 
+function equippedOverlays(d2) {
+  if (!latest || !latest.state) return [];
+  const st2 = latest.state;
+  if (st2.dead || st2.pet.stage === 'egg') return [];
+  const r = latest.derived;
+  const iconOf = (id) => {
+    if (!id) return null;
+    const shop = r && r.items && r.items.shop;
+    const it = shop ? shop.find((x) => x.id === id) : null;
+    return it ? it.icon : null;
+  };
+  const gearIconOf = (id) => {
+    if (!id) return null;
+    const g = r && r.gearShop;
+    const gd = g ? g.find((x) => x.id === id) : null;
+    return gd ? gd.icon : null;
+  };
+  const eq = (st2.items && st2.items.equipped) || {};
+  const ge = (r && r.gear && r.gear.equipped) || {};
+  return [
+    { icon: iconOf(eq.Head), dx: 0, dy: 1.06 },
+    { icon: iconOf(eq.Neck), dx: 10, dy: 0.72 },
+    { icon: iconOf(eq.Back), dx: -0.4, dy: 0.62, scale: true },
+    { icon: iconOf(eq.Armor), dx: -0.2, dy: 0.42, scale: true },
+    { icon: iconOf(eq.Relic), dx: -0.46, dy: 0.85 },
+    { icon: iconOf(eq.Weapon), dx: 0.42, dy: 0.5 },
+    { icon: gearIconOf(ge.weapon), dx: 0.5, dy: 0.68 },
+    { icon: gearIconOf(ge.armor), dx: -0.3, dy: 0.56, scale: true },
+    { icon: gearIconOf(ge.charm), dx: -0.52, dy: 0.7 },
+  ].filter((o) => o.icon);
+}
+
+function drawEquippedOnPet(now) {
+  const overlays = equippedOverlays();
+  if (!overlays.length) return;
+  const dir = petWalk.dir || 1;
+  const cx = petWalk.x;
+  const gy = petWalk.y;
+  const sz = petDraw && petDraw.size ? petDraw.size : 64;
+  const bob = Math.round(Math.sin(now / 260) * 4) / 2;
+  stageCtx.save();
+  stageCtx.font = '17px sans-serif';
+  stageCtx.textAlign = 'center';
+  for (const o of overlays) {
+    const x = o.scale ? cx + dir * sz * o.dx : cx + dir * o.dx;
+    const y = gy - sz * o.dy + bob;
+    stageCtx.fillText(o.icon, x, y);
+  }
+  stageCtx.restore();
+}
+
+let battleFx = null;
+function startBattleFx(mon, win) {
+  battleFx = { icon: mon.icon, name: mon.name, win: !!win, t0: performance.now(), dur: 3800 };
+}
+
+function drawBattleFx(now) {
+  if (!battleFx) return;
+  const t = (now - battleFx.t0) / battleFx.dur;
+  if (t < 0 || t >= 1) { battleFx = null; return; }
+  const enter = Math.min(1, t / 0.12);
+  const exit = t > 0.8 ? (t - 0.8) / 0.2 : 0;
+  const mx = Math.round(STAGE_CX + 118 * enter);
+  const my = 284;
+  const bob = Math.sin(now / 150) * 4;
+  const hitPhase = t > 0.14 && t < 0.78;
+  stageCtx.save();
+  stageCtx.globalAlpha = Math.max(0, 1 - exit);
+  stageCtx.fillStyle = 'rgba(0,0,0,0.22)';
+  stageCtx.beginPath();
+  stageCtx.ellipse(mx, my + 4, 26, 7, 0, 0, Math.PI * 2);
+  stageCtx.fill();
+  stageCtx.font = '46px sans-serif';
+  stageCtx.textAlign = 'center';
+  stageCtx.fillText(battleFx.icon, mx, my - 20 + bob);
+  stageCtx.fillStyle = '#2a2018';
+  stageCtx.fillRect(mx - 28, my - 84, 56, 7);
+  const hpFrac = battleFx.win ? Math.max(0.05, 1 - (t / 0.78) * 0.95) : Math.max(0.3, 1 - t * 0.5);
+  stageCtx.fillStyle = battleFx.win ? '#f87171' : '#fbbf24';
+  stageCtx.fillRect(mx - 27, my - 83, 54 * hpFrac, 5);
+  stageCtx.font = '10px sans-serif';
+  stageCtx.fillStyle = 'rgba(255,255,255,0.85)';
+  stageCtx.fillText(battleFx.name, mx, my - 90);
+  if (hitPhase) {
+    if (Math.random() < 0.16) spawnFx('spark', mx + Math.random() * 44 - 22, my - 40 + Math.random() * 20, { vy: -0.3, size: 14 });
+    if (Math.random() < 0.05) {
+      stageCtx.fillStyle = 'rgba(255, 80, 60, 0.12)';
+      stageCtx.fillRect(0, 0, petStageCanvas.width, petStageCanvas.height);
+    }
+  }
+  if (t >= 0.78 && t < 0.85 && battleFx.win) {
+    for (let i = 0; i < 3; i += 1) spawnFx('coin', mx + Math.random() * 40 - 20, my - 60, { vy: -0.5, size: 16 });
+  }
+  if (t >= 0.82) {
+    stageCtx.font = 'bold 20px sans-serif';
+    stageCtx.fillStyle = battleFx.win ? '#ffd54a' : '#f87171';
+    stageCtx.strokeStyle = 'rgba(30, 20, 10, 0.7)';
+    stageCtx.lineWidth = 3;
+    const by = 120 + (t - 0.82) * 40;
+    const label = battleFx.win ? 'VICTORY!' : 'DEFEATED...';
+    stageCtx.strokeText(label, STAGE_CX, by);
+    stageCtx.fillText(label, STAGE_CX, by);
+  }
+  stageCtx.restore();
+}
+
 function drawStagePet(now) {
   const groundY = STAGE_GROUND;
   stageCtx.clearRect(0, 0, petStageCanvas.width, petStageCanvas.height);
@@ -1722,6 +1828,9 @@ function drawStagePet(now) {
     if (petWalk.moving && Math.random() < 0.09) spawnFx('spark', petWalk.x - petWalk.dir * boxSize * 0.3, petWalk.y - 4, { vy: -0.15, size: 10 });
   }
 
+  drawEquippedOnPet(now);
+  drawBattleFx(now);
+
   for (let i = stageFx.length - 1; i >= 0; i -= 1) {
     const p2 = stageFx[i];
     p2.y += p2.vy;
@@ -1736,7 +1845,7 @@ function drawStagePet(now) {
     stageCtx.font = `${p2.size}px sans-serif`;
     stageCtx.textAlign = 'center';
     stageCtx.fillStyle = p2.kind === 'heart' ? '#ff6b81' : p2.kind === 'coin' ? '#ffd166' : 'rgba(240, 240, 255, 0.9)';
-    const glyph = p2.kind === 'heart' ? '\u2764' : p2.kind === 'coin' ? '\u{1FA99}' : p2.kind === 'crumb' ? '\u00b7' : p2.kind === 'z' ? 'z' : '\u2726';
+    const glyph = p2.kind === 'heart' ? '\u2764' : p2.kind === 'coin' ? '\u{1F4B0}' : p2.kind === 'crumb' ? '\u00b7' : p2.kind === 'z' ? 'z' : '\u2726';
     stageCtx.fillText(glyph, p2.x, p2.y);
     stageCtx.restore();
   }
@@ -2383,7 +2492,12 @@ el('monster-grid').addEventListener('click', async (e) => {
   if (!btn || btn.disabled) return;
   btn.disabled = true;
   const res = await api.action('battleMonster', { monsterId: btn.dataset.monster });
-  if (res && res.ok) setBgmOverride('battle', 40000);
+  if (res && res.ok) {
+    setBgmOverride('battle', 40000);
+    const mon = latest && latest.derived && latest.derived.rpg && latest.derived.rpg.monsters
+      ? latest.derived.rpg.monsters.find((m) => m.id === btn.dataset.monster) : null;
+    if (mon) startBattleFx(mon, res.win);
+  }
   if (res && res.ok && res.win) {
     for (let i = 0; i < 8; i += 1) spawnFx('coin', STAGE_CX + (Math.random() * 140 - 70), 110 + Math.random() * 40, { vy: -0.5, size: 18 });
   } else if (res && res.ok) {
@@ -2412,7 +2526,10 @@ el('gear-slots').addEventListener('click', async (e) => {
   if (!rpg) return;
   const slotId = ['weapon', 'armor', 'charm'][idx];
   const equipped = rpg.gear.equipped[slotId];
-  if (!equipped) return;
+  if (!equipped) {
+    showToast('\ud83d\uddee Empty slot! Buy or win gear in the list below, then tap Equip.', 2400);
+    return;
+  }
   const res = await api.action('equipGear', { gearId: equipped });
   showToast((res && res.message) || '. ..', 2000);
 });

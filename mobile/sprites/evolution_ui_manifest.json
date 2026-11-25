@@ -1,0 +1,350 @@
+{
+  "version": "3.0",
+  "pack": "Evolution Sprites + Equipment/Cosmetics + Cozy RPG UI & HUD",
+  "evolutions": [
+    {
+      "base_id": "bantay",
+      "evolved_name": "Datu Bantay",
+      "country": "Philippines",
+      "sheet": "evolutions/sheets/bantay_evo_sheet.png",
+      "frames": {
+        "idle": "evolutions/single/bantay_evo_idle.png",
+        "walk": "evolutions/single/bantay_evo_walk.png",
+        "happy": "evolutions/single/bantay_evo_happy.png",
+        "eat": "evolutions/single/bantay_evo_eat.png",
+        "sleep": "evolutions/single/bantay_evo_sleep.png"
+      }
+    },
+    {
+      "base_id": "kala",
+      "evolved_name": "Bathala Kala",
+      "country": "Philippines",
+      "sheet": "evolutions/sheets/kala_evo_sheet.png",
+      "frames": {
+        "idle": "evolutions/single/kala_evo_idle.png",
+        "walk": "evolutions/single/kala_evo_walk.png",
+        "happy": "evolutions/single/kala_evo_happy.png",
+        "eat": "evolutions/single/kala_evo_eat.png",
+        "sleep": "evolutions/single/kala_evo_sleep.png"
+      }
+    },
+    {
+      "base_id": "tala",
+      "evolved_name": "Archmage Tala",
+      "country": "Philippines",
+      "sheet": "evolutions/sheets/tala_evo_sheet.png",
+      "frames": {
+        "idle": "evolutions/single/tala_evo_idle.png",
+        "walk": "evolutions/single/tala_evo_walk.png",
+        "happy": "evolutions/single/tala_evo_happy.png",
+        "eat": "evolutions/single/tala_evo_eat.png",
+        "sleep": "evolutions/single/tala_evo_sleep.png"
+      }
+    },
+    {
+      "base_id": "chai",
+      "evolved_name": "Maharaja Chai",
+      "country": "Thailand",
+      "sheet": "evolutions/sheets/chai_evo_sheet.png",
+      "frames": {
+        "idle": "evolutions/single/chai_evo_idle.png",
+        "walk": "evolutions/single/chai_evo_walk.png",
+        "happy": "evolutions/single/chai_evo_happy.png",
+        "eat": "evolutions/single/chai_evo_eat.png",
+        "sleep": "evolutions/single/chai_evo_sleep.png"
+      }
+    },
+    {
+      "base_id": "linh",
+      "evolved_name": "Empress Linh",
+      "country": "Vietnam",
+      "sheet": "evolutions/sheets/linh_evo_sheet.png",
+      "frames": {
+        "idle": "evolutions/single/linh_evo_idle.png",
+        "walk": "evolutions/single/linh_evo_walk.png",
+        "happy": "evolutions/single/linh_evo_happy.png",
+        "eat": "evolutions/single/linh_evo_eat.png",
+        "sleep": "evolutions/single/linh_evo_sleep.png"
+      }
+    },
+    {
+      "base_id": "bara",
+      "evolved_name": "Raja Naga Bara",
+      "country": "Indonesia",
+      "sheet": "evolutions/sheets/bara_evo_sheet.png",
+      "frames": {
+        "idle": "evolutions/single/bara_evo_idle.png",
+        "walk": "evolutions/single/bara_evo_walk.png",
+        "happy": "evolutions/single/bara_evo_happy.png",
+        "eat": "evolutions/single/bara_evo_eat.png",
+        "sleep": "evolutions/single/bara_evo_sleep.png"
+      }
+    },
+    {
+      "base_id": "rimau",
+      "evolved_name": "Sultan Rimau",
+      "country": "Malaysia",
+      "sheet": "evolutions/sheets/rimau_evo_sheet.png",
+      "frames": {
+        "idle": "evolutions/single/rimau_evo_idle.png",
+        "walk": "evolutions/single/rimau_evo_walk.png",
+        "happy": "evolutions/single/rimau_evo_happy.png",
+        "eat": "evolutions/single/rimau_evo_eat.png",
+        "sleep": "evolutions/single/rimau_evo_sleep.png"
+      }
+    },
+    {
+      "base_id": "merli",
+      "evolved_name": "Poseidon Merli",
+      "country": "Singapore",
+      "sheet": "evolutions/sheets/merli_evo_sheet.png",
+      "frames": {
+        "idle": "evolutions/single/merli_evo_idle.png",
+        "walk": "evolutions/single/merli_evo_walk.png",
+        "happy": "evolutions/single/merli_evo_happy.png",
+        "eat": "evolutions/single/merli_evo_eat.png",
+        "sleep": "evolutions/single/merli_evo_sleep.png"
+      }
+    },
+    {
+      "base_id": "raja",
+      "evolved_name": "Samrat Raja",
+      "country": "India",
+      "sheet": "evolutions/sheets/raja_evo_sheet.png",
+      "frames": {
+        "idle": "evolutions/single/raja_evo_idle.png",
+        "walk": "evolutions/single/raja_evo_walk.png",
+        "happy": "evolutions/single/raja_evo_happy.png",
+        "eat": "evolutions/single/raja_evo_eat.png",
+        "sleep": "evolutions/single/raja_evo_sleep.png"
+      }
+    },
+    {
+      "base_id": "moti",
+      "evolved_name": "Gajendra Moti",
+      "country": "India",
+      "sheet": "evolutions/sheets/moti_evo_sheet.png",
+      "frames": {
+        "idle": "evolutions/single/moti_evo_idle.png",
+        "walk": "evolutions/single/moti_evo_walk.png",
+        "happy": "evolutions/single/moti_evo_happy.png",
+        "eat": "evolutions/single/moti_evo_eat.png",
+        "sleep": "evolutions/single/moti_evo_sleep.png"
+      }
+    },
+    {
+      "base_id": "mochi",
+      "evolved_name": "Shogun Mochi",
+      "country": "Japan",
+      "sheet": "evolutions/sheets/mochi_evo_sheet.png",
+      "frames": {
+        "idle": "evolutions/single/mochi_evo_idle.png",
+        "walk": "evolutions/single/mochi_evo_walk.png",
+        "happy": "evolutions/single/mochi_evo_happy.png",
+        "eat": "evolutions/single/mochi_evo_eat.png",
+        "sleep": "evolutions/single/mochi_evo_sleep.png"
+      }
+    },
+    {
+      "base_id": "bao",
+      "evolved_name": "Emperor Bao",
+      "country": "China",
+      "sheet": "evolutions/sheets/bao_evo_sheet.png",
+      "frames": {
+        "idle": "evolutions/single/bao_evo_idle.png",
+        "walk": "evolutions/single/bao_evo_walk.png",
+        "happy": "evolutions/single/bao_evo_happy.png",
+        "eat": "evolutions/single/bao_evo_eat.png",
+        "sleep": "evolutions/single/bao_evo_sleep.png"
+      }
+    },
+    {
+      "base_id": "misha",
+      "evolved_name": "Tsar Misha",
+      "country": "Russia",
+      "sheet": "evolutions/sheets/misha_evo_sheet.png",
+      "frames": {
+        "idle": "evolutions/single/misha_evo_idle.png",
+        "walk": "evolutions/single/misha_evo_walk.png",
+        "happy": "evolutions/single/misha_evo_happy.png",
+        "eat": "evolutions/single/misha_evo_eat.png",
+        "sleep": "evolutions/single/misha_evo_sleep.png"
+      }
+    },
+    {
+      "base_id": "gino",
+      "evolved_name": "Doge Gino",
+      "country": "Italy",
+      "sheet": "evolutions/sheets/gino_evo_sheet.png",
+      "frames": {
+        "idle": "evolutions/single/gino_evo_idle.png",
+        "walk": "evolutions/single/gino_evo_walk.png",
+        "happy": "evolutions/single/gino_evo_happy.png",
+        "eat": "evolutions/single/gino_evo_eat.png",
+        "sleep": "evolutions/single/gino_evo_sleep.png"
+      }
+    }
+  ],
+  "cosmetics": [
+    {
+      "id": "cos_witch_hat",
+      "name": "Mini Witch Hat",
+      "slot": "Head",
+      "bonus": "+2 MAG +1 LUK",
+      "icon": "items/cosmetics/cos_witch_hat.png"
+    },
+    {
+      "id": "cos_salakot",
+      "name": "Golden Salakot",
+      "slot": "Head",
+      "bonus": "+2 DEF +1 LUK",
+      "icon": "items/cosmetics/cos_salakot.png"
+    },
+    {
+      "id": "cos_sakura_crown",
+      "name": "Sakura Crown",
+      "slot": "Head",
+      "bonus": "+2 AGI +1 LUK",
+      "icon": "items/cosmetics/cos_sakura_crown.png"
+    },
+    {
+      "id": "cos_gold_crown",
+      "name": "Royal Gold Crown",
+      "slot": "Head",
+      "bonus": "+2 STR +2 MAG",
+      "icon": "items/cosmetics/cos_gold_crown.png"
+    },
+    {
+      "id": "cos_ushanka",
+      "name": "Cozy Ushanka",
+      "slot": "Head",
+      "bonus": "+2 DEF +1 STR",
+      "icon": "items/cosmetics/cos_ushanka.png"
+    },
+    {
+      "id": "cos_shades",
+      "name": "Cool Pixel Shades",
+      "slot": "Head",
+      "bonus": "+2 AGI +1 STR",
+      "icon": "items/cosmetics/cos_shades.png"
+    },
+    {
+      "id": "cos_red_scarf",
+      "name": "Hero Red Scarf",
+      "slot": "Neck",
+      "bonus": "+2 STR +1 DEF",
+      "icon": "items/cosmetics/cos_red_scarf.png"
+    },
+    {
+      "id": "cos_bell_collar",
+      "name": "Gold Bell Collar",
+      "slot": "Neck",
+      "bonus": "+2 LUK +1 AGI",
+      "icon": "items/cosmetics/cos_bell_collar.png"
+    },
+    {
+      "id": "cos_bowtie",
+      "name": "Dapper Bowtie",
+      "slot": "Neck",
+      "bonus": "+2 AGI +1 LUK",
+      "icon": "items/cosmetics/cos_bowtie.png"
+    },
+    {
+      "id": "cos_angel_wings",
+      "name": "Angel Wings",
+      "slot": "Back",
+      "bonus": "+2 AGI +2 DEF",
+      "icon": "items/cosmetics/cos_angel_wings.png"
+    },
+    {
+      "id": "cos_lantern",
+      "name": "Floating Lantern",
+      "slot": "Back",
+      "bonus": "+2 MAG +2 LUK",
+      "icon": "items/cosmetics/cos_lantern.png"
+    },
+    {
+      "id": "cos_parol_aura",
+      "name": "Parol Star Aura",
+      "slot": "Back",
+      "bonus": "+3 LUK +1 MAG",
+      "icon": "items/cosmetics/cos_parol_aura.png"
+    }
+  ],
+  "equipment": [
+    {
+      "id": "eq_kampilan_sword",
+      "name": "Kampilan Blade",
+      "type": "Weapon",
+      "bonus": "+5 STR",
+      "icon": "items/equipment/eq_kampilan_sword.png"
+    },
+    {
+      "id": "eq_rattan_shield",
+      "name": "Rattan Buckler",
+      "type": "Armor",
+      "bonus": "+5 DEF",
+      "icon": "items/equipment/eq_rattan_shield.png"
+    },
+    {
+      "id": "eq_agimat_amulet",
+      "name": "Agimat Amulet",
+      "type": "Relic",
+      "bonus": "+4 MAG +2 LUK",
+      "icon": "items/equipment/eq_agimat_amulet.png"
+    },
+    {
+      "id": "eq_bamboo_staff",
+      "name": "Bamboo Sage Staff",
+      "type": "Weapon",
+      "bonus": "+5 MAG",
+      "icon": "items/equipment/eq_bamboo_staff.png"
+    },
+    {
+      "id": "eq_lucky_coin_pouch",
+      "name": "Fortune Coin Pouch",
+      "type": "Relic",
+      "bonus": "+6 LUK (+Coins)",
+      "icon": "items/equipment/eq_lucky_coin_pouch.png"
+    },
+    {
+      "id": "eq_hermes_boots",
+      "name": "Swift Wind Boots",
+      "type": "Relic",
+      "bonus": "+5 AGI",
+      "icon": "items/equipment/eq_hermes_boots.png"
+    },
+    {
+      "id": "eq_evo_stone",
+      "name": "Ascension Evo Stone",
+      "type": "Special",
+      "bonus": "Unlocks Stage 2 Evolution",
+      "icon": "items/equipment/eq_evo_stone.png"
+    },
+    {
+      "id": "eq_promise_ring",
+      "name": "Couple Promise Ring",
+      "type": "Special",
+      "bonus": "Unlocks Couple Synergy",
+      "icon": "items/equipment/eq_promise_ring.png"
+    }
+  ],
+  "ui": [
+    {
+      "id": "icon_evolve_dna",
+      "icon": "ui/hud/icon_evolve_dna.png"
+    },
+    {
+      "id": "icon_battle_swords",
+      "icon": "ui/hud/icon_battle_swords.png"
+    },
+    {
+      "id": "icon_team_paw",
+      "icon": "ui/hud/icon_team_paw.png"
+    },
+    {
+      "id": "icon_egg",
+      "icon": "ui/hud/icon_egg.png"
+    }
+  ]
+}

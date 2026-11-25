@@ -448,7 +448,20 @@ function battleMonster(state, monsterId) {
     state.pet.xp += mon.xp * currentXpMul(state);
     state.battle.wins += 1;
     state.meters.happiness = clamp100(Math.min(100, state.meters.happiness + 4));
-    events.push({ ok: true, message: `\u2694\ufe0f Victory over ${mon.icon} ${mon.name}! +\ud83e\ude99${coins} +${mon.xp} XP ${petHp < petMaxHp * 0.25 ? '(naughty scar!)' : ''}` });
+    if (!state.items) state.items = { owned: [], equipped: { Head: null, Neck: null, Back: null, Weapon: null, Armor: null, Relic: null } };
+    if (!Array.isArray(state.items.owned)) state.items.owned = [];
+    const dropChance = Math.min(0.35, 0.12 + (bs.luk || 0) * 0.015);
+    const pool = ITEMS.filter((it) => it.kind !== 'special' && !state.items.owned.includes(it.id));
+    let dropMsg = '';
+    if (Math.random() < dropChance && pool.length > 0) {
+      const drop = pool[Math.floor(Math.random() * pool.length)];
+      state.items.owned.push(drop.id);
+      dropMsg = ` \ud83c\udf81 LOOT DROP: ${drop.icon} ${drop.name} is now in your Bag!`;
+    } else {
+      state.coins += 5;
+      state.stats.coinsEarned += 5;
+    }
+    events.push({ ok: true, message: `\u2694\ufe0f Victory over ${mon.icon} ${mon.name}! +\ud83e\ude99${coins} +${mon.xp} XP${dropMsg}${petHp < petMaxHp * 0.25 ? ' (naughty scar!)' : ''}` });
   } else {
     state.battle.losses += 1;
     const salvage = Math.max(3, Math.floor(mon.coins[0] * 0.2));
@@ -631,7 +644,7 @@ function defaultState() {
 
 function ensureState(state) {
   const fresh = defaultState();
-  for (const key of ['stats', 'achievements', 'daily', 'gacha', 'playdays', 'allocated', 'gear', 'gearOwned', 'gearGacha', 'battle', 'waste', 'skin', 'skinsOwned', 'neglect', 'dead', 'settings', 'perks']) {
+  for (const key of ['stats', 'achievements', 'daily', 'gacha', 'playdays', 'allocated', 'gear', 'gearOwned', 'gearGacha', 'battle', 'waste', 'skin', 'skinsOwned', 'neglect', 'dead', 'settings', 'perks', 'items']) {
     if (state[key] === undefined) state[key] = fresh[key];
   }
   if (state.pendingPerk === undefined) state.pendingPerk = null;
