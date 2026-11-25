@@ -167,6 +167,22 @@ const ITEMS = [
 ];
 const ITEM_SLOTS = ['Head', 'Neck', 'Back', 'Weapon', 'Armor', 'Relic'];
 
+function itemRarityOf(it) {
+  const total = (it.str || 0) + (it.def || 0) + (it.agi || 0) + (it.mag || 0) + (it.luk || 0);
+  if (total >= 6) return 'legendary';
+  if (total >= 5) return 'epic';
+  if (total >= 4) return 'rare';
+  return 'common';
+}
+
+const ITEM_GACHA_POOL = {
+  common: ITEMS.filter((it) => it.kind !== 'special' && itemRarityOf(it) === 'common').map((it) => it.id),
+  rare: ITEMS.filter((it) => it.kind !== 'special' && itemRarityOf(it) === 'rare').map((it) => it.id),
+  epic: ITEMS.filter((it) => it.kind !== 'special' && itemRarityOf(it) === 'epic').map((it) => it.id),
+  legendary: ITEMS.filter((it) => it.kind !== 'special' && itemRarityOf(it) === 'legendary').map((it) => it.id),
+};
+
+
 const MONSTERS = [
   { id: 'slime', name: 'Guard Slime', icon: '\ud83d\udfe2', lvl: 1, hp: 26, atk: 7, def: 2, energy: 8, coins: [12, 20], xp: 6 },
   { id: 'bat', name: 'Cave Bat', icon: '\ud83e\udd87', lvl: 4, hp: 40, atk: 12, def: 5, energy: 12, coins: [22, 34], xp: 12 },
@@ -260,7 +276,7 @@ function pullGacha(state, times) {
     state.gacha.pulls += 1;
     if (g.id === 'legendary') state.gacha.fiveStars += 1;
     if (g.id === 'mythic') state.gacha.mythics += 1;
-    const coins = g.coins[0] + Math.floor(Math.random() * (g.coins[1] - g.coins[0] + 1));
+    let coins = g.coins[0] + Math.floor(Math.random() * (g.coins[1] - g.coins[0] + 1));
     state.coins += coins;
     state.stats.coinsEarned += coins;
     let skinUnlocked = null;
@@ -268,13 +284,27 @@ function pullGacha(state, times) {
       state.skinsOwned.push(g.skin);
       skinUnlocked = SKINS[g.skin].name;
     }
-    results.push({ rarity: g.id, stars: g.stars, name: g.name, coins, skinUnlocked, icon: g.id === 'mythic' ? '\ud83d\udcab' : g.id === 'legendary' ? '\ud83c\udf1f' : g.id === 'epic' ? '\ud83d\udd2e' : '\ud83c\udfb0' });
+    let itemUnlocked = null;
+    let itemIcon = null;
+    if (!state.items) state.items = { owned: [], equipped: { Head: null, Neck: null, Back: null, Weapon: null, Armor: null, Relic: null } };
+    const ipool = g.id === 'mythic' ? ITEM_GACHA_POOL.legendary : (ITEM_GACHA_POOL[g.id] || []);
+    const iavail = ipool.filter((id) => !state.items.owned.includes(id));
+    if (iavail.length > 0) {
+      const pick = iavail[Math.floor(Math.random() * iavail.length)];
+      state.items.owned.push(pick);
+      const idef = ITEMS.find((x) => x.id === pick);
+      if (idef) { itemUnlocked = idef.name; itemIcon = idef.icon; }
+    } else if (ipool.length > 0 && g.id !== 'common') {
+      coins += 150;
+    }
+    results.push({ rarity: g.id, stars: g.stars, name: g.name, coins, skinUnlocked, itemUnlocked, itemIcon, icon: g.id === 'mythic' ? '\ud83d\udcab' : g.id === 'legendary' ? '\ud83c\udf1f' : g.id === 'epic' ? '\ud83d\udd2e' : '\ud83c\udfb0' });
     if (!best || best.stars < g.stars) best = results[results.length - 1];
   }
   checkAchievements(state, out);
   const starStr = '\u2b50'.repeat(best.stars);
   let msg = `${starStr} ${best.name} pull! +${best.coins} coins`;
   if (best.skinUnlocked) msg = `${starStr} ${best.name}!! \u2014 unlocked ${best.skinUnlocked} skin! +${best.coins} coins`;
+  if (best.itemUnlocked) msg = `${starStr} NEW ITEM \u2014 ${best.itemIcon} ${best.itemUnlocked} is now in your Bag! +${best.coins} coins`;
   if (best.rarity === 'mythic') msg = `\ud83c\udfaf \u2b50 MYTHIC!! 0.0001% JACKPOT!! \u2b50 \ud83c\udfaf Unlocked Cosmic Mythic skin + ${best.coins} coins!`;
   if (freePull) msg += ' (FREE daily pull! \ud83c\udf81)';
   out.push({ ok: true, message: msg });
@@ -1490,6 +1520,7 @@ function itemsStats(state) {
     slots: ITEM_SLOTS,
     shop: ITEMS.map((it) => ({
       ...it,
+      rarity: itemRarityOf(it),
       owned: inv.owned.includes(it.id),
       equipped: equipped[slotKeyOf(it)] === it.id,
     })),
@@ -1529,7 +1560,7 @@ function rpgStats(state) {
     gearGacha: {
       cost: GEAR_GACHA.cost, multiCost: GEAR_GACHA.multiCost, multiCount: GEAR_GACHA.multiCount,
       rates: GEAR_GACHA.rates,
-      poolPreview: Object.keys(GEAR_GACHA.pool).flatMap((r) => GEAR_GACHA.pool[r].map((id) => ({ rarity: r, item: gearDef(id) }))).filter((x) => x.item).map((x) => ({ rarity: x.rarity, icon: x.item.icon, name: x.item.name, slot: x.item.slot })),
+      poolPreview: Object.keys(GEAR_GACHA.pool).flatMap((r) => GEAR_GACHA.pool[r].map((id) => ({ rarity: r, item: gearDef(id) }))).filter((x) => x.item).map((x) => ({ rarity: x.rarity, id: x.item.id, icon: x.item.icon, name: x.item.name, slot: x.item.slot })),
       pulls: (state.gearGacha && state.gearGacha.pulls) || 0,
       fiveStars: (state.gearGacha && state.gearGacha.fiveStars) || 0,
       mythics: (state.gearGacha && state.gearGacha.mythics) || 0,

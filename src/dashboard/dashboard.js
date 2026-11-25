@@ -1544,17 +1544,20 @@ function equippedOverlays(d2) {
   const st2 = latest.state;
   if (st2.dead || st2.pet.stage === 'egg') return [];
   const r = latest.derived;
+  const rpg = r && r.rpg;
+  const shop = rpg && rpg.items ? rpg.items.shop : null;
+  const gearList = rpg && rpg.gearShop ? rpg.gearShop : null;
+  const poolList = rpg && rpg.gearGacha ? rpg.gearGacha.poolPreview || [] : [];
   const iconOf = (id) => {
     if (!id) return null;
-    const shop = r && r.items && r.items.shop;
     const it = shop ? shop.find((x) => x.id === id) : null;
     return it ? it.icon : null;
   };
   const gearIconOf = (id) => {
     if (!id) return null;
-    const g = r && r.gearShop;
-    const gd = g ? g.find((x) => x.id === id) : null;
-    return gd ? gd.icon : null;
+    const gd = gearList ? gearList.find((x) => x.id === id) : null;
+    const pd = !gd ? poolList.find((x) => x.id === id) : null;
+    return gd ? gd.icon : (pd ? pd.icon : null);
   };
   const eq = (st2.items && st2.items.equipped) || {};
   const ge = (r && r.gear && r.gear.equipped) || {};
@@ -2120,6 +2123,12 @@ async function pullGacha(times) {
   iconLine.textContent = best.icon || '🎰';
   resultEl.appendChild(iconLine);
   resultEl.appendChild(starsLine);
+  if (best.itemUnlocked) {
+    const itemLine = document.createElement('div');
+    itemLine.className = 'gacha-skin';
+    itemLine.textContent = `\ud83c\udf81 NEW ITEM: ${best.itemIcon || '\ud83c\udfb0'} ${best.itemUnlocked} \u2014 check your Bag!`;
+    resultEl.appendChild(itemLine);
+  }
   resultEl.appendChild(nameLine);
   resultEl.appendChild(coinLine);
   for (const r of res.results || []) {
@@ -2393,7 +2402,7 @@ function renderRpg(d) {
     rpg.gear.slots.forEach((sl, i) => {
       const sdiv = slotDivs[i];
       const equippedId = rpg.gear.equipped[sl.id];
-      const def = equippedId ? rpg.gearShop.find((g) => g.id === equippedId) || null : null;
+      const def = equippedId ? rpg.gearShop.find((g) => g.id === equippedId) || (rpg.gearGacha && rpg.gearGacha.poolPreview || []).find((g) => g.id === equippedId) || null : null;
       if (equippedId) equippedIds.push(equippedId);
       sdiv.querySelector('.gs-ico').textContent = def ? def.icon : '\u2795';
       sdiv.querySelector('.gs-name').textContent = def ? def.name : 'Empty';
@@ -2665,7 +2674,8 @@ function renderBag(d) {
     }
     card._els.name.textContent = `${it.icon} ${it.name}`;
     card._els.bonus.textContent = bonusText(it);
-    card._els.slot.textContent = it.kind === 'cosmetic' ? `Cosmetic \u00b7 ${it.slot}` : `${it.type}${it.kind === 'special' ? ' \u00b7 keepsake' : ''}`;
+    const rlabel = it.rarity ? it.rarity.charAt(0).toUpperCase() + it.rarity.slice(1) : '';
+    card._els.slot.textContent = `${rlabel ? rlabel + ' \u00b7 ' : ''}${it.kind === 'cosmetic' ? `Cosmetic \u00b7 ${it.slot}` : `${it.type}${it.kind === 'special' ? ' \u00b7 keepsake' : ''}`}`;
     const btn = card._els.btn;
     if (!it.owned) {
       btn.textContent = `\ud83e\ude99${it.cost}`;
