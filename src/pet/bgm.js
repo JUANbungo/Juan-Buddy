@@ -211,6 +211,7 @@
 
   function stop() {
     stopTimer();
+    stopMp3();
     if (master && ctx) {
       try {
         master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
@@ -231,6 +232,88 @@
       master.connect(ctx.destination);
       if (old) old.disconnect();
     } catch (err) { /* ignore */ }
+  }
+
+  const MP3_SONGS = [
+    { file: 'bgm/mp3/idle_pet_groove.mp3', label: 'Idle Pet Groove' },
+    { file: 'bgm/mp3/level_1_1.mp3', label: 'Level 1-1' },
+    { file: 'bgm/mp3/level_13.mp3', label: 'Level 13' },
+  ];
+  let mp3Audio = null;
+  let mp3Role = null;
+  let mp3Idx = -1;
+  let mp3Broken = false;
+  let BGM_BASE = '';
+  try {
+    const cs = (typeof document !== 'undefined' && document.currentScript) ? document.currentScript : null;
+    if (cs && cs.src && /^(https?|file):/i.test(cs.src) && cs.src.indexOf('blob:') !== 0) BGM_BASE = cs.src;
+  } catch (err) { BGM_BASE = ''; }
+
+  function assetUrls(rel) {
+    const urls = [];
+    if (BGM_BASE) {
+      try { urls.push(new URL('../../assets/' + rel, BGM_BASE).href); } catch (err) { /* ignore */ }
+    }
+    urls.push(rel);
+    return urls;
+  }
+
+  function mp3Volume() { return Math.max(0, Math.min(1, volume * 0.5)); }
+
+  function stopMp3() {
+    if (mp3Audio) {
+      try { mp3Audio.pause(); } catch (err) { /* ignore */ }
+      mp3Audio = null;
+    }
+    mp3Role = null;
+  }
+
+  function mp3Supported() { return typeof root.Audio === 'function'; }
+
+  function pickSong() {
+    let idx = Math.floor(Math.random() * MP3_SONGS.length);
+    if (MP3_SONGS.length > 1 && idx === mp3Idx) idx = (idx + 1) % MP3_SONGS.length;
+    return idx;
+  }
+
+  function startMp3(idx, role) {
+    const song = MP3_SONGS[idx];
+    if (!song) return false;
+    const urls = assetUrls(song.file);
+    stopMp3();
+    try {
+      const audio = new root.Audio();
+      audio.loop = false;
+      audio.volume = mp3Volume();
+      let u = 0;
+      audio.src = urls[0];
+      audio.onerror = () => {
+        u += 1;
+        if (u < urls.length) {
+          audio.src = urls[u];
+          const r = audio.play();
+          if (r && r.catch) r.catch(() => {});
+          return;
+        }
+        mp3Broken = true;
+        mp3Audio = null;
+        mp3Role = null;
+      };
+      audio.addEventListener('ended', () => {
+        if (!enabled || !mp3Supported() || mp3Broken) return;
+        startMp3(pickSong(), role);
+      });
+      const q = audio.play();
+      if (q && typeof q.catch === 'function') q.catch(() => { /* autoplay guard; next gesture restarts */ });
+      mp3Audio = audio;
+      mp3Idx = idx;
+      mp3Role = role;
+      current = role;
+      return true;
+    } catch (err) {
+      mp3Broken = true;
+      return false;
+    }
   }
 
   function loadTrackFile(file) {
@@ -260,13 +343,23 @@
   function play(name) {
     const def = TRACKS[name];
     if (!def || !enabled) return Promise.resolve(false);
+    if (mp3Supported() && !mp3Broken) {
+      if (mp3Role === name && mp3Audio) return Promise.resolve(true);
+      stop();
+      current = name;
+      return Promise.resolve(startMp3(pickSong(), name));
+    }
     if (current === name) return Promise.resolve(true);
     stop();
     current = name;
     const ac = ensureCtx();
     if (!ac) return Promise.resolve(false);
-    return loadTrackFile(def.file)
+    return assetUrls(def.file).reduce(
+      (chain, url) => chain.then((raw) => (raw ? raw : loadTrackFile(url).then((buf) => (parseMidi(buf) ? buf : null)).catch(() => null))),
+      Promise.resolve(null)
+    )
       .then((raw) => new Promise((resolve, reject) => {
+        if (!raw) { resolve(false); return; }
         const m = parseMidi(raw);
         if (!m) { resolve(false); return; }
         parsed = m;
@@ -302,6 +395,7 @@
     volume = val;
     try { localStorage.setItem('juanbuddy-bgm-vol', String(volume)); } catch (err) { /* ignore */ }
     if (master && ctx) master.gain.value = volume * 0.5;
+    if (mp3Audio) { try { mp3Audio.volume = mp3Volume(); } catch (err) { /* ignore */ } }
   }
 
   function setEnabled(on) {
@@ -316,6 +410,7 @@
 
   return {
     TRACKS,
+    MP3_SONGS,
     play,
     stop,
     ambientForHour,

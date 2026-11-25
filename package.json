@@ -33,6 +33,7 @@
       "assets/icons.js",
       "assets/sprites/**/*",
       "assets/bgm/*.mid",
+      "assets/bgm/mp3/*.mp3",
       "assets/icon.png",
       "assets/tray.png",
       "scripts/generate-icons.js"

@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'juanbuddy-v3';
+const CACHE = 'juanbuddy-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -12,6 +12,9 @@ const ASSETS = [
   './engine.js',
   './sfx.js',
   './bgm.js',
+  './bgm/mp3/idle_pet_groove.mp3',
+  './bgm/mp3/level_1_1.mp3',
+  './bgm/mp3/level_13.mp3',
   './manifest.webmanifest',
   './icons/icon-180.png',
   './icons/icon-192.png',
@@ -19,7 +22,7 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
+  event.waitUntil(caches.open(CACHE).then((c) => Promise.all(ASSETS.map((a) => c.add(a).catch(() => {})))));
   self.skipWaiting();
 });
 
