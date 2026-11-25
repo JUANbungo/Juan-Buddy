@@ -198,5 +198,81 @@
 
   function getVolume() { return volume; }
 
-  return { play, playGacha, isEnabled, setEnabled, setVolume, getVolume };
+  let rain = null;
+  let rainTimer = null;
+
+  function noiseBuffer(ac, seconds) {
+    const len = Math.max(1, Math.floor(ac.sampleRate * seconds));
+    const buf = ac.createBuffer(1, len, ac.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i += 1) data[i] = Math.random() * 2 - 1;
+    return buf;
+  }
+
+  function stopRain() {
+    if (rainTimer) { clearTimeout(rainTimer); rainTimer = null; }
+    if (rain) {
+      try {
+        rain.gain.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.5);
+        const dead = rain.src;
+        setTimeout(() => { try { dead.stop(); dead.disconnect(); } catch (err) { /* gone */ } }, 1800);
+      } catch (err) { /* ctx gone */ }
+      rain = null;
+    }
+  }
+
+  function thunderBoom() {
+    if (!ctx || !enabled) return;
+    try {
+      const src = ctx.createBufferSource();
+      src.buffer = noiseBuffer(ctx, 1.6);
+      const f = ctx.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = 150;
+      const g = ctx.createGain();
+      const t0 = ctx.currentTime;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.5, t0 + 0.08);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.5);
+      src.connect(f); f.connect(g); g.connect(sfxMaster || ctx.destination);
+      src.start(t0); src.stop(t0 + 1.7);
+    } catch (err) { /* audio unavailable */ }
+  }
+
+  function scheduleThunder() {
+    if (rainTimer) clearTimeout(rainTimer);
+    rainTimer = setTimeout(() => {
+      if (!rain || rain.mode !== 'storm' || !enabled || !ctx) return;
+      thunderBoom();
+      scheduleThunder();
+    }, 5000 + Math.floor(Math.random() * 11000));
+  }
+
+  function setRain(mode) {
+    const want = mode === 'rain' || mode === 'storm' ? mode : 'off';
+    if ((rain && rain.mode) === want) { ensureCtx(); return; }
+    if (want === 'off') { stopRain(); return; }
+    const ac = ensureCtx();
+    if (!ac) { stopRain(); return; }
+    try {
+      stopRain();
+      const src = ac.createBufferSource();
+      src.buffer = noiseBuffer(ac, 2);
+      src.loop = true;
+      const filter = ac.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = want === 'storm' ? 900 : 1400;
+      const gain = ac.createGain();
+      gain.gain.value = 0.0001;
+      src.connect(filter); filter.connect(gain); gain.connect(sfxMaster || ac.destination);
+      src.start();
+      rain = { src, gain, mode: want };
+      gain.gain.setTargetAtTime(want === 'storm' ? 0.16 : 0.09, ac.currentTime, 1.4);
+      if (want === 'storm') scheduleThunder();
+    } catch (err) { rain = null; }
+  }
+
+  function getRain() { return rain ? rain.mode : 'off'; }
+
+  return { play, playGacha, isEnabled, setEnabled, setVolume, getVolume, setRain, getRain };
 });

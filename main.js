@@ -119,6 +119,7 @@ function fullStateSnapshot(toast) {
   return {
     state,
     derived: engine.derivedStats(state),
+    settings: state.settings ? { ...state.settings } : null,
     toast: toast || null,
     openAtLogin: app.getLoginItemSettings().openAtLogin,
   };

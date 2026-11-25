@@ -578,7 +578,7 @@ const ACHIEVEMENTS = [
   { id: 'perk_epic', icon: '\u2728', name: 'Epic Fate', desc: 'Roll an EPIC perk (1% luck!)', check: (s) => (s.epicPerks || 0) >= 1 },
 ];
 
-const WEATHER_POOL = ['clear', 'clear', 'cloudy', 'clear', 'rainy', 'cloudy', 'clear', 'stormy', 'cloudy', 'clear', 'snowy', 'clear'];
+const WEATHER_POOL = ['clear', 'clear', 'cloudy', 'clear', 'rainy', 'cloudy', 'rainy', 'stormy', 'clear', 'cloudy', 'snowy', 'rainy'];
 const WEATHERS = {
   clear: { id: 'clear', icon: '☀️', label: 'Sunny' },
   cloudy: { id: 'cloudy', icon: '☁️', label: 'Cloudy' },

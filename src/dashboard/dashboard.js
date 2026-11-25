@@ -23,6 +23,7 @@ function applyGraphics(smooth) {
 
 const UI_THEMES = ['classic', 'mint', 'sky', 'berry', 'violet', 'sunset'];
 let currentTheme = 'classic';
+let rainMode = 'off';
 
 function applyTheme(theme) {
   currentTheme = UI_THEMES.includes(theme) ? theme : 'classic';
@@ -65,7 +66,8 @@ function paintSettingsControls(st) {
   const gfxSelect = el('set-gfx');
   const bgmRange = el('set-bgm');
   const sfxRange = el('set-sfx');
-  if (bgmToggle) bgmToggle.textContent = st.bgmOn ? '🎵 Music: On' : '🔇 Music: Off';
+  const musicOn = st.bgmOn !== undefined ? st.bgmOn : (bgm ? bgm.getEnabled() : true);
+  if (bgmToggle) bgmToggle.textContent = musicOn ? '🎵 Music: On' : '🔇 Music: Off';
   if (gfxSelect && document.activeElement !== gfxSelect) gfxSelect.value = st.pixelGraphics === false ? 'smooth' : 'pixel';
   if (bgmRange && document.activeElement !== bgmRange) bgmRange.value = String(Math.round((st.bgmVol || 0.5) * 100));
   if (sfxRange && document.activeElement !== sfxRange) sfxRange.value = String(Math.round((st.sfxVol || 0.7) * 100));
@@ -222,6 +224,13 @@ function render(snapshot) {
     const wantSmooth = smoothOfSettings(d.settings);
     if (wantSmooth !== smoothGraphics) applyGraphics(wantSmooth);
     if (d.settings.theme && d.settings.theme !== currentTheme) applyTheme(d.settings.theme);
+  }
+  const weatherId = d.weather ? d.weather.id : 'clear';
+  const wantRain = weatherId === 'stormy' ? 'storm' : weatherId === 'rainy' ? 'rain' : 'off';
+  if (wantRain !== rainMode) {
+    rainMode = wantRain;
+    if (sfx) { try { sfx.setRain(wantRain); } catch (err) { /* audio unavailable */ } }
+    if (document.body && document.body.classList) document.body.classList.toggle('rain-active', wantRain !== 'off');
   }
   const homeTitle = el('home-title');
   if (homeTitle) homeTitle.textContent = `🏠 ${s.pet.name}'s Home`;
@@ -1847,8 +1856,7 @@ const gfxSelect = el('set-gfx');
 const themeSwatches = el('theme-swatches');
 if (bgmToggle && bgm && bgmRange) {
   bgmToggle.addEventListener('click', async () => {
-    const st = latest && latest.settings ? latest.settings : {};
-    const on = !st.bgmOn;
+    const on = !bgm.getEnabled();
     if (bgm) bgm.setEnabled(on);
     await api.action('setSettings', { bgmOn: on });
     bgmToggle.textContent = on ? '🎵 Music: On' : '🔇 Music: Off';

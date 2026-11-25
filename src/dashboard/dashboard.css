@@ -22,6 +22,8 @@
   --teal: #2dd4bf;
   --violet: #a78bfa;
   --indigo: #6366f1;
+  --cream: #fff3d9;
+  --cream-2: #f7ecd4;
 }
 
 * { box-sizing: border-box; }
@@ -1020,7 +1022,7 @@ header.topbar {
   border-image-slice: 12 fill;
   border-image-repeat: stretch;
   image-rendering: pixelated;
-  background: #f7ecd4;
+  background: var(--cream-2);
   color: #4a3b28;
 }
 
@@ -1056,7 +1058,7 @@ header.topbar {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #fff8ea;
+  background: var(--cream);
   border: 3px solid #d9c39a;
   border-radius: 10px;
   padding: 8px 10px;
@@ -1161,7 +1163,7 @@ header.topbar {
   grid-template-columns: repeat(2, minmax(120px, 1fr));
   gap: 6px;
   padding: 10px;
-  background: #fff8ea;
+  background: var(--cream);
   border: 8px solid transparent;
   border-image-source: url('../../assets/sprites/ui/panels/cozy_panel_frame.png');
   border-image-slice: 12 fill;
@@ -1215,7 +1217,7 @@ header.topbar {
 .tab-panel > .card .explore-card,
 .tab-panel > .card .path-card,
 .tab-panel > .card .search-box {
-  background: #fff3d9;
+  background: var(--cream);
   border-color: #dcc79e;
   color: #4a3b28;
 }
@@ -1245,7 +1247,7 @@ header.topbar {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  background: #fff3d9;
+  background: var(--cream);
   border: 1px solid #dcc79e;
   border-radius: 10px;
   padding: 10px 12px;
@@ -1414,3 +1416,47 @@ body.theme-sunset { --amber: #fb923c; --amber-soft: #fed7aa; }
 
 /* ==== Active stage-menu item highlight ==== */
 .stage-menu-item.on { background: #d8f0d2; filter: brightness(1.03); }
+
+/* ==== Themes: visible surface recolors (panels, buttons, menu) ==== */
+body.theme-mint { --cream: #eefaf2; --cream-2: #e3f5ea; }
+body.theme-sky { --cream: #eaf5fd; --cream-2: #ddeefa; }
+body.theme-berry { --cream: #fdecf0; --cream-2: #f9dee4; }
+body.theme-violet { --cream: #f0ecfc; --cream-2: #e7e1fa; }
+body.theme-sunset { --cream: #fdf1e3; --cream-2: #fae7d2; }
+
+body.theme-mint .btn:not(.btn-danger) { border-image-source: url('../../assets/sprites/ui/buttons/btn_mint.png'); }
+body.theme-sky .btn:not(.btn-danger) { border-image-source: url('../../assets/sprites/ui/buttons/btn_sky.png'); }
+body.theme-violet .btn:not(.btn-danger) { border-image-source: url('../../assets/sprites/ui/buttons/btn_sky.png'); }
+body.theme-berry .btn:not(.btn-danger) { border-image-source: url('../../assets/sprites/ui/buttons/btn_berry.png'); }
+body.theme-sunset .btn:not(.btn-danger) { border-image-source: url('../../assets/sprites/ui/buttons/btn_peach.png'); }
+body.theme-classic .btn:not(.btn-primary) { border-image-source: url('../../assets/sprites/ui/buttons/btn_peach.png'); }
+
+body.theme-mint .stage-menu-item { color: #23503c; }
+body.theme-sky .stage-menu-item { color: #1f4a66; }
+body.theme-berry .stage-menu-item { color: #6b2733; }
+body.theme-violet .stage-menu-item { color: #44336b; }
+body.theme-sunset .stage-menu-item { color: #6b3d14; }
+
+/* ==== HUD pills: solid dark ink pills on the cream top bar ==== */
+.hud-pill {
+  background: #26200f;
+  border: 2px solid #5c4a2e;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+.hud-pill .hud-txt b { color: #ffe08a; }
+.hud-pill .hud-sub { color: #b9a888; }
+.hud-pill.coin-pill {
+  background: #2d2410;
+  border-color: #6b5626;
+}
+.hud-pill.coin-pill .hud-txt b { color: #ffd54a; font-size: 15px; text-shadow: 0 1px 0 #1c1608; }
+.hud-pill.coin-pill .hud-sub { color: #d9b36c; }
+
+/* ==== Rain: thicker streaks for rainy + stormy days ==== */
+body.rain-active .playground-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(rgba(70, 100, 160, 0.05), rgba(70, 100, 160, 0.10));
+}
