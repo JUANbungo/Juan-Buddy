@@ -115,6 +115,20 @@ function runAction(action, payload) {
       app.quit();
       result = { ok: true };
       break;
+    case 'adminAddDay': {
+      if (!state.playdays) state.playdays = { last: null, count: 0 };
+      state.playdays.count = (state.playdays.count || 0) + 1;
+      const d = state.playdays.count;
+      const unlocks = [];
+      if (d === 3) unlocks.push('Cozy Bag');
+      if (d === 7) unlocks.push('Battle + Stats');
+      if (d === 14) unlocks.push('Gear Forge');
+      if (d === 30) unlocks.push('Destiny Path');
+      let msg = `ADMIN: +1 day → ${d} day${d === 1 ? '' : 's'} played.`;
+      if (unlocks.length) msg += ' 🔓 ' + unlocks.join(', ') + ' unlocked!';
+      result = { ok: true, message: msg };
+      break;
+    }
     case 'reset':
       result = resetState();
       break;
@@ -301,7 +315,7 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 app.on('window-all-closed', () => {
-  if (isMac) return;
+  app.quit();
 });
 
 app.on('before-quit', () => {

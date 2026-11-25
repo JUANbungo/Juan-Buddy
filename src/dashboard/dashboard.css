@@ -631,6 +631,8 @@ footer {
 
 .link { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; }
 .link.danger:hover { color: var(--rose); }
+.link.admin { color: var(--amber); font-weight: 700; letter-spacing: 0.5px; }
+.link.admin:hover { color: #ffd54a; }
 
 /* ============================ DEATH OVERLAY ============================ */
 

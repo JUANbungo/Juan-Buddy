@@ -662,6 +662,11 @@ el('btn-reset').addEventListener('click', async () => {
   showToast('Progress reset.');
 });
 
+el('btn-admin-day').addEventListener('click', async () => {
+  if (sfx) sfx.play('click');
+  await act('adminAddDay');
+});
+
 // ==== Splash / loading screen ====
 let splashReadyShown = false;
 function splashSetup() {
