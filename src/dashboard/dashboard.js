@@ -213,6 +213,7 @@ function drawFoodIcon(canvasEl, id) {
 }
 
 const el = (id) => document.getElementById(id);
+const on = (id, ev, fn) => { const node = el(id); if (node) node.addEventListener(ev, fn); };
 
 function showToast(msg, ms) {
   if (!msg) return;
@@ -634,36 +635,36 @@ function renderShop(s, d) {
   }
 }
 
-el('food-search').addEventListener('input', (e) => {
+on('food-search','input', (e) => {
   foodState.query = e.target.value.trim().toLowerCase();
   if (latest) renderFoods(latest.state, latest.derived);
 });
 
-el('btn-play').addEventListener('click', () => act('play'));
-el('btn-work').addEventListener('click', () => act('toggleWork'));
-el('btn-sleep').addEventListener('click', () => act('toggleSleep'));
-el('btn-cheer').addEventListener('click', async () => {
+on('btn-play','click', () => act('play'));
+on('btn-work','click', () => act('toggleWork'));
+on('btn-sleep','click', () => act('toggleSleep'));
+on('btn-cheer','click', async () => {
   const ev = await window.BuddyAPI.getEvent();
   if (ev && ev.native) showToast(`✨ ${ev.native}\n${ev.romanization ? '(' + ev.romanization + ') — ' : ''}${ev.translation}`, 5000);
 });
 
-el('pet-name').addEventListener('click', () => {
+on('pet-name','click', () => {
   const name = window.prompt('Rename your buddy:', latest ? latest.state.pet.name : 'Buddy');
   if (name) act('rename', { name });
 });
 
-el('open-login').addEventListener('change', (e) => {
+on('open-login','change', (e) => {
   api.action('setOpenAtLogin', { open: e.target.checked });
 });
 
-el('btn-reset').addEventListener('click', async () => {
+on('btn-reset','click', async () => {
   if (!window.confirm('Reset all progress? This cannot be undone.')) return;
   const res = await api.action('reset');
   if (res && res.ok) clearNamedFlag();
   showToast('Progress reset.');
 });
 
-el('btn-admin-day').addEventListener('click', async () => {
+on('btn-admin-day','click', async () => {
   if (sfx) sfx.play('click');
   await act('adminAddDay');
 });
@@ -2058,8 +2059,8 @@ function renderExtras(d) {
   }
 }
 
-el('btn-daily').addEventListener('click', () => act('claimDaily'));
-el('btn-free-food').addEventListener('click', async () => { await act('claimFreeFood'); });
+on('btn-daily','click', () => act('claimDaily'));
+on('btn-free-food','click', async () => { await act('claimFreeFood'); });
 
 let gachaBusy = false;
 
@@ -2134,9 +2135,9 @@ async function pullGacha(times) {
   gachaBusy = false;
 }
 
-el('btn-gacha-free').addEventListener('click', () => pullGacha(1));
-el('btn-gacha-1').addEventListener('click', () => pullGacha(1));
-el('btn-gacha-10').addEventListener('click', () => pullGacha(10));
+on('btn-gacha-free','click', () => pullGacha(1));
+on('btn-gacha-1','click', () => pullGacha(1));
+on('btn-gacha-10','click', () => pullGacha(10));
 
 const sfxBtn = el('btn-sfx');
 if (sfxBtn) {
@@ -2180,7 +2181,7 @@ if (nameModal && nameInput) {
     nameModal.classList.add('hidden');
     try { if (typeof localStorage !== 'undefined') localStorage.setItem('juanbuddy-named', '1'); } catch (err) { /* ignore */ }
   };
-  el('btn-name-save').addEventListener('click', async () => {
+  on('btn-name-save','click', async () => {
     const name = (nameInput.value || '').trim().slice(0, 16);
     if (!name) { showToast('Nickname is too short! 🥺'); return; }
     const res = await api.action('rename', { name });
@@ -2188,7 +2189,7 @@ if (nameModal && nameInput) {
     if (sfx) sfx.play('happy');
     showToast((res && res.message) || '. ..');
   });
-  el('btn-name-skip').addEventListener('click', () => {
+  on('btn-name-skip','click', () => {
     closeNameModal();
     showToast('Your buddy keeps the name Buddy — rename it later by clicking its name! 💛');
   });
@@ -2275,7 +2276,7 @@ if (wallpawPicks) {
 document.addEventListener('pointerdown', startBgmOnGesture);
 document.addEventListener('keydown', startBgmOnGesture);
 
-el('btn-export').addEventListener('click', async () => {
+on('btn-export','click', async () => {
   const res = await api.action('exportSave');
   if (!res || !res.ok) return;
   try {
@@ -2286,14 +2287,14 @@ el('btn-export').addEventListener('click', async () => {
   }
 });
 
-el('btn-import').addEventListener('click', async () => {
+on('btn-import','click', async () => {
   const code = window.prompt('Paste your Juan Buddy save code (starts with JB2.):');
   if (!code) return;
   const res = await api.action('importSave', { code: code.trim() });
   showToast(res && res.message, 3200);
 });
 
-el('btn-new-game').addEventListener('click', async () => {
+on('btn-new-game','click', async () => {
   if (!window.confirm('Start over with a new egg? Your buddy will be gone forever, but your achievements stay.')) return;
   const res = await api.action('newGame');
   if (res && res.ok) clearNamedFlag();
@@ -2494,14 +2495,14 @@ function renderExplore(d) {
   }
 }
 
-el('battle-points-row').addEventListener('click', async (e) => {
+on('battle-points-row','click', async (e) => {
   const btn = e.target.closest('button[data-stat]');
   if (!btn || btn.disabled) return;
   const res = await api.action('allocateStat', { statId: btn.dataset.stat });
   showToast((res && res.message) || '. ..', 1800);
 });
 
-el('monster-grid').addEventListener('click', async (e) => {
+on('monster-grid','click', async (e) => {
   const btn = e.target.closest('button[data-monster]');
   if (!btn || btn.disabled) return;
   btn.disabled = true;
@@ -2520,7 +2521,7 @@ el('monster-grid').addEventListener('click', async (e) => {
   showToast((res && res.message) || '. ..', 2800);
 });
 
-el('gear-shop').addEventListener('click', async (e) => {
+on('gear-shop','click', async (e) => {
   const buyBtn = e.target.closest('button[data-gearbuy]');
   const eqBtn = e.target.closest('button[data-gearequip]');
   if (buyBtn && !eqBtn) {
@@ -2532,7 +2533,7 @@ el('gear-shop').addEventListener('click', async (e) => {
   }
 });
 
-el('gear-slots').addEventListener('click', async (e) => {
+on('gear-slots','click', async (e) => {
   const sdiv = e.target.closest('.gear-slot');
   if (!sdiv) return;
   const idx = Array.from(sdiv.parentElement.children).indexOf(sdiv);
@@ -2548,7 +2549,7 @@ el('gear-slots').addEventListener('click', async (e) => {
   showToast((res && res.message) || '. ..', 2000);
 });
 
-el('path-cards').addEventListener('click', async (e) => {
+on('path-cards','click', async (e) => {
   const card = e.target.closest('button[data-choosepath]');
   if (!card || card.disabled) return;
   if (!window.confirm('Ito na talaga? The Destiny choice is PERMANENT for this buddy.')) return;
@@ -2556,7 +2557,7 @@ el('path-cards').addEventListener('click', async (e) => {
   showToast((res && res.message) || '. ..', 3600);
 });
 
-el('explore-grid').addEventListener('click', async (e) => {
+on('explore-grid','click', async (e) => {
   const btn = e.target.closest('button[data-explore]');
   if (!btn || btn.disabled) return;
   const res = await api.action('startActivity', { activityId: btn.dataset.explore });
@@ -2586,9 +2587,9 @@ async function pullGearWish(times) {
   setTimeout(() => resultEl.classList.add('hidden'), 3400);
 }
 
-el('btn-gear-gacha-free').addEventListener('click', () => pullGearWish(1));
-el('btn-gear-gacha-1').addEventListener('click', () => pullGearWish(1));
-el('btn-gear-gacha-10').addEventListener('click', () => pullGearWish(10));
+on('btn-gear-gacha-free','click', () => pullGearWish(1));
+on('btn-gear-gacha-1','click', () => pullGearWish(1));
+on('btn-gear-gacha-10','click', () => pullGearWish(10));
 
 // ===== Cozy Bag: cosmetics & equipment inventory with PNG item icons =====
 const evoTrack = { shown: false };
@@ -2704,7 +2705,7 @@ function showEvoPopup(speciesId) {
   setTimeout(() => popup.classList.add('hidden'), 5200);
 }
 
-el('bag-grid').addEventListener('click', (e) => {
+on('bag-grid','click', (e) => {
   const card = e.target.closest('.bag-card');
   if (!card || !card.dataset.item) return;
   const itemId = card.dataset.item;

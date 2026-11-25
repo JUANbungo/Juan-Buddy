@@ -51,6 +51,14 @@ fs.cpSync(path.join(root, 'assets'), path.join(pages, 'assets'), {
   filter: (src) => !/\.(zip|rar)$/i.test(src),
 });
 
+const bustVersion = String(Math.floor(Date.now() / 1000));
+const dashIndex = path.join(dashDir, 'index.html');
+const bustHtml = fs
+  .readFileSync(dashIndex, 'utf8')
+  .replace(/(src="[^"?]+\.js)"/g, `$1?v=${bustVersion}"`)
+  .replace(/(href="[^"?]+\.css)"/g, `$1?v=${bustVersion}"`);
+fs.writeFileSync(dashIndex, bustHtml);
+
 fs.writeFileSync(path.join(pages, 'index.html'), [
   '<!DOCTYPE html>',
   '<html lang="en">',
