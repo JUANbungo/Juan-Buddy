@@ -74,6 +74,7 @@ function runAction(action, payload) {
       break;
     case 'claimDaily': result = engine.claimDaily(state); break;
     case 'claimFreeFood': result = engine.claimFreeFood(state); break;
+    case 'claimQuest': result = engine.claimQuest(state, payload ? payload.questId : undefined); break;
     case 'pullGacha': result = engine.pullGacha(state, payload && payload.times); break;
     case 'pullGearGacha': result = engine.pullGearGacha(state, payload && payload.times); break;
     case 'buyShopPet': result = engine.buyShopPet(state, payload && payload.petId); break;
@@ -141,13 +142,18 @@ function runAction(action, payload) {
   return result;
 }
 
+let pendingOfflineReport = null;
+
 function fullStateSnapshot(toast) {
+  const offlineReport = pendingOfflineReport;
+  pendingOfflineReport = null;
   return {
     state,
     derived: engine.derivedStats(state),
     settings: state.settings ? { ...state.settings } : null,
     toast: toast || null,
     openAtLogin: app.getLoginItemSettings().openAtLogin,
+    offlineReport: offlineReport || null,
   };
 }
 
@@ -256,7 +262,7 @@ function maybeNotify() {
 function startTicking() {
   if (tickTimer) clearInterval(tickTimer);
   let last = Date.now();
-  engine.addOfflineProgress(state);
+  pendingOfflineReport = engine.addOfflineProgress(state);
   let motivationCountdown = 15 * 60; 
   tickTimer = setInterval(() => {
     const now = Date.now();

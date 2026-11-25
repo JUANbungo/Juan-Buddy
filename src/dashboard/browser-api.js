@@ -37,18 +37,23 @@
     try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (err) { /* storage full/unavailable */ }
   }
 
-  function snapshot(toast) {
+  let pendingOfflineReport = null;
+
+  function snapshot(toast, keepOffline) {
+    const rep = pendingOfflineReport;
+    if (!keepOffline && rep) pendingOfflineReport = null;
     return {
       state,
       derived: engine.derivedStats(state),
       settings: state.settings ? { ...state.settings } : null,
       toast: toast || null,
       openAtLogin: false,
+      offlineReport: rep || null,
     };
   }
 
   function broadcast(toast) {
-    const snap = snapshot(toast);
+    const snap = snapshot(toast, true);
     for (const cb of listeners) {
       try { cb(snap); } catch (err) { /* listener error must not break tick */ }
     }
@@ -96,6 +101,7 @@
         break;
       case 'claimDaily': result = engine.claimDaily(state); break;
       case 'claimFreeFood': result = engine.claimFreeFood(state); break;
+      case 'claimQuest': result = engine.claimQuest(state, payload ? payload.questId : undefined); break;
       case 'pullGacha': result = engine.pullGacha(state, payload && payload.times); break;
       case 'buyShopPet': result = engine.buyShopPet(state, payload && payload.petId); break;
       case 'pullGearGacha': result = engine.pullGearGacha(state, payload && payload.times); break;
@@ -186,7 +192,7 @@
 
   let last = Date.now();
   let motivationCountdown = 15 * 60;
-  engine.addOfflineProgress(state);
+  pendingOfflineReport = engine.addOfflineProgress(state);
   setInterval(() => {
     const now = Date.now();
     const dt = (now - last) / 1000;

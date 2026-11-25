@@ -40,6 +40,23 @@
             <span class="lvl">LV <b id="level">1</b></span>
           </div>
         </div>
+        <div id="hud-streak" class="hud-streak" title="Daily check-in streak">
+          <img id="hud-streak-ico" class="pixelated" src="assets/icons/streak_seed.png" alt="" draggable="false">
+          <span id="hud-streak-days">0d</span>
+          <span class="hud-rate-badge" id="hud-rate-badge" title="100% Online Rate active &middot; 5% when offline">&#9889;&#xFE0E;100%</span>
+        </div>
+      </div>
+      <div class="hud-center">
+        <div id="hud-ticker" class="hud-ticker"><span id="hud-ticker-text">&#10024; Ready for a cozy day!</span></div>
+        <div class="hud-quick">
+          <button id="hud-btn-calendar" class="topbar-quick" title="Daily Check-In Calendar" aria-label="Daily Check-In Calendar">&#128197;<i id="cal-dot" class="cal-dot hidden"></i></button>
+          <button id="hud-btn-quests" class="topbar-quick" title="Daily Eco-Quests" aria-label="Daily Eco-Quests">&#127919;<span id="quest-count" class="quest-count">0/3</span></button>
+          <button id="hud-btn-audio" class="topbar-quick" title="Music &amp; SFX on/off" aria-label="Toggle audio"><span id="hud-audio-icon">&#128266;</span><span id="hud-audio-label" class="quest-count"></span></button>
+        </div>
+        <div id="quests-pop" class="quests-pop hidden">
+          <div class="quests-pop-title">&#127919; Daily Eco-Quests</div>
+          <div id="quests-list" class="quests-list"></div>
+        </div>
       </div>
       <div class="hud-pills">
         <div class="hud-pill coin-pill">
@@ -434,6 +451,41 @@
     </div>
   </div>
 
+  <div id="wish-overlay" class="wish-overlay hidden">
+    <div class="wish-stage">
+      <div id="wish-aura" class="wish-aura"></div>
+      <img id="wish-pod" class="wish-pod pixelated" src="assets/decor/prop_wishing_seed_pod.png" alt="Wishing seed pod" draggable="false">
+      <div id="wish-petals" class="wish-petals"></div>
+      <div id="wish-cards" class="wish-cards"></div>
+      <button id="wish-skip" class="btn wish-skip">&#9195; Skip</button>
+    </div>
+  </div>
+
+  <div id="welcome-back-modal" class="evo-popup hidden">
+    <div class="evo-card eco-panel wb-card">
+      <div class="evo-banner">&#127811; WELCOME BACK!</div>
+      <div id="wb-time" class="wb-time">4h 12m away</div>
+      <div class="wb-badge">5% Offline Rate &middot; Keep the game open for 100%!</div>
+      <div class="wb-rewards">
+        <div class="wb-reward"><span class="wb-ico">&#129689;</span><span id="wb-coins">+0</span> coins</div>
+        <div class="wb-reward"><span class="wb-ico">&#11088;</span><span id="wb-xp">+0</span> XP</div>
+      </div>
+      <div id="wb-stats-note" class="muted small wb-note">Your buddy missed you &mdash; care meters kept draining slowly while away.</div>
+      <button id="wb-collect" class="btn btn-amber">&#129689; Collect</button>
+    </div>
+  </div>
+
+  <div id="checkin-modal" class="evo-popup hidden">
+    <div class="evo-card eco-panel cal-card">
+      <div class="evo-banner">&#128197; DAILY CHECK-IN</div>
+      <div id="checkin-streak" class="cal-streak">0-day streak &middot; best 0</div>
+      <div id="checkin-grid" class="cal-grid"></div>
+      <div id="checkin-preview" class="cal-preview"></div>
+      <button id="checkin-claim" class="btn btn-amber">&#127793; Check In &amp; Claim</button>
+      <button id="checkin-close" class="link"><span class="muted">Close</span></button>
+    </div>
+  </div>
+
   <div id="toast" class="toast hidden"></div>
   <script src="../pet/sprites.js"></script>
   <script src="../pet/sfx.js"></script>
@@ -441,6 +493,7 @@
   <script src="../engine/engine.js"></script>
   <script src="../pet/motivation.js"></script>
   <script src="js/eco-particles.js"></script>
+  <script src="js/cute-sfx.js"></script>
   <script src="browser-api.js"></script>
   <script src="dashboard.js"></script>
 </body>

@@ -101,7 +101,8 @@ const ACTIVITIES = {
 };
 
 const MAX_METERS = 100;
-const OFFLINE_CAP_SECONDS = 8 * 60 * 60;
+const OFFLINE_CAP_SECONDS = 24 * 60 * 60;
+const OFFLINE_RATE = 0.05;
 const LEVEL_XP_BASE = 40;
 const LEVEL_XP_GROWTH = 1.6;
 
@@ -693,6 +694,7 @@ function defaultState() {
     stats: { feedCount: 0, playCount: 0, coinsEarned: 0, workSeconds: 0 },
     achievements: [],
     daily: { last: null, streak: 0, best: 0 },
+    quests: { last: '', feed: 0, play: 0, clean: 0, feedClaimed: false, playClaimed: false, cleanClaimed: false },
     gacha: { pulls: 0, fiveStars: 0, mythics: 0 },
     playdays: { last: null, count: 0 },
     statPoints: 0,
@@ -719,7 +721,7 @@ function defaultState() {
 
 function ensureState(state) {
   const fresh = defaultState();
-  for (const key of ['stats', 'achievements', 'daily', 'gacha', 'playdays', 'allocated', 'gear', 'gearOwned', 'gearGacha', 'battle', 'waste', 'skin', 'skinsOwned', 'neglect', 'dead', 'settings', 'perks', 'items', 'milestones', 'freePulls', 'freeFood']) {
+  for (const key of ['stats', 'achievements', 'daily', 'gacha', 'playdays', 'allocated', 'gear', 'gearOwned', 'gearGacha', 'battle', 'waste', 'skin', 'skinsOwned', 'neglect', 'dead', 'settings', 'perks', 'items', 'milestones', 'freePulls', 'freeFood', 'quests']) {
     if (state[key] === undefined) state[key] = fresh[key];
   }
   if (state.pendingPerk === undefined) state.pendingPerk = null;
@@ -834,12 +836,18 @@ function tick(state, dtSeconds, offline) {
   if (f.sleeping) {
     m.energy = clamp100(m.energy + 0.8 * (1 + perkPct(state, 'rest')) * dt);
     hungerDrain = 0.02;
-  } else if (f.working) {
-    const gained = coinRate(state) * dt * (offline ? 0.5 : 1);
+  } else if (offline) {
+    const gained = coinRate(state) * OFFLINE_RATE * dt;
     state.coins += gained;
     state.stats.coinsEarned += gained;
-    state.stats.workSeconds += offline ? dt * 0.5 : dt;
-    state.pet.xp += 0.05 * dt * (offline ? 1 : currentXpMul(state));
+    state.stats.workSeconds += dt * OFFLINE_RATE;
+    state.pet.xp += 0.05 * OFFLINE_RATE * dt;
+  } else if (f.working) {
+    const gained = coinRate(state) * dt;
+    state.coins += gained;
+    state.stats.coinsEarned += gained;
+    state.stats.workSeconds += dt;
+    state.pet.xp += 0.05 * dt * currentXpMul(state);
   }
 
   m.hunger = clamp100(m.hunger - hungerDrain * dt * scale * careScale);
@@ -1085,6 +1093,37 @@ function choosePerk(state, index) {
   return { ok: true, message: `\uD83E\uDDF0 ${label} unlocked: ${perkDesc(perk)}!`, perk };
 }
 
+const QUEST_REWARD = { coins: 40, xp: 15 };
+function questsOf(state) {
+  if (!state.quests) state.quests = { last: '', feed: 0, play: 0, clean: 0, feedClaimed: false, playClaimed: false, cleanClaimed: false };
+  const today = todayKey(Date.now());
+  const q = state.quests;
+  if (q.last !== today) {
+    q.last = today;
+    q.feed = 0; q.play = 0; q.clean = 0;
+    q.feedClaimed = false; q.playClaimed = false; q.cleanClaimed = false;
+  }
+  return q;
+}
+function bumpQuest(state, kind) {
+  const q = questsOf(state);
+  if (q[kind] !== undefined && !q[kind + 'Claimed']) q[kind] += 1;
+}
+function claimQuest(state, questId) {
+  const gate = deadGate(state);
+  if (gate) return gate;
+  if (!['feed', 'play', 'clean'].includes(questId)) return { ok: false, message: 'Unknown quest.' };
+  const q = questsOf(state);
+  if (q[questId + 'Claimed']) return { ok: false, message: 'Quest already claimed today.' };
+  if (!q[questId]) return { ok: false, message: 'Quest not done yet today!' };
+  q[questId + 'Claimed'] = true;
+  state.coins += QUEST_REWARD.coins;
+  state.stats.coinsEarned += QUEST_REWARD.coins;
+  state.pet.xp += QUEST_REWARD.xp;
+  applyLevelUps(state);
+  return { ok: true, message: `\uD83C\uDF31 Daily quest complete! +${QUEST_REWARD.coins} coins +${QUEST_REWARD.xp} XP` };
+}
+
 function applyFood(state, food, opts) {
   const free = !!(opts && opts.free);
   if (state.meters.hunger >= 99) return { ok: false, message: `${state.pet.name} is full!` };
@@ -1119,7 +1158,9 @@ function feed(state, foodId, opts) {
   const food = FOODS[foodId];
   if (!food) return { ok: false, message: 'Unknown food.' };
   if (state.flags.sleeping) return { ok: false, message: `${state.pet.name} is sleeping...` };
-  return applyFood(state, food, opts);
+  const res = applyFood(state, food, opts);
+  if (res && res.ok) bumpQuest(state, 'feed');
+  return res;
 }
 
 function play(state) {
@@ -1130,6 +1171,7 @@ function play(state) {
   state.meters.energy = clamp100(state.meters.energy - 8);
   state.meters.happiness = clamp100(state.meters.happiness + 10 * (1 + 0.25 * state.upgrades.toys));
   state.stats.playCount += 1;
+  bumpQuest(state, 'play');
   state.pet.xp += 4 * currentXpMul(state);
   state.effects.happyUntil = Math.max(state.effects.happyUntil, Date.now() + 5000);
   applyLevelUps(state);
@@ -1185,9 +1227,15 @@ function buyUpgrade(state, id) {
 function addOfflineProgress(state) {
   const elapsed = (Date.now() - state.lastSeen) / 1000;
   const effective = Math.min(elapsed, OFFLINE_CAP_SECONDS);
-  if (effective < 5) return 0;
+  if (effective < 60 || state.dead) return null;
+  const coinsBefore = state.coins;
+  const xpBefore = state.pet.xp;
   tick(state, effective, true);
-  return effective;
+  return {
+    seconds: effective,
+    coins: Math.max(0, state.coins - coinsBefore),
+    xp: Math.max(0, state.pet.xp - xpBefore),
+  };
 }
 
 function phaseOf(now) {
@@ -1311,6 +1359,7 @@ function saveCode(state) {
     stats: state.stats,
     achievements: state.achievements,
     daily: state.daily,
+    quests: state.quests,
     skin: state.skin,
     skinsOwned: state.skinsOwned,
     playdays: state.playdays,
@@ -1449,6 +1498,10 @@ function derivedStats(state) {
       freePullAvailable: !(state.freePulls && state.freePulls.last === todayKey(now)),
       freeFoodAvailable: !(state.freeFood && state.freeFood.last === todayKey(now)),
     },
+    quests: (function () {
+      const q = questsOf(state);
+      return { feed: q.feed, play: q.play, clean: q.clean, feedClaimed: q.feedClaimed, playClaimed: q.playClaimed, cleanClaimed: q.cleanClaimed, rewardCoins: QUEST_REWARD.coins, rewardXp: QUEST_REWARD.xp };
+    })(),
     milestones: state.milestones ? { ...state.milestones } : { rename60: false, pathReset100: false, coins150: false, badge300: false },
     petShop: SHOP_PETS.map((pt) => ({
       ...pt,
@@ -1535,6 +1588,7 @@ function cleanWaste(state, index) {
   state.meters.happiness = clamp100(Math.min(100, state.meters.happiness + 2));
   state.pet.xp += 1;
   applyLevelUps(state);
+  bumpQuest(state, 'clean');
   return { ok: true, message: '\ud83e\uddf9 Squeaky clean! Buddy says salamat.' };
 }
 
@@ -1631,6 +1685,7 @@ return {
   stageForLevel,
   claimDaily,
   claimFreeFood,
+  claimQuest,
   buyShopPet,
   pullGacha,
   buySkin,

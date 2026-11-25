@@ -3,6 +3,7 @@
 const api = window.BuddyAPI;
 const sprites = window.JBSprites;
 const sfx = window.JBSfx;
+const cuteSfx = window.CuteSfx;
 const bgm = window.JBBgm;
 const sfxLast = {};
 let smoothGraphics = false;
@@ -175,6 +176,8 @@ function playActionSound(action, res) {
     buyItem: 'buy', equipItem: 'happy', useEvoStone: 'evolve', choosePerk: 'levelup',
   };
   sfxOnce(map[action] || 'click');
+  if (action === 'feed' && cuteSfx) cuteSfx.play('munch');
+  if (action === 'claimDaily' && cuteSfx) cuteSfx.play('stamp');
 }
 const UPGRADE_META = {
   bed: { icon: '🛏', title: 'Cozy Bed', desc: 'Energy drains 12% slower per level' },
@@ -185,6 +188,7 @@ const UPGRADE_META = {
 const UPGRADE_MAX = { bed: 5, toys: 5, job: 10, feeder: 1 };
 
 let latest = null;
+const renderTextCache = {};
 let toastTimer = null;
 
 const FOOD_PNG_BASE = '../../assets/sprites/food/';
@@ -272,12 +276,14 @@ function render(snapshot) {
     else if (msg.includes('Daily bonus')) sfxOnce('daily');
   }
 
-  el('pet-name').textContent = s.pet.name;
-  el('level').textContent = s.pet.level;
+  if (renderTextCache.petName !== s.pet.name) { renderTextCache.petName = s.pet.name; el('pet-name').textContent = s.pet.name; }
+  if (renderTextCache.level !== s.pet.level) { renderTextCache.level = s.pet.level; el('level').textContent = s.pet.level; }
   updateBrandFace(s);
 
-  el('coins').textContent = Math.floor(s.coins);
-  el('coin-rate').textContent = s.flags.working ? `+${d.coinRate.toFixed(1)}/s` : 'not working';
+  const coinNum = Math.floor(s.coins);
+  if (renderTextCache.coins !== coinNum) { renderTextCache.coins = coinNum; el('coins').textContent = coinNum; }
+  const rateTxt = s.flags.working ? `+${d.coinRate.toFixed(1)}/s` : 'not working';
+  if (renderTextCache.rate !== rateTxt) { renderTextCache.rate = rateTxt; el('coin-rate').textContent = rateTxt; }
 
   setMeter('hunger', s.meters.hunger);
   setMeter('energy', s.meters.energy);
@@ -301,6 +307,19 @@ function render(snapshot) {
   const streakNow = d.daily ? d.daily.streak : 0;
   const streakIco = streakNow >= 14 ? 'streak_tree' : streakNow >= 7 ? 'streak_sapling' : streakNow >= 3 ? 'streak_sprout' : 'streak_seed';
   el('streak-chip').innerHTML = `<img class="streak-ico pixelated" src="assets/icons/${streakIco}.png" alt="" draggable="false"> ${streakNow}`;
+
+  const hudStreakSrc = `assets/icons/${streakIco}.png`;
+  const hudStreakIco = el('hud-streak-ico');
+  if (hudStreakIco && hudStreakIco.getAttribute('src') !== hudStreakSrc) hudStreakIco.setAttribute('src', hudStreakSrc);
+  const hudStreakDays = el('hud-streak-days');
+  if (hudStreakDays) hudStreakDays.textContent = `${streakNow}d`;
+  const calDotEl = el('cal-dot');
+  if (calDotEl) calDotEl.classList.toggle('hidden', !d.daily || d.daily.claimedToday);
+  const questsQ = d.quests || {};
+  const questsDone = (questsQ.feedClaimed ? 1 : 0) + (questsQ.playClaimed ? 1 : 0) + (questsQ.cleanClaimed ? 1 : 0);
+  const questCountEl = el('quest-count');
+  if (questCountEl) questCountEl.textContent = `${questsDone}/3`;
+  if (questsPopOpen) renderQuestsPop();
 
   el('danger-banner').classList.toggle('hidden', !s.dead && !(d.danger > 0.25));
   el('death-overlay').classList.toggle('hidden', !s.dead);
@@ -640,7 +659,11 @@ function updateBrandFace(s) {
   }
 }
 
+const meterCache = {};
 function setMeter(prefix, value) {
+  const rounded = Math.round(value);
+  if (meterCache[prefix] === rounded) return;
+  meterCache[prefix] = rounded;
   el(`${prefix}-fill`).style.width = pct(value);
   el(`${prefix}-val`).textContent = `${Math.round(value)}%`;
   if (prefix === 'xp') {
@@ -767,6 +790,7 @@ api.getState().then((snap) => {
   if (snap) el('open-login').checked = !!snap.openAtLogin;
   render(snap);
   splashReadyShown = true;
+  initLaunchPopups(snap);
 }).catch(() => { splashReadyShown = true; });
 
 const petStageCanvas = document.getElementById('dash-pet');
@@ -2202,6 +2226,7 @@ petStageCanvas.addEventListener('click', async (e) => {
     if (res && res.ok) {
       for (let i = 0; i < 4; i += 1) spawnFx('spark', nearest.x + (Math.random() * 22 - 11), nearest.y - 10, { vy: -0.5, size: 12 });
       sfxOnce('coin');
+      if (cuteSfx) cuteSfx.play('sparkle');
       if (window.JuanBuddyEco && window.JuanBuddyEco.burst) window.JuanBuddyEco.burst(e.clientX, e.clientY, 'compost');
     }
     showToast((res && res.message) || 'Cleaned!', 1400);
@@ -2217,6 +2242,7 @@ petStageCanvas.addEventListener('click', async (e) => {
       stageFx.push({ kind: 'heart', x: petDraw.cx + (Math.random() * 26 - 13), y: STAGE_GROUND - petDraw.size * 0.3, vy: -0.9, life: 1, size: 14 + Math.random() * 10, wobble: Math.random() * 6 });
     }
     sfxOnce('pat');
+    if (cuteSfx) cuteSfx.play('chirp');
     try {
       const sid2 = latest && latest.state && latest.state.pet ? latest.state.pet.species : null;
       if (sfx && sfx.petVoice) sfx.petVoice(sid2 || 'kala');
@@ -2233,13 +2259,19 @@ petStageCanvas.addEventListener('click', async (e) => {
     x: Math.max(70, Math.min(STAGE_W - 70, x)),
     y: Math.max(WALK_Y_MIN, Math.min(WALK_Y_MAX, y)),
   };
-  if (sfx) sfx.play('click');
+  if (cuteSfx) cuteSfx.play('plop');
 });
 
 function activateTab(name) {
   document.querySelectorAll('.tab-panel').forEach((p) => p.classList.add('hidden'));
   const panel = document.querySelector(`.panel-${name}`);
-  if (panel && panel.classList) panel.classList.remove('hidden');
+  if (panel && panel.classList) {
+    panel.classList.remove('panel-anim');
+    void panel.offsetWidth;
+    panel.classList.add('panel-anim');
+    panel.classList.remove('hidden');
+  }
+  if (cuteSfx) cuteSfx.play('rustle');
   document.querySelectorAll('#stage-menu .stage-menu-item').forEach((b) => {
     b.classList.toggle('on', b.dataset && b.dataset.menuTab === name);
   });
@@ -2266,9 +2298,32 @@ if (stageMenuBtn && stageMenu) {
   });
 }
 
+let lastStepAt = 0;
 (function stageLoop() {
-  drawStagePet(performance.now());
+  const stageNow = performance.now();
+  drawStagePet(stageNow);
+  if (petWalk.moving && (!latest || !latest.state || !latest.state.dead) && stageNow - lastStepAt > 240) {
+    lastStepAt = stageNow;
+    if (cuteSfx) cuteSfx.play('step');
+    if (Math.random() < 0.45) spawnFx('crumb', petWalk.x - 14 * petWalk.dir, petWalk.y + 2, { vy: -0.12, size: 8 });
+  }
   requestAnimationFrame(stageLoop);
+})();
+
+(function fitStageDpr() {
+  const apply = () => {
+    const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+    const w = Math.round(STAGE_W * dpr);
+    const h = Math.round(STAGE_H * dpr);
+    if (petStageCanvas.width !== w) {
+      petStageCanvas.width = w;
+      petStageCanvas.height = h;
+      stageCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      stageCtx.imageSmoothingEnabled = !smoothGraphics;
+    }
+  };
+  apply();
+  window.addEventListener('resize', apply);
 })();
 
 const achCards = {};
@@ -2355,6 +2410,89 @@ function spawnConfetti(container, stars) {
   setTimeout(() => container.querySelectorAll('.confetti-bit').forEach((c) => c.remove()), 2600);
 }
 
+function wishRarityCls(rarity) {
+  return ['common', 'rare', 'epic', 'legendary', 'mythic'].includes(rarity) ? `r-${rarity}` : 'r-common';
+}
+
+function wishCardNode(r) {
+  const card = document.createElement('div');
+  card.className = `wish-card ${wishRarityCls(r.rarity)}`;
+  const unlocked = r.itemUnlocked || r.gearUnlocked || (r.skinUnlocked ? `${r.skinUnlocked} skin` : null);
+  const ico = r.icon || '\ud83c\udfb0';
+  const stars = '\u2b50'.repeat(Math.max(1, r.stars || 1));
+  const name = unlocked || r.name || '';
+  card.innerHTML = `<div class="wc-ico">${ico}</div><div class="wc-stars">${stars}</div><div class="wc-name"></div>`;
+  card.querySelector('.wc-name').textContent = name;
+  return card;
+}
+
+function runWishReveal(res, times) {
+  return new Promise((resolve) => {
+    const overlay = el('wish-overlay');
+    const aura = el('wish-aura');
+    const petals = el('wish-petals');
+    const cardsWrap = el('wish-cards');
+    const skip = el('wish-skip');
+    if (!overlay || !aura || !petals || !cardsWrap || !skip) { resolve(); return; }
+    const best = res.best || { rarity: 'common', stars: 1 };
+    const results = (res.results && res.results.length) ? res.results : [best];
+    const timers = [];
+    let resolved = false;
+    const finish = () => {
+      if (resolved) return;
+      resolved = true;
+      timers.forEach(clearTimeout);
+      document.body.classList.remove('wish-shake', 'wish-shake-big');
+      overlay.className = 'wish-overlay hidden';
+      cardsWrap.innerHTML = '';
+      petals.innerHTML = '';
+      skip.onclick = null;
+      resolve();
+    };
+    skip.onclick = skipReveal;
+
+    function revealCards(fast) {
+      cardsWrap.innerHTML = '';
+      results.forEach((r, i) => {
+        const c = wishCardNode(r);
+        c.style.animationDelay = fast ? '0s' : `${i * 0.08}s`;
+        if (fast) c.style.animationDuration = '0.18s';
+        cardsWrap.appendChild(c);
+      });
+      if (cuteSfx) cuteSfx.play('sparkle');
+      timers.push(setTimeout(finish, fast ? 420 : 950 + results.length * 80));
+    }
+
+    function skipReveal() { revealCards(true); }
+
+    overlay.className = 'wish-overlay st1';
+    if (cuteSfx) cuteSfx.play('chime');
+    const shakeMs = times >= 10 ? 1600 : 1150;
+    timers.push(setTimeout(() => overlay.classList.add('st1-fast'), shakeMs * 0.55));
+    timers.push(setTimeout(() => {
+      overlay.classList.remove('st1', 'st1-fast');
+      overlay.classList.add('tele', wishRarityCls(best.rarity));
+      petals.innerHTML = '';
+      const petalCols = ['#4ade80', '#fbbf24', '#fb7185', '#a78bfa', '#38bdf8'];
+      for (let i = 0; i < 14; i += 1) {
+        const petal = document.createElement('i');
+        petal.className = 'wish-petal';
+        petal.style.setProperty('--px', `${Math.random() * 280 - 140}px`);
+        petal.style.setProperty('--py', `${-40 - Math.random() * 150}px`);
+        petal.style.setProperty('--pr', `${Math.random() * 360}deg`);
+        petal.style.animationDelay = `${Math.random() * 0.25}s`;
+        petal.style.background = petalCols[i % petalCols.length];
+        petals.appendChild(petal);
+      }
+      document.body.classList.add(best.stars >= 4 ? 'wish-shake-big' : 'wish-shake');
+      if (sfx) sfx.playGacha(best.rarity);
+      if (best.stars >= 4 && cuteSfx) cuteSfx.play('fanfare');
+      timers.push(setTimeout(() => document.body.classList.remove('wish-shake', 'wish-shake-big'), 1000));
+      timers.push(setTimeout(revealCards, best.rarity === 'mythic' ? 1500 : 850));
+    }, shakeMs));
+  });
+}
+
 async function pullGacha(times) {
   if (gachaBusy) return;
   gachaBusy = true;
@@ -2368,14 +2506,8 @@ async function pullGacha(times) {
     gachaBusy = false;
     return;
   }
-  if (sfx) sfx.play('click');
-  orb.classList.add('spinning');
-  frame.classList.add('pulling');
-  resultEl.classList.add('hidden');
-  const wait = times === 10 ? 1500 : 1000;
-  await new Promise((r) => setTimeout(r, wait));
-  orb.classList.remove('spinning');
-  frame.classList.remove('pulling');
+  if (cuteSfx) cuteSfx.play('chime');
+  await runWishReveal(res, times);
   const best = res.best || { rarity: 'common', stars: 1, name: 'Common', coins: 0 };
   if (sfx) sfx.playGacha(best.rarity);
   resultEl.className = `gacha-result r-${best.rarity}`;
@@ -2883,12 +3015,15 @@ async function pullGearWish(times) {
   frame.classList.add('spinning');
   const res = await api.action('pullGearGacha', { times });
   frame.classList.remove('spinning');
-  gearGachaBusy = false;
   if (!res || !res.ok) {
     sfxOnce('error');
     showToast((res && res.message) || '. ..', 2200);
+    gearGachaBusy = false;
     return;
   }
+  if (cuteSfx) cuteSfx.play('chime');
+  await runWishReveal(res, times);
+  gearGachaBusy = false;
   const best = res.best || {};
   sfxOnce(best.rarity === 'mythic' ? 'levelup' : 'coin');
   if (best.stars >= 4) spawnConfetti(frame, best.stars);
@@ -3070,3 +3205,264 @@ on('bag-grid','click', (e) => {
   if (!it.owned) act('buyItem', { itemId });
   else act('equipItem', { itemId });
 });
+
+
+// ===== HUD center zone: pet speech ticker, daily quests, quick audio =====
+var questsPopOpen = false;
+let tickerStarted = false;
+
+function tickerLine() {
+  const l = latest;
+  if (!l || !l.derived) return null;
+  const d = l.derived;
+  const s = l.state;
+  if (!s || s.dead) return null;
+  const activeAct = (d.activities || []).find((a) => a.active);
+  const opts = [];
+  if (s.flags.sleeping) {
+    opts.push('\u{1F4A4} Zzz... sweet dreams, buddy...', '\u{1F634} Shh... recharging energy...');
+  } else if (s.meters.hunger < 25) {
+    opts.push('\u{1F35C} Craving a world delicacy!', '\u{1F963} Tummy is rumbling...');
+  } else if (s.meters.energy < 25) {
+    opts.push('\u{1F4A4} Getting sleepy...', '\u2615\uFE0F Need a quick nap...');
+  } else if (s.effects.happyUntil > Date.now()) {
+    opts.push('\u{1F495} Wheee! That was fun!', '\u2728\uFE0F Best day ever with you!');
+  } else if (activeAct) {
+    const label = activeAct.name || activeAct.id;
+    opts.push(`\u{1F33F} Enjoying ${label}!`, `\u{1F30F} Exploring ${label}...`);
+  } else {
+    opts.push(
+      '\u2728\uFE0F 100% Online Rate active!',
+      '\u{1F49A} Happy to hang out with you!',
+      `\u{1F3E1} Chilling in ${s.pet.name}'s Home...`,
+      d.weather ? `${d.weather.icon} ${d.weather.label} \u2014 cozy weather today!` : '\u2600\uFE0F\uFE0F Cozy day ahead!',
+      d.daily && d.daily.streak >= 3 ? `\u{1F525} Streak day ${d.daily.streak} \u2014 keep it growing!` : '\u{1F331} Fresh leaves, fresh vibes!'
+    );
+  }
+  return opts[Math.floor(Math.random() * opts.length)];
+}
+
+function startTicker() {
+  if (tickerStarted || !el('hud-ticker')) return;
+  tickerStarted = true;
+  setInterval(() => {
+    if (document.hidden) return;
+    const tickEl = el('hud-ticker');
+    const txtEl = el('hud-ticker-text');
+    if (!tickEl || !txtEl) return;
+    const line = tickerLine();
+    if (!line || txtEl.textContent === line) return;
+    tickEl.classList.add('fade');
+    setTimeout(() => {
+      txtEl.textContent = line;
+      tickEl.classList.remove('fade');
+    }, 450);
+  }, 8500);
+}
+
+function renderQuestsPop() {
+  const list = el('quests-list');
+  const d = latest && latest.derived;
+  if (!list || !d || !d.quests) return;
+  const q = d.quests;
+  const defs = [
+    { id: 'feed', label: '\u{1F35C} Feed a meal 1\u00d7', done: q.feed > 0 },
+    { id: 'play', label: '\u{1F3BE} Play together 1\u00d7', done: q.play > 0 },
+    { id: 'clean', label: '\u{1F9F9} Clean up 1\u00d7', done: q.clean > 0 },
+  ];
+  list.innerHTML = '';
+  for (const def of defs) {
+    const claimed = !!q[`${def.id}Claimed`];
+    const row = document.createElement('div');
+    row.className = `quest-item${def.done ? ' done' : ''}`;
+    const labelEl = document.createElement('span');
+    labelEl.textContent = def.label;
+    row.appendChild(labelEl);
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-amber';
+    if (claimed) {
+      btn.disabled = true;
+      btn.textContent = '\u2705 Claimed';
+    } else {
+      btn.textContent = `+${q.rewardCoins || 40} coins`;
+      btn.disabled = !def.done;
+      btn.addEventListener('click', async () => {
+        const res = await act('claimQuest', { questId: def.id });
+        if (res && res.ok) {
+          if (cuteSfx) cuteSfx.play('coin');
+          const snap = await api.getState();
+          if (snap) render(snap);
+          renderQuestsPop();
+        }
+      });
+    }
+    row.appendChild(btn);
+    list.appendChild(row);
+  }
+}
+
+on('hud-btn-quests', 'click', () => {
+  questsPopOpen = !questsPopOpen;
+  const pop = el('quests-pop');
+  if (!pop) return;
+  pop.classList.toggle('hidden', !questsPopOpen);
+  if (questsPopOpen) renderQuestsPop();
+});
+document.addEventListener('click', (e) => {
+  if (!questsPopOpen) return;
+  const pop = el('quests-pop');
+  const btn = el('hud-btn-quests');
+  if (!pop) return;
+  if (btn && btn.contains(e.target)) return;
+  if (pop.contains(e.target)) return;
+  questsPopOpen = false;
+  pop.classList.add('hidden');
+});
+
+function quickAudioOn() {
+  return !!(sfx && sfx.isEnabled()) || !!(bgm && bgm.getEnabled && bgm.getEnabled());
+}
+function paintAudioQuick() {
+  const iconEl = el('hud-audio-icon');
+  if (iconEl) iconEl.textContent = quickAudioOn() ? '\u{1F50A}' : '\u{1F507}';
+}
+on('hud-btn-audio', 'click', async () => {
+  const target = !quickAudioOn();
+  if (sfx) sfx.setEnabled(target);
+  if (bgm && bgm.setEnabled) {
+    bgm.setEnabled(target);
+    if (target) { bgmStarted = true; ensureBgm(); }
+  }
+  await api.action('setSettings', { bgmOn: target });
+  const bgmT = el('btn-bgm-toggle');
+  if (bgmT) bgmT.textContent = target ? '\u{1F3B5} Music: On' : '\u{1F507} Music: Off';
+  const sfxLabel = el('sfx-label');
+  if (sfxLabel && sfx) sfxLabel.textContent = sfx.isEnabled() ? '\u{1F50A} Sound: On' : '\u{1F507} Sound: Off';
+  paintAudioQuick();
+  if (cuteSfx) cuteSfx.play('pop');
+});
+
+// ===== Welcome Back (5% offline idle earnings) + Daily Check-In calendar =====
+const CHECKIN_KEY = 'jb-checkin-shown';
+let checkinOpen = false;
+
+function dayKeyStr(ms) {
+  const d = ms ? new Date(ms) : new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function fmtAway(sec) {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  return h > 0 ? `${h}h ${m}m` : `${Math.max(1, m)}m`;
+}
+
+function initLaunchPopups(snap) {
+  startTicker();
+  paintAudioQuick();
+  const rep = snap && snap.offlineReport;
+  if (rep && rep.seconds >= 60 && !(snap.state && snap.state.dead)) {
+    el('wb-time').textContent = `${fmtAway(rep.seconds)} away`;
+    el('wb-coins').textContent = `+${Math.floor(rep.coins)}`;
+    el('wb-xp').textContent = `+${Math.round(rep.xp)}`;
+    el('welcome-back-modal').classList.remove('hidden');
+    if (sfx) sfx.play('daily');
+  } else {
+    maybeAutoCheckin();
+  }
+}
+
+on('wb-collect', 'click', () => {
+  if (cuteSfx) cuteSfx.play('coin');
+  if (cuteSfx) cuteSfx.play('sparkle');
+  el('welcome-back-modal').classList.add('hidden');
+  maybeAutoCheckin();
+});
+
+function renderCalendar() {
+  const grid = el('checkin-grid');
+  const d = latest && latest.derived;
+  if (!grid || !d || !d.daily) return;
+  const daily = d.daily;
+  grid.innerHTML = '';
+  const end = daily.claimedToday ? new Date() : new Date(Date.now() - 86400000);
+  const start = new Date(end);
+  start.setDate(start.getDate() - Math.max(0, daily.streak - 1));
+  const startKey = dayKeyStr(start.getTime());
+  const endKey = dayKeyStr(end.getTime());
+  const today = dayKeyStr();
+  const wpd = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  for (let i = 6; i >= 0; i -= 1) {
+    const dt = new Date();
+    dt.setDate(dt.getDate() - i);
+    const key = dayKeyStr(dt.getTime());
+    const stamped = startKey <= key && key <= endKey;
+    const cell = document.createElement('div');
+    cell.className = `cal-cell${stamped ? ' past' : ''}${key === today ? ' today' : ''}`;
+    cell.innerHTML = `<span class="cal-day">${dt.getDate()}</span><span style="font-size:8px" class="muted">${wpd[dt.getDay()]}</span>`;
+    if (stamped) {
+      const stamp = document.createElement('img');
+      stamp.className = 'cal-stamp pixelated';
+      stamp.src = 'assets/icons/streak_sprout.png';
+      stamp.alt = '';
+      stamp.draggable = false;
+      cell.appendChild(stamp);
+    }
+    grid.appendChild(cell);
+  }
+  el('checkin-streak').textContent = `${daily.streak}-day streak \u00b7 best ${daily.best}`;
+  el('checkin-preview').textContent = daily.claimedToday
+    ? '\u2705 Checked in today \u2014 next reward tomorrow!'
+    : `Today's reward: +${daily.nextReward} coins`;
+  const btn = el('checkin-claim');
+  btn.disabled = daily.claimedToday;
+  btn.textContent = daily.claimedToday ? '\u2705 Come back tomorrow!' : '\u{1F331} Check In & Claim';
+}
+
+function openCheckin() {
+  renderCalendar();
+  const modal = el('checkin-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  checkinOpen = true;
+  if (cuteSfx) cuteSfx.play('rustle');
+}
+
+function maybeAutoCheckin() {
+  const d = latest && latest.derived;
+  if (!d || !d.daily) return;
+  const today = dayKeyStr();
+  if (safeGet(CHECKIN_KEY) === today) return;
+  try { localStorage.setItem(CHECKIN_KEY, today); } catch (err) { /* no storage */ }
+  if (d.daily.claimedToday) return;
+  openCheckin();
+}
+
+function safeGet(key) {
+  try { return localStorage.getItem(key); } catch (err) { return null; }
+}
+
+on('hud-btn-calendar', 'click', () => openCheckin());
+on('checkin-close', 'click', () => { el('checkin-modal').classList.add('hidden'); checkinOpen = false; });
+on('checkin-claim', 'click', async () => {
+  const btn = el('checkin-claim');
+  if (btn.disabled) return;
+  const res = await act('claimDaily');
+  if (res && res.ok) {
+    if (cuteSfx) cuteSfx.play('stamp');
+    if (cuteSfx) cuteSfx.play('coin');
+    const snap = await api.getState();
+    if (snap) render(snap);
+    renderCalendar();
+    const today = dayKeyStr();
+    try { localStorage.setItem(CHECKIN_KEY, today); } catch (err) { /* no storage */ }
+    setTimeout(() => { el('checkin-modal').classList.add('hidden'); checkinOpen = false; }, 1100);
+  }
+});
+
+// ===== global tactile button pop sound =====
+document.addEventListener('click', (e) => {
+  const b = e.target && e.target.closest ? e.target.closest('button') : null;
+  if (!b || b.disabled) return;
+  if (cuteSfx) cuteSfx.play('pop');
+}, true);
