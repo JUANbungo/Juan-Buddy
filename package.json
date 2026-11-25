@@ -14,7 +14,8 @@
     "dist": "electron-builder",
     "mobile:prep": "node scripts/prep-mobile.js",
     "mobile:sync": "npm run mobile:prep && npx cap sync android",
-    "mobile:open": "npx cap open android"
+    "mobile:open": "npx cap open android",
+    "predist": "node scripts/generate-pad.js"
   },
   "devDependencies": {
     "@capacitor/android": "^6.2.3",
@@ -49,6 +50,13 @@
     "linux": {
       "icon": "assets/icon.png",
       "category": "Game"
-    }
+    },
+    "extraResources": [
+      {
+        "from": "pad/",
+        "to": "bonus-data/",
+        "failOnMissing": false
+      }
+    ]
   }
 }
