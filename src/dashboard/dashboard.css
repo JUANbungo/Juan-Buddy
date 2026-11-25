@@ -1701,3 +1701,39 @@ header.topbar { padding-right: 262px; }
 @media (max-width: 860px) {
   .jb-ad-bottom { width: min(360px, 100%); height: auto; aspect-ratio: 360 / 104; }
 }
+
+
+/* ============================ ECO POLISH PACK ============================ */
+
+.stage-menu-item img.eco-pixel { width: 18px; height: 18px; vertical-align: -3px; margin-right: 3px; }
+
+h2 img.eco-pixel { width: 20px; height: 20px; vertical-align: -4px; margin-right: 4px; }
+
+.care-row img.eco-pixel { width: 15px; height: 15px; vertical-align: -2px; margin-right: 4px; }
+
+.evo-banner img.eco-pixel { width: 18px; height: 18px; vertical-align: -3px; margin-right: 4px; }
+.evo-banner { display: flex; align-items: center; justify-content: center; gap: 4px; }
+
+#danger-banner { display: flex; align-items: center; }
+#danger-banner.hidden { display: none; }
+#danger-banner img.eco-pixel { width: 16px; height: 16px; margin-right: 6px; flex: 0 0 auto; }
+
+.phase-ico { width: 14px; height: 14px; vertical-align: -2px; margin-right: 3px; }
+.streak-ico { width: 14px; height: 14px; vertical-align: -2px; margin-right: 3px; }
+
+.eco-theme-picks { display: flex; flex-wrap: wrap; gap: 6px; }
+.eco-pick {
+  border: 2px solid var(--border);
+  background: var(--inner);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 10.5px;
+  cursor: pointer;
+}
+.eco-pick:hover { filter: brightness(1.12); }
+.eco-pick.on { outline: 3px solid #4a3b28; outline-offset: 1px; border-color: #5F8D62; }
+
+.eco-wishing-pod { width: 64px; height: 64px; margin: 4px auto 0; display: block; }
+
+body.eco-polished .jb-ad.eco-bulletin-banner { pointer-events: none; }

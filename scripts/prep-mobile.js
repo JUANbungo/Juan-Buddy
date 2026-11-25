@@ -41,6 +41,9 @@ fs.copyFileSync(path.join(root, 'src', 'dashboard', 'index.html'), path.join(das
 fs.copyFileSync(path.join(root, 'src', 'dashboard', 'dashboard.js'), path.join(dashDir, 'dashboard.js'));
 fs.copyFileSync(path.join(root, 'src', 'dashboard', 'dashboard.css'), path.join(dashDir, 'dashboard.css'));
 fs.copyFileSync(path.join(root, 'src', 'dashboard', 'browser-api.js'), path.join(dashDir, 'browser-api.js'));
+fs.cpSync(path.join(root, 'src', 'dashboard', 'css'), path.join(dashDir, 'css'), { recursive: true });
+fs.cpSync(path.join(root, 'src', 'dashboard', 'js'), path.join(dashDir, 'js'), { recursive: true });
+fs.cpSync(path.join(root, 'src', 'dashboard', 'assets'), path.join(dashDir, 'assets'), { recursive: true });
 fs.copyFileSync(path.join(root, 'src', 'engine', 'engine.js'), path.join(engDir, 'engine.js'));
 for (const f of ['sprites.js', 'sfx.js', 'bgm.js', 'motivation.js']) {
   fs.copyFileSync(path.join(root, 'src', 'pet', f), path.join(petDir, f));

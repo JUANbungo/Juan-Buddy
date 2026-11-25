@@ -289,8 +289,13 @@ function render(snapshot) {
     : (d.statusText || 'IDLE').toUpperCase();
 
   if (d.weather) el('weather-chip').textContent = `${d.weather.icon} ${d.weather.label}`;
-  if (d.phase) el('phase-chip').textContent = `${d.phase.icon} ${d.phase.label}`;
-  el('streak-chip').textContent = `\uD83D\uDD25 ${d.daily ? d.daily.streak : 0}`;
+  if (d.phase) {
+    el('phase-chip').innerHTML = `<img class="phase-ico pixelated" src="assets/icons/${d.phase.id === 'night' ? 'weather_night_firefly' : 'weather_sun'}.png" alt="" draggable="false"> ${d.phase.label}`;
+    if (window.JuanBuddyEco && window.JuanBuddyEco.setTimeOfDay) window.JuanBuddyEco.setTimeOfDay(d.phase.id === 'night' ? 'night' : 'day');
+  }
+  const streakNow = d.daily ? d.daily.streak : 0;
+  const streakIco = streakNow >= 14 ? 'streak_tree' : streakNow >= 7 ? 'streak_sapling' : streakNow >= 3 ? 'streak_sprout' : 'streak_seed';
+  el('streak-chip').innerHTML = `<img class="streak-ico pixelated" src="assets/icons/${streakIco}.png" alt="" draggable="false"> ${streakNow}`;
 
   el('danger-banner').classList.toggle('hidden', !s.dead && !(d.danger > 0.25));
   el('death-overlay').classList.toggle('hidden', !s.dead);
@@ -2014,6 +2019,7 @@ petStageCanvas.addEventListener('click', async (e) => {
     if (res && res.ok) {
       for (let i = 0; i < 4; i += 1) spawnFx('spark', nearest.x + (Math.random() * 22 - 11), nearest.y - 10, { vy: -0.5, size: 12 });
       sfxOnce('coin');
+      if (window.JuanBuddyEco && window.JuanBuddyEco.burst) window.JuanBuddyEco.burst(e.clientX, e.clientY, 'compost');
     }
     showToast((res && res.message) || 'Cleaned!', 1400);
     return;
@@ -2361,6 +2367,23 @@ if (wallpawPicks) {
     const pick = wp.dataset.wallpaw;
     applyWallPaw(pick);
     await api.action('setSettings', { wallPaw: pick });
+    if (sfx) sfx.play('coin');
+  });
+}
+const ecoThemePicks = el('eco-theme-picks');
+if (ecoThemePicks) {
+  const syncEcoPicks = () => {
+    const cur = window.JuanBuddyEco && window.JuanBuddyEco.getTheme ? window.JuanBuddyEco.getTheme() : 'bamboo-grove';
+    ecoThemePicks.querySelectorAll('button[data-eco]').forEach((b) => {
+      b.classList.toggle('on', b.dataset.eco === cur);
+    });
+  };
+  syncEcoPicks();
+  ecoThemePicks.addEventListener('click', (e) => {
+    const b = e.target && e.target.closest ? e.target.closest('button[data-eco]') : null;
+    if (!b) return;
+    if (window.JuanBuddyEco) window.JuanBuddyEco.setTheme(b.dataset.eco);
+    syncEcoPicks();
     if (sfx) sfx.play('coin');
   });
 }

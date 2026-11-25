@@ -4,8 +4,9 @@
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src 'self' data: file:" />
   <link rel="stylesheet" href="dashboard.css" />
+  <link rel="stylesheet" href="css/eco-theme.css" />
 </head>
-<body>
+<body class="eco-polished">
   <div id="splash" class="splash">
     <div class="splash-card">
       <img class="splash-logo pixelated" src="../../assets/branding/juan_buddy_logo.png" alt="Juan Buddy" />
@@ -29,7 +30,7 @@
     </div>
   </div>
 
-  <header class="topbar">
+  <header class="topbar eco-hud-header">
     <div class="topbar-row">
       <div class="brand">
         <div class="brand-badge"><img class="hud-img pixelated" src="../../assets/sprites/ui/hud_icons/icons_1x_native/icon_paw.png" draggable="false"></div>
@@ -42,7 +43,7 @@
       </div>
       <div class="hud-pills">
         <div class="hud-pill coin-pill">
-          <img class="hud-img pixelated" src="../../assets/sprites/ui/hud_icons/icons_1x_native/icon_coin.png" draggable="false">
+          <img class="hud-img pixelated" src="assets/icons/coin_gold_leaf.png" draggable="false">
           <div class="hud-txt">
             <b id="coins">0</b>
             <span class="hud-sub"><span id="coin-rate">+0.0/s</span></span>
@@ -61,10 +62,10 @@
   </header>
 
   <main class="layout">
-    <aside class="jb-ad jb-ad-left" id="ad-left">
+    <aside class="jb-ad eco-bulletin-banner jb-ad-left" id="ad-left">
       <img class="pixelated" src="../../assets/ads/left_ad_care/ad_left_care.gif" alt="Take care of someone important" draggable="false">
     </aside>
-    <aside class="jb-ad jb-ad-right" id="ad-right">
+    <aside class="jb-ad eco-bulletin-banner jb-ad-right" id="ad-right">
       <img class="pixelated" src="../../assets/ads/right_ad_life/ad_right_life.gif" alt="Life is not a race" draggable="false">
     </aside>
     <section class="col-play">
@@ -85,39 +86,39 @@
           <canvas id="dash-pet" width="480" height="360"></canvas>
           <button id="stage-menu-btn" class="stage-menu-btn" title="Open the feature menu">☰ <span>Menu</span></button>
           <div id="stage-menu" class="stage-menu hidden">
-            <button class="stage-menu-item" data-menu-tab="food">🍜 Delicacies</button>
-            <button class="stage-menu-item" data-menu-tab="activities">🎯 Activities</button>
-            <button class="stage-menu-item" data-menu-tab="shop">🛠️ Shop</button>
-            <button class="stage-menu-item" data-menu-tab="petshop">🛒 Pet Shop</button>
-            <button class="stage-menu-item" data-menu-tab="battle">⚔️ Battle</button>
-            <button class="stage-menu-item" data-menu-tab="gear">🛡️ Gear</button>
-            <button class="stage-menu-item" data-menu-tab="bag">🎒 Bag</button>
-            <button class="stage-menu-item" data-menu-tab="explore">🌏 Explore</button>
-            <button class="stage-menu-item" data-menu-tab="path">🌀 Path</button>
-            <button class="stage-menu-item" data-menu-tab="gacha">🎰 Gacha</button>
-            <button class="stage-menu-item" data-menu-tab="pets">🐾 Buddies</button>
-            <button class="stage-menu-item" data-menu-tab="life">✨ Life</button>
-            <button class="stage-menu-item" data-menu-tab="settings">⚙️ Options</button>
+            <button class="stage-menu-item" data-menu-tab="food"><img class="eco-pixel" src="assets/icons/tab_delicacies.png" alt="" draggable="false"> Delicacies</button>
+            <button class="stage-menu-item" data-menu-tab="activities"><img class="eco-pixel" src="assets/icons/tab_activities.png" alt="" draggable="false"> Activities</button>
+            <button class="stage-menu-item" data-menu-tab="shop"><img class="eco-pixel" src="assets/icons/tab_shop_bazaar.png" alt="" draggable="false"> Shop</button>
+            <button class="stage-menu-item" data-menu-tab="petshop"><img class="eco-pixel" src="assets/icons/tab_petshop_nest.png" alt="" draggable="false"> Pet Shop</button>
+            <button class="stage-menu-item" data-menu-tab="battle"><img class="eco-pixel" src="assets/icons/tab_battle_bamboo.png" alt="" draggable="false"> Battle</button>
+            <button class="stage-menu-item" data-menu-tab="gear"><img class="eco-pixel" src="assets/icons/tab_gear_forge.png" alt="" draggable="false"> Gear</button>
+            <button class="stage-menu-item" data-menu-tab="bag"><img class="eco-pixel" src="assets/icons/tab_bag_satchel.png" alt="" draggable="false"> Bag</button>
+            <button class="stage-menu-item" data-menu-tab="explore"><img class="eco-pixel" src="assets/icons/tab_explore_globe.png" alt="" draggable="false"> Explore</button>
+            <button class="stage-menu-item" data-menu-tab="path"><img class="eco-pixel" src="assets/icons/tab_path_roots.png" alt="" draggable="false"> Path</button>
+            <button class="stage-menu-item" data-menu-tab="gacha"><img class="eco-pixel" src="assets/icons/tab_wishing_tree.png" alt="" draggable="false"> Gacha</button>
+            <button class="stage-menu-item" data-menu-tab="pets"><img class="eco-pixel" src="assets/icons/tab_buddies_paw.png" alt="" draggable="false"> Buddies</button>
+            <button class="stage-menu-item" data-menu-tab="life"><img class="eco-pixel" src="assets/icons/tab_life_bloom.png" alt="" draggable="false"> Life</button>
+            <button class="stage-menu-item" data-menu-tab="settings"><img class="eco-pixel" src="assets/icons/tab_options_woodgear.png" alt="" draggable="false"> Options</button>
           </div>
           <div class="stage-hint">Tap pet = greet 💕 · Tap floor = walk 🚶 · Tap 💩💧 = clean it 🧹</div>
-          <div id="danger-banner" class="danger-banner hidden">⚠️ Your buddy needs care NOW — feed them or let them sleep!</div>
+          <div id="danger-banner" class="danger-banner eco-care-warning hidden"><img class="eco-pixel" src="assets/icons/warning_wilted_leaf.png" alt="" draggable="false"> ⚠️ Your buddy needs care NOW — feed them or let them sleep!</div>
         </div>
         <div class="care-grid">
           <div class="care">
-            <div class="care-row"><span class="care-hunger">🍜 Hunger</span><span id="hunger-val" class="val">0%</span></div>
-            <div class="bar"><div id="hunger-fill" class="fill hunger"></div></div>
+            <div class="care-row"><span class="care-hunger"><img class="eco-pixel" src="assets/icons/stat_hunger_bowl.png" alt="" draggable="false"> Hunger</span><span id="hunger-val" class="val">0%</span></div>
+            <div class="bar eco-bar-trough"><div id="hunger-fill" class="fill hunger eco-bar-hunger"></div></div>
           </div>
           <div class="care">
-            <div class="care-row"><span class="care-happy">❤️ Happiness</span><span id="happy-val" class="val">0%</span></div>
-            <div class="bar"><div id="happy-fill" class="fill happy"></div></div>
+            <div class="care-row"><span class="care-happy"><img class="eco-pixel" src="assets/icons/stat_happiness_heart.png" alt="" draggable="false"> Happiness</span><span id="happy-val" class="val">0%</span></div>
+            <div class="bar eco-bar-trough"><div id="happy-fill" class="fill happy eco-bar-happy"></div></div>
           </div>
           <div class="care">
-            <div class="care-row"><span class="care-energy">⚡ Energy</span><span id="energy-val" class="val">0%</span></div>
-            <div class="bar"><div id="energy-fill" class="fill energy"></div></div>
+            <div class="care-row"><span class="care-energy"><img class="eco-pixel" src="assets/icons/stat_energy_sun.png" alt="" draggable="false"> Energy</span><span id="energy-val" class="val">0%</span></div>
+            <div class="bar eco-bar-trough"><div id="energy-fill" class="fill energy eco-bar-energy"></div></div>
           </div>
           <div class="care">
-            <div class="care-row"><span class="care-xp" title="Experience to next level">⭐ EXP</span><span id="xp-val" class="val">0%</span></div>
-            <div class="bar"><div id="xp-fill" class="fill xp"></div></div>
+            <div class="care-row"><span class="care-xp" title="Experience to next level"><img class="eco-pixel" src="assets/icons/stat_exp_vine.png" alt="" draggable="false"> EXP</span><span id="xp-val" class="val">0%</span></div>
+            <div class="bar eco-bar-trough"><div id="xp-fill" class="fill xp eco-bar-exp-vine"></div></div>
           </div>
         </div>
         <div class="play-actions">
@@ -127,7 +128,7 @@
           <button id="btn-cheer" class="btn-graphic" title="Cheer Me Up"><img class="pixelated" src="../../assets/sprites/ui/buttons/cheer_me_up.png" alt="Cheer Me Up"></button>
         </div>
       </div>
-      <div class="jb-ad jb-ad-bottom">
+      <div class="jb-ad eco-bulletin-banner jb-ad-bottom">
         <img class="pixelated" src="../../assets/ads/bottom_ad_promo/ad_bottom_promo.gif" alt="Juan Buddy updates and team coming soon" draggable="false">
       </div>
     </section>
@@ -191,6 +192,7 @@
             <h2>🎦 Cosmetic Wish <small class="muted">— skins &amp; coin showers · chase the 0.0001%</small></h2>
             <div id="gacha-frame" class="gacha-frame">
               <div id="gacha-orb" class="gacha-orb">🎰</div>
+              <img class="eco-wishing-pod pixelated" src="assets/decor/prop_wishing_seed_pod.png" alt="Wishing seed pod" draggable="false">
               <div id="gacha-result" class="gacha-result hidden"></div>
             </div>
             <div class="gacha-actions">
@@ -342,6 +344,15 @@
                 </div>
               </div>
               <div class="settings-row">
+                <span class="settings-label">🌿 Eco-Theme</span>
+                <div id="eco-theme-picks" class="eco-theme-picks">
+                  <button class="eco-pick" data-eco="bamboo-grove" title="Bamboo Grove">Bamboo Grove</button>
+                  <button class="eco-pick" data-eco="rice-terraces" title="Rice Terraces">Rice Terraces</button>
+                  <button class="eco-pick" data-eco="terracotta-clay" title="Terracotta Clay">Terracotta Clay</button>
+                  <button class="eco-pick" data-eco="night-fireflies" title="Night Fireflies">Night Fireflies</button>
+                </div>
+              </div>
+              <div class="settings-row">
                 <span class="settings-label">🕒 Your timezone</span>
                 <span id="settings-tz" class="muted"></span>
               </div>
@@ -368,7 +379,7 @@
   </footer>
 
   <div id="evo-popup" class="evo-popup hidden">
-    <div class="evo-card">
+    <div class="evo-card eco-panel">
       <div class="evo-banner">✨ EVOLUTION ✨</div>
       <canvas id="evo-canvas" width="96" height="96"></canvas>
       <div class="evo-name" id="evo-name"></div>
@@ -387,16 +398,16 @@
   </div>
 
   <div id="perk-modal" class="evo-popup hidden">
-    <div class="evo-card perk-card">
-      <div class="evo-banner">🧬 LEVEL UP — PICK A PERK</div>
+    <div class="evo-card perk-card eco-panel">
+      <div class="evo-banner"><img class="eco-pixel" src="assets/icons/levelup_golden_sprout.png" alt="" draggable="false"> LEVEL UP — PICK A PERK</div>
       <p class="muted perk-note">Every level gives a boost! Choose one — 1% luck rolls an ✨EPIC with triple power.</p>
       <div id="perk-choices" class="perk-choices"></div>
     </div>
   </div>
 
   <div id="name-modal" class="evo-popup hidden">
-    <div class="evo-card name-card">
-      <div class="evo-banner">🥚 NAME YOUR BUDDY</div>
+    <div class="evo-card name-card eco-panel">
+      <div class="evo-banner"><img class="eco-pixel" src="assets/icons/egg_woven_nest.png" alt="" draggable="false"> NAME YOUR BUDDY</div>
       <p class="muted name-note">A random buddy will hatch from this egg. Give it a nickname (max 16 characters):</p>
       <input id="name-input" class="name-input" maxlength="16" placeholder="e.g. Chokoy" autocomplete="off" />
       <button id="btn-name-save" class="btn btn-amber">💚 Let's Go!</button>
@@ -410,6 +421,7 @@
   <script src="../pet/bgm.js"></script>
   <script src="../engine/engine.js"></script>
   <script src="../pet/motivation.js"></script>
+  <script src="js/eco-particles.js"></script>
   <script src="browser-api.js"></script>
   <script src="dashboard.js"></script>
 </body>

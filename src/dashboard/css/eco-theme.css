@@ -1,0 +1,253 @@
+/* ==========================================================================
+   JUAN-BUDDY ECO-FRIENDLY 16-BIT POLISH THEME
+   Drop-in stylesheet for src/dashboard/index.html
+   ========================================================================== */
+
+:root,
+[data-eco-theme="bamboo-grove"] {
+  --eco-ink: #1F3327;
+  --eco-ink-soft: #3B5243;
+  --eco-bg: #E7EFE2;
+  --eco-surface: #F4EFE6;
+  --eco-surface-alt: #EAE2D3;
+  --eco-border: #5F8D62;
+  --eco-border-dark: #2E4D36;
+  --eco-accent: #5F8D62;
+  --eco-accent-bright: #88B04B;
+  --eco-highlight: #E8B959;
+  --eco-warm: #C96F53;
+  --eco-wood: #7A5230;
+  --eco-wood-light: #A6764A;
+  --eco-wood-dark: #563820;
+  --eco-shadow: rgba(31, 51, 39, 0.22);
+}
+
+[data-eco-theme="rice-terraces"] {
+  --eco-ink: #24331E;
+  --eco-ink-soft: #4A5E3D;
+  --eco-bg: #E9EED9;
+  --eco-surface: #F7F3E3;
+  --eco-surface-alt: #EAE3C8;
+  --eco-border: #6D8C3E;
+  --eco-border-dark: #3B5222;
+  --eco-accent: #7A9E42;
+  --eco-accent-bright: #B6D77A;
+  --eco-highlight: #E2B34B;
+  --eco-warm: #C47A44;
+  --eco-wood: #7C5832;
+  --eco-wood-light: #AE8250;
+  --eco-wood-dark: #52391F;
+  --eco-shadow: rgba(36, 51, 30, 0.22);
+}
+
+[data-eco-theme="terracotta-clay"] {
+  --eco-ink: #36281F;
+  --eco-ink-soft: #644A3A;
+  --eco-bg: #F1E5D8;
+  --eco-surface: #FAF3EA;
+  --eco-surface-alt: #EFE2D1;
+  --eco-border: #C96F53;
+  --eco-border-dark: #7E412F;
+  --eco-accent: #C96F53;
+  --eco-accent-bright: #E58C6A;
+  --eco-highlight: #E8B959;
+  --eco-warm: #5F8D62;
+  --eco-wood: #7A5230;
+  --eco-wood-light: #B07E50;
+  --eco-wood-dark: #4E311A;
+  --eco-shadow: rgba(54, 40, 31, 0.22);
+}
+
+[data-eco-theme="night-fireflies"] {
+  --eco-ink: #F4EFE6;
+  --eco-ink-soft: #B8CEBD;
+  --eco-bg: #14221A;
+  --eco-surface: #1D3126;
+  --eco-surface-alt: #253D30;
+  --eco-border: #5F8D62;
+  --eco-border-dark: #0D1712;
+  --eco-accent: #88B04B;
+  --eco-accent-bright: #B6D77A;
+  --eco-highlight: #FCE291;
+  --eco-warm: #E57E73;
+  --eco-wood: #563820;
+  --eco-wood-light: #7A5230;
+  --eco-wood-dark: #362213;
+  --eco-shadow: rgba(0, 0, 0, 0.45);
+}
+
+/* Global Crisp Pixel Rendering & Soft Ink */
+body.eco-polished {
+  background-color: var(--eco-bg);
+  color: var(--eco-ink);
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+body.eco-polished img,
+.eco-pixel {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Bamboo / Parchment Panels & Modals */
+.eco-panel,
+body.eco-polished .card,
+body.eco-polished .panel,
+body.eco-polished .modal-content {
+  background: var(--eco-surface) !important;
+  color: var(--eco-ink) !important;
+  border: 3px solid var(--eco-border-dark) !important;
+  box-shadow:
+    inset 0 0 0 3px var(--eco-border),
+    inset 0 0 0 5px var(--eco-surface-alt),
+    0 4px 0 var(--eco-shadow) !important;
+  border-radius: 8px !important;
+}
+
+/* Top HUD Header with Woven Banig Accent */
+.eco-hud-header {
+  background: linear-gradient(180deg, var(--eco-wood-light) 0%, var(--eco-wood) 100%);
+  color: #FFFDF7;
+  border: 3px solid var(--eco-ink);
+  border-radius: 10px;
+  box-shadow: 0 4px 0 var(--eco-wood-dark);
+  position: relative;
+}
+
+.eco-hud-header::after {
+  content: "";
+  display: block;
+  height: 6px;
+  width: 100%;
+  background: repeating-linear-gradient(
+    45deg,
+    #A6C48A 0px,
+    #A6C48A 6px,
+    #C49A6C 6px,
+    #C49A6C 12px
+  );
+  border-top: 2px solid var(--eco-ink);
+  border-radius: 0 0 6px 6px;
+}
+
+/* Wooden Tactile Eco Buttons */
+.eco-btn {
+  background: linear-gradient(180deg, var(--eco-accent-bright) 0%, var(--eco-accent) 100%);
+  color: #FFFDF7;
+  border: 3px solid var(--eco-ink);
+  border-radius: 8px;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.35),
+    0 4px 0 var(--eco-border-dark);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.15s ease;
+}
+
+.eco-btn:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+.eco-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--eco-border-dark);
+}
+
+.eco-btn-wood {
+  background: linear-gradient(180deg, var(--eco-wood-light) 0%, var(--eco-wood) 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.25),
+    0 4px 0 var(--eco-wood-dark);
+}
+
+/* Bamboo Trough Stat Bars & Growing Vine EXP Bar */
+.eco-bar-trough {
+  background: var(--eco-wood-dark);
+  border: 3px solid var(--eco-ink);
+  border-radius: 999px;
+  height: 18px;
+  padding: 2px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.4);
+}
+
+.eco-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+}
+
+.eco-bar-hunger { background: linear-gradient(90deg, #C96F53, #E89973); }
+.eco-bar-happy  { background: linear-gradient(90deg, #D9726A, #F2A59B); }
+.eco-bar-energy { background: linear-gradient(90deg, #E8B959, #FCE291); }
+
+/* Growing Vine EXP Fill */
+.eco-bar-exp-vine {
+  background: repeating-linear-gradient(
+    -45deg,
+    #5F8D62 0px,
+    #5F8D62 8px,
+    #88B04B 8px,
+    #88B04B 16px
+  );
+  background-size: 32px 32px;
+  animation: ecoVineGrow 2.5s linear infinite;
+}
+
+.eco-bar-exp-vine::after {
+  content: "🌱";
+  position: absolute;
+  right: -2px;
+  top: -3px;
+  font-size: 12px;
+  filter: drop-shadow(0 1px 0 var(--eco-ink));
+}
+
+@keyframes ecoVineGrow {
+  from { background-position: 0 0; }
+  to   { background-position: 32px 0; }
+}
+
+/* Wooden Bulletin Board Frame for Side/Bottom Banners */
+.eco-bulletin-banner {
+  background: var(--eco-surface);
+  border: 4px solid var(--eco-wood);
+  outline: 3px solid var(--eco-ink);
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow: 0 4px 0 var(--eco-shadow);
+  position: relative;
+}
+
+/* Gentle Terracotta Care Warning (Replaces Harsh Red Alert) */
+.eco-care-warning {
+  background: linear-gradient(90deg, #F8E3D8, #F3D2C1);
+  color: #5E2C1E;
+  border: 2px solid #C96F53;
+  border-left: 6px solid #C96F53;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-weight: 600;
+}
+
+/* Wishing Tree / Seed Pod Glow */
+.eco-wishing-pod {
+  animation: ecoFloatPod 3s ease-in-out infinite;
+  filter: drop-shadow(0 4px 6px rgba(232, 185, 89, 0.45));
+}
+
+@keyframes ecoFloatPod {
+  0%, 100% { transform: translateY(0px); }
+  50%      { transform: translateY(-5px); }
+}
+
+/* Particle Overlay Canvas */
+#eco-particle-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
