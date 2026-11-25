@@ -15,4 +15,5 @@ dist/
 !assets/branding/*.png
 !assets/scenes/*.png
 !assets/wallpapers/*.png
+!src/dashboard/assets/**/*.png
 pages/
