@@ -32,6 +32,7 @@
       "src/**/*",
       "assets/icons.js",
       "assets/sprites/**/*",
+      "assets/ads/**/*",
       "assets/bgm/*.mid",
       "assets/bgm/mp3/*.mp3",
       "assets/icon.png",

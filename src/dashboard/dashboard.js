@@ -611,7 +611,7 @@ function renderBuddyPicker(s) {
       flag.className = 'b-flag';
       flag.appendChild(flagCanvas(p.country, 20, 14));
       flag.appendChild(document.createTextNode(` ${p.country}`));
-      tile.appendChild(cv);
+      tile.appendChild(vis);
       tile.appendChild(name);
       tile.appendChild(flag);
       grid.appendChild(tile);
@@ -744,10 +744,14 @@ function splashSetup() {
   const creditsBox = el('splash-credits');
   const creditsBtn = el('btn-splash-credits');
   const creditsBack = el('btn-splash-credits-back');
-  if (creditsBtn && creditsBox && creditsBack) {
-    creditsBtn.addEventListener('click', () => { creditsBox.classList.remove('hidden'); if (sfx) sfx.play('click'); });
-    creditsBack.addEventListener('click', () => creditsBox.classList.add('hidden'));
-  }
+  const openCredits = () => {
+    const modal = el('credits-modal');
+    if (modal) modal.classList.remove('hidden');
+    else if (creditsBox) creditsBox.classList.remove('hidden');
+    if (sfx) sfx.play('click');
+  };
+  if (creditsBtn) creditsBtn.addEventListener('click', openCredits);
+  if (creditsBox && creditsBack) creditsBack.addEventListener('click', () => creditsBox.classList.add('hidden'));
   const updatesBtn = el('btn-splash-updates');
   if (updatesBtn) updatesBtn.addEventListener('click', () => {
     const url = 'https://github.com/JUANbungo/Juan-Buddy/releases/latest';
@@ -1708,8 +1712,22 @@ function overlayImg(path) {
 }
 
 let battleFx = null;
+function restoreHomeTitle() {
+  const bf = battleFx;
+  if (!bf) return;
+  const homeTitle = el('home-title');
+  if (homeTitle && bf.prevTitle) homeTitle.textContent = bf.prevTitle;
+  const badge = el('play-state');
+  if (badge && badge.textContent === 'BATTLE') badge.textContent = 'IDLE';
+}
 function startBattleFx(mon, win) {
-  battleFx = { icon: mon.icon, name: mon.name, win: !!win, t0: performance.now(), dur: 3800, monId: mon.id };
+  const homeTitle = el('home-title');
+  const badge = el('play-state');
+  const prevTitle = homeTitle ? homeTitle.textContent : '';
+  const monArenas = { guard_slime: 'Meadow Arena', cave_bat: 'Cavern Night', wild_boar: 'Meadow Arena', ridge_wolf: 'Meadow Arena', kumiho: 'Mystic Boss Lair', oni_brute: 'Cavern Night', ember_wyvern: 'Mystic Boss Lair', void_titan: 'Mystic Boss Lair' };
+  battleFx = { icon: mon.icon, name: mon.name, win: !!win, t0: performance.now(), dur: 3800, monId: mon.id, prevTitle, dmgShown: false, dmgVal: 40 + Math.floor(Math.random() * 110) };
+  if (homeTitle) homeTitle.textContent = `\u2694\uFE0F ${(monArenas[mon.id] || 'Battle Arena')} \u2014 vs ${mon.name}`;
+  if (badge) badge.textContent = 'BATTLE';
 }
 
 const MONSTER_ARENAS = {
@@ -1723,7 +1741,25 @@ const MONSTER_ARENAS = {
   void_titan: 'arena_mystic_boss',
 };
 const monsterAnimCache = {};
+const MONSTER_4X = { idle: 'idle', attack: 'attack', hurt: 'hurt' };
+const MONSTER_4X_COUNT = { idle: 8, attack: 6, hurt: 4 };
+function monsterFrames4x(monId, kind) {
+  const key = `${monId}:${kind}:4x`;
+  if (!(key in monsterAnimCache)) {
+    const imgs = [];
+    for (let f = 1; f <= (MONSTER_4X_COUNT[kind] || 8); f += 1) {
+      const img = new Image();
+      img.onerror = () => { img.bad = true; };
+      img.src = `../../assets/sprites/battle/monsters/${monId}/frames_4x/${MONSTER_4X[kind]}/${monId}_${MONSTER_4X[kind]}_${String(f).padStart(2, '0')}.png`;
+      imgs.push(img);
+    }
+    monsterAnimCache[key] = imgs;
+  }
+  return monsterAnimCache[key].filter((i) => !i.bad && i.complete && i.naturalWidth > 0);
+}
 function monsterFrames(monId, kind) {
+  const hi = monsterFrames4x(monId, kind);
+  if (hi.length) return hi;
   const key = `${monId}:${kind}`;
   if (!(key in monsterAnimCache)) {
     const spec = { idle: ['', '', 8], attack: ['attack/frames/', 'attack_', 6], hurt: ['hurt_defeated/frames/', 'hurt_defeated_', 4] }[kind] || ['', '', 8];
@@ -1752,20 +1788,11 @@ function arenaImg(name) {
 function drawBattleFx(now) {
   if (!battleFx) return;
   const t = (now - battleFx.t0) / battleFx.dur;
-  if (t < 0 || t >= 1) { battleFx = null; return; }
+  if (t < 0 || t >= 1) { restoreHomeTitle(); battleFx = null; return; }
   const enter = Math.min(1, t / 0.12);
   const exit = t > 0.8 ? (t - 0.8) / 0.2 : 0;
   const mx = Math.round(STAGE_CX + 118 * enter);
   const my = 284;
-  const arena = arenaImg(MONSTER_ARENAS[battleFx.monId] || 'arena_meadow_day');
-  const arenaAlpha = Math.max(0, Math.min(1, t / 0.08) * (t > 0.85 ? (1 - (t - 0.85) / 0.15) : 1));
-  if (arena) {
-    stageCtx.save();
-    stageCtx.globalAlpha = arenaAlpha * 0.94;
-    stageCtx.imageSmoothingEnabled = false;
-    stageCtx.drawImage(arena, 0, 0, petStageCanvas.width, petStageCanvas.height);
-    stageCtx.restore();
-  }
   const attackFrame = t >= 0.14 && t < 0.78;
   const fallen = battleFx.win && t >= 0.78;
   const frames = fallen ? monsterFrames(battleFx.monId, 'hurt')
@@ -1778,31 +1805,79 @@ function drawBattleFx(now) {
   }
   const bob = Math.sin(now / 150) * 4;
   const hitPhase = t > 0.14 && t < 0.78;
+  const lunge = hitPhase ? Math.sin(Math.min(1, (t - 0.14) / 0.3) * Math.PI) : 0;
+  const recoil = hitPhase ? Math.round(lunge * 16) : 0;
   stageCtx.save();
   stageCtx.globalAlpha = Math.max(0, 1 - exit);
+
+  if (hitPhase && lunge > 0.35) {
+    const px = STAGE_CX - 74;
+    const py = my - 18;
+    stageCtx.save();
+    stageCtx.strokeStyle = `rgba(255, 244, 214, ${0.85 * lunge})`;
+    stageCtx.lineWidth = 4;
+    stageCtx.lineCap = 'round';
+    stageCtx.beginPath();
+    stageCtx.moveTo(px - 6, py - 26 + 22 * lunge);
+    stageCtx.quadraticCurveTo(px + 52, py - 34, mx - 34 - recoil, py - 6);
+    stageCtx.stroke();
+    stageCtx.lineWidth = 2;
+    stageCtx.beginPath();
+    stageCtx.moveTo(px - 2, py - 12 + 16 * lunge);
+    stageCtx.quadraticCurveTo(px + 44, py - 20, mx - 36 - recoil, py + 2);
+    stageCtx.stroke();
+    stageCtx.restore();
+  }
+
   stageCtx.fillStyle = 'rgba(0,0,0,0.22)';
   stageCtx.beginPath();
-  stageCtx.ellipse(mx, my + 4, 26, 7, 0, 0, Math.PI * 2);
+  stageCtx.ellipse(mx + recoil, my + 4, 26, 7, 0, 0, Math.PI * 2);
   stageCtx.fill();
+  const mxr = mx + recoil;
   if (monImg) {
     const msize = Math.round(84 + bob);
     stageCtx.save();
     stageCtx.imageSmoothingEnabled = false;
-    stageCtx.drawImage(monImg, mx - msize / 2, my - msize + 4, msize, msize);
+    stageCtx.drawImage(monImg, mxr - msize / 2, my - msize + 4, msize, msize);
+    if (hitPhase && lunge > 0.55) {
+      stageCtx.globalCompositeOperation = 'lighter';
+      stageCtx.fillStyle = `rgba(255, 130, 90, ${(lunge - 0.55) * 1.2})`;
+      stageCtx.fillRect(mxr - msize / 2, my - msize + 4, msize, msize);
+      stageCtx.globalCompositeOperation = 'source-over';
+    }
     stageCtx.restore();
   } else {
     stageCtx.font = '46px sans-serif';
     stageCtx.textAlign = 'center';
-    stageCtx.fillText(battleFx.icon, mx, my - 20 + bob);
+    stageCtx.fillText(battleFx.icon, mxr, my - 20 + bob);
   }
   stageCtx.fillStyle = '#2a2018';
-  stageCtx.fillRect(mx - 28, my - 84, 56, 7);
+  stageCtx.fillRect(mxr - 28, my - 84, 56, 7);
   const hpFrac = battleFx.win ? Math.max(0.05, 1 - (t / 0.78) * 0.95) : Math.max(0.3, 1 - t * 0.5);
   stageCtx.fillStyle = battleFx.win ? '#f87171' : '#fbbf24';
-  stageCtx.fillRect(mx - 27, my - 83, 54 * hpFrac, 5);
+  stageCtx.fillRect(mxr - 27, my - 83, 54 * hpFrac, 5);
   stageCtx.font = '10px sans-serif';
   stageCtx.fillStyle = 'rgba(255,255,255,0.85)';
-  stageCtx.fillText(battleFx.name, mx, my - 90);
+  stageCtx.fillText(battleFx.name, mxr, my - 90);
+
+  if (hitPhase && lunge > 0.45) {
+    stageCtx.fillStyle = 'rgba(255, 170, 90, 0.10)';
+    stageCtx.fillRect(0, 0, petStageCanvas.width, petStageCanvas.height);
+  }
+  if (hitPhase && !battleFx.dmgShown && lunge > 0.9) {
+    battleFx.dmgShown = true;
+  }
+  if (battleFx.dmgShown && t < 0.8) {
+    const dy = my - 96 - (t - 0.5) * 130;
+    const da = Math.max(0, Math.min(1, (t - 0.78) * 8));
+    stageCtx.font = 'bold 15px sans-serif';
+    stageCtx.textAlign = 'center';
+    stageCtx.strokeStyle = 'rgba(30, 20, 10, 0.75)';
+    stageCtx.lineWidth = 3;
+    stageCtx.strokeText(`-${battleFx.dmgVal}`, mxr, dy);
+    stageCtx.fillStyle = battleFx.win ? '#ffe08a' : '#ff9d8a';
+    stageCtx.fillText(`-${battleFx.dmgVal}`, mxr, dy);
+  }
   if (hitPhase) {
     if (Math.random() < 0.16) spawnFx('spark', mx + Math.random() * 44 - 22, my - 40 + Math.random() * 20, { vy: -0.3, size: 14 });
     if (Math.random() < 0.05) {
@@ -1831,6 +1906,24 @@ function drawStagePet(now) {
   stageCtx.clearRect(0, 0, petStageCanvas.width, petStageCanvas.height);
   const splashEl = document.getElementById('splash');
   if (splashEl && !splashEl.classList.contains('hidden')) return;
+
+  const bf = battleFx;
+  if (bf) {
+    const bt = (now - bf.t0) / bf.dur;
+    if (bt >= 0 && bt < 0.85) {
+      const arena = arenaImg(MONSTER_ARENAS[bf.monId] || 'arena_meadow_day');
+      if (arena) {
+        const alpha = Math.min(1, bt / 0.08) * (bt > 0.78 ? 1 - (bt - 0.78) / 0.07 : 1);
+        if (alpha > 0) {
+          stageCtx.save();
+          stageCtx.globalAlpha = 0.97 * alpha;
+          stageCtx.imageSmoothingEnabled = false;
+          stageCtx.drawImage(arena, 0, 0, petStageCanvas.width, petStageCanvas.height);
+          stageCtx.restore();
+        }
+      }
+    }
+  }
   const pre = latest && latest.derived;
   const activeAct = pre && pre.activities ? pre.activities.find((a) => a.active) : null;
   if (activeAct && activeAct.outdoor) {
@@ -2487,6 +2580,12 @@ if (ecoThemePicks) {
 
 document.addEventListener('pointerdown', startBgmOnGesture);
 document.addEventListener('keydown', startBgmOnGesture);
+
+on('btn-credits-close','click', () => {
+  const modal = el('credits-modal');
+  if (modal) modal.classList.add('hidden');
+  if (sfx) sfx.play('click');
+});
 
 on('btn-export','click', async () => {
   const res = await api.action('exportSave');
