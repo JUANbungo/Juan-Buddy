@@ -199,8 +199,8 @@ function createDashboardWindow() {
     return;
   }
   dashboardWindow = new BrowserWindow({
-    width: 1280,
-    height: 820,
+    width: 1600,
+    height: 880,
     minWidth: 760,
     minHeight: 600,
     resizable: true,

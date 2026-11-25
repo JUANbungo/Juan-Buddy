@@ -1664,3 +1664,40 @@ header.topbar { padding-right: 262px; }
 
 .free-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
 .gacha-icon { font-size: 34px; line-height: 1.2; margin: 4px 0 2px; image-rendering: pixelated; }
+
+
+/* ============================ ANIMATED ADS ============================ */
+
+.jb-ad img { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+
+.jb-ad-left,
+.jb-ad-right {
+  position: fixed;
+  top: 76px;
+  width: 176px;
+  height: 420px;
+  z-index: 5;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 14px rgba(10, 12, 20, 0.45));
+}
+
+.jb-ad-left { left: 12px; }
+.jb-ad-right { right: 12px; }
+
+.jb-ad-bottom {
+  width: 360px;
+  height: 104px;
+  margin: 10px auto 0;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 10px rgba(10, 12, 20, 0.4));
+}
+
+/* Side ads need ~1588px viewport (1200 layout + 2 gutters) — hide otherwise */
+@media (max-width: 1580px) {
+  .jb-ad-left,
+  .jb-ad-right { display: none; }
+}
+
+@media (max-width: 860px) {
+  .jb-ad-bottom { width: min(360px, 100%); height: auto; aspect-ratio: 360 / 104; }
+}

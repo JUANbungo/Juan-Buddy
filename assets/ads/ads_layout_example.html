@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Juan Buddy - Animated Pixel Ads Drop-In Layout</title>
+<style>
+  * { box-sizing: border-box; image-rendering: pixelated; }
+  body { margin: 0; background: #d6f0c8; min-height: 100vh; }
+
+  /* Place these containers inside your main Juan Buddy desktop layout */
+  .jb-ad-left {
+    position: fixed;
+    left: 12px;
+    top: 72px;
+    width: 176px;
+    height: 420px;
+    z-index: 5;
+  }
+
+  .jb-ad-right {
+    position: fixed;
+    right: 12px;
+    top: 72px;
+    width: 176px;
+    height: 420px;
+    z-index: 5;
+  }
+
+  .jb-ad-bottom {
+    width: 360px;
+    height: 104px;
+    margin: 10px auto 0;
+  }
+
+  .jb-ad-left img,
+  .jb-ad-right img,
+  .jb-ad-bottom img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    image-rendering: pixelated;
+  }
+</style>
+</head>
+<body>
+  <!-- Left Motivational Ad -->
+  <aside class="jb-ad-left">
+    <img src="left_ad_care/ad_left_care.gif" alt="Take care of someone important" />
+  </aside>
+
+  <!-- Right Rotating Motivational Ad -->
+  <aside class="jb-ad-right">
+    <img src="right_ad_life/ad_right_life.gif" alt="Life is not a race" />
+  </aside>
+
+  <!-- Place this directly under Buddy's Home card -->
+  <div class="jb-ad-bottom">
+    <img src="bottom_ad_promo/ad_bottom_promo.gif" alt="Juan Buddy Updates & Team Coming Soon" />
+  </div>
+</body>
+</html>
