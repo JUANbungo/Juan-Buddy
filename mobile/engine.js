@@ -979,7 +979,7 @@ function applyLevelUps(state) {
   if (targetIdx !== curIdx) {
     const target = STAGES[targetIdx];
     if (state.pet.stage === 'egg' && !state.pet.species) {
-      const roster = spritesApi.PET_ROSTER || [];
+      const roster = (spritesApi.PET_ROSTER || []).filter((pt) => !pt.shopOnly);
       const pick = roster[Math.floor(Math.random() * roster.length)];
       state.pet.species = pick ? pick.id : 'kala';
     }
@@ -1376,6 +1376,26 @@ function newGame(state) {
   return { ok: true, message: '🌱 A new egg awaits! Take good care of your next buddy.' };
 }
 
+const SHOP_PETS = [
+  { id: 'dragon', name: 'Dragon', icon: '\ud83d\udc09', cost: 1000000, desc: 'Legendary Flame Dragon \u2014 Bakunawa kin. NEVER in eggs, only here!' },
+];
+
+function buyShopPet(state, petId) {
+  const gate = deadGate(state);
+  if (gate) return gate;
+  const def = SHOP_PETS.find((pt) => pt.id === petId);
+  if (!def) return { ok: false, message: 'Unknown pet.' };
+  if (state.pet.species === def.id) return { ok: false, message: `\ud83d\udc09 You already have ${def.name}!` };
+  if (state.coins < def.cost) return { ok: false, message: `\ud83e\ude99 Not enough coins \u2014 ${def.name} costs ${def.cost.toLocaleString('en-US')}! Work + battle + invest para sa 1,000,000!` };
+  state.coins -= def.cost;
+  state.pet.species = def.id;
+  checkAchievements(state, []);
+  if (state.pet.stage !== 'egg') {
+    return { ok: true, message: `\ud83d\udc09 ADOPTED! ${def.name} joins as your active buddy \u2014 same level, same heart, new flames!` };
+  }
+  return { ok: true, message: `\ud83e\udd63 Dragon egg claimed! It will hatch as ${def.name}!` };
+}
+
 function derivedStats(state) {
   const now = Date.now();
   const stage = stageOf(state);
@@ -1419,6 +1439,11 @@ function derivedStats(state) {
       freeFoodAvailable: !(state.freeFood && state.freeFood.last === todayKey(now)),
     },
     milestones: state.milestones ? { ...state.milestones } : { rename60: false, pathReset100: false, coins150: false, badge300: false },
+    petShop: SHOP_PETS.map((pt) => ({
+      ...pt,
+      owned: state.pet.species === pt.id,
+      affordable: state.coins >= pt.cost,
+    })),
     achievements: ACHIEVEMENTS.map((a) => ({
       id: a.id, icon: a.icon, name: a.name, desc: a.desc,
       unlocked: Array.isArray(state.achievements) && state.achievements.includes(a.id),
@@ -1595,6 +1620,7 @@ return {
   stageForLevel,
   claimDaily,
   claimFreeFood,
+  buyShopPet,
   pullGacha,
   buySkin,
   setSkin,
@@ -1610,6 +1636,7 @@ return {
   MONSTERS,
   ITEMS,
   ITEM_SLOTS,
+  SHOP_PETS,
   EVOLVE_LEVEL,
   EVO_STONE_ID,
   buyItem,

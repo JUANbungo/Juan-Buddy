@@ -32,7 +32,7 @@
   <header class="topbar">
     <div class="topbar-row">
       <div class="brand">
-        <div class="brand-badge">🐾</div>
+        <div class="brand-badge"><img class="hud-img pixelated" src="../../assets/sprites/ui/hud_icons/icons_1x_native/icon_paw.png" draggable="false"></div>
         <div>
           <div class="brand-row">
             <h1 id="pet-name" title="Click to rename">Buddy</h1>
@@ -42,14 +42,14 @@
       </div>
       <div class="hud-pills">
         <div class="hud-pill coin-pill">
-          <span class="hud-ico">💰</span>
+          <img class="hud-img pixelated" src="../../assets/sprites/ui/hud_icons/icons_1x_native/icon_coin.png" draggable="false">
           <div class="hud-txt">
             <b id="coins">0</b>
             <span class="hud-sub"><span id="coin-rate">+0.0/s</span></span>
           </div>
         </div>
         <div class="hud-pill" title="Your local time">
-          <span class="hud-ico">🕒</span>
+          <img class="hud-img pixelated" src="../../assets/sprites/ui/hud_icons/icons_1x_native/icon_clock.png" draggable="false">
           <div class="hud-txt">
             <b id="hud-clock">--:--</b>
             <span class="hud-sub" id="hud-tz">local</span>
@@ -82,6 +82,7 @@
             <button class="stage-menu-item" data-menu-tab="food">🍜 Delicacies</button>
             <button class="stage-menu-item" data-menu-tab="activities">🎯 Activities</button>
             <button class="stage-menu-item" data-menu-tab="shop">🛠️ Shop</button>
+            <button class="stage-menu-item" data-menu-tab="petshop">🛒 Pet Shop</button>
             <button class="stage-menu-item" data-menu-tab="battle">⚔️ Battle</button>
             <button class="stage-menu-item" data-menu-tab="gear">🛡️ Gear</button>
             <button class="stage-menu-item" data-menu-tab="bag">🎒 Bag</button>
@@ -243,6 +244,14 @@
               <div id="bag-evostone" class="muted hint"></div>
               <div id="bag-grid" class="bag-grid"></div>
             </div>
+          </section>
+        </div>
+
+        <div class="tab-panel hidden panel-petshop">
+          <section class="card">
+            <h2>🛒 Pet Shop <small class="muted">— rare buddies sold only here, never in eggs</small></h2>
+            <div id="pet-shop-info" class="muted small">Save your coins, work hard, battle hard — the legendary Dragon waits. 🐉</div>
+            <div id="pet-shop" class="pet-shop"></div>
           </section>
         </div>
 

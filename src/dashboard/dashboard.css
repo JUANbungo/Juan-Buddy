@@ -990,11 +990,27 @@ header .title-row.secondary { margin-top: 5px; }
 .pixelated { image-rendering: pixelated; }
 
 header.topbar {
-  background-image: url('../../assets/sprites/ui/hud/hud_top_bar.png');
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
-  image-rendering: pixelated;
+  background-image: url('../../assets/sprites/ui/hud_icons/sprites_4x/header_bar_tile.png');
+  background-size: auto 100%;
+  background-repeat: repeat-x;
 }
+
+.hud-img { width: 22px; height: 22px; }
+.brand-badge .hud-img { width: 20px; height: 20px; }
+
+.pet-shop { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+.pet-shop-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 2px solid var(--border);
+}
+.petshop-ico { width: 64px; height: 64px; object-fit: contain; }
+.pet-shop-card .b-name { font-weight: 700; }
+.pet-shop-card .b-btn { white-space: nowrap; }
 
 .tab-panel > .card {
   border: 8px solid transparent;

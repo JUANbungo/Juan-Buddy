@@ -734,6 +734,41 @@
           g.applyOutline('#1e2430');
           drawCuteFace(g, 11, 18, headY + 1, state, f);
         }
+      },
+      {
+        id: 'pusa', name: 'Pusa', country: 'Philippines', region: 'Philippines', flag: '\ud83c\uddf5\ud83c\udded',
+        species: 'Healing Cat (Pusing Healing)', favoriteFood: 'pad_thai', greeting: 'Meow!',
+        skillName: 'Purr of Luck', skillEmoji: '\ud83d\udc9e', speed: 38,
+        dialogues: ['Meow! Pahinga ka!', 'Puno ng ginhawa!', 'Purring for you!', 'Kalmado lang!'],
+        pngAnim: { dir: 'pusa/pusa', frames: 8 },
+      },
+      {
+        id: 'agila', name: 'Agila', country: 'Philippines', region: 'Philippines', flag: '\ud83c\uddf5\ud83c\udded',
+        species: 'Sky Lord Eagle', favoriteFood: 'satay', greeting: 'Swoosh!',
+        skillName: 'Storm Dive', skillEmoji: '\ud83c\udf2a', speed: 46,
+        dialogues: ['Swoosh! Lipad tayo!', 'Kitang-kita lahat!', 'Sky\'s the limit!', 'Uwing uwak, hehe!'],
+        pngAnim: { dir: 'pusa/agila', frames: 8 },
+      },
+      {
+        id: 'uwak', name: 'Uwak', country: 'Philippines', region: 'Philippines', flag: '\ud83c\uddf5\ud83c\udded',
+        species: 'Clever Crow', favoriteFood: 'kaya_toast', greeting: 'Caw!',
+        skillName: 'Shiny Snatch', skillEmoji: '\ud83d\udc8e', speed: 40,
+        dialogues: ['Caw! May nakita ako!', 'Shiny things!', 'Caw caw!', 'Largehadong utak!'],
+        pngAnim: { dir: 'pusa/uwak', frames: 8 },
+      },
+      {
+        id: 'ahas', name: 'Ahas', country: 'Philippines', region: 'Philippines', flag: '\ud83c\uddf5\ud83c\udded',
+        species: 'Garden Guardian Snake', favoriteFood: 'mango_sticky_rice', greeting: 'Ssss!',
+        skillName: 'Coiled Charm', skillEmoji: '\ud83c\udf34', speed: 32,
+        dialogues: ['Ssss... kamusta?', 'Makulit ako pero mabait!', 'Ssssarap naman!', 'Balutin kita ng lamig!'],
+        pngAnim: { dir: 'pusa/ahas', frames: 8 },
+      },
+      {
+        id: 'dragon', name: 'Dragon', country: 'Philippines', region: 'Legendary', flag: '\ud83d\udc09',
+        species: 'Flame Dragon (Bakunawa Kin)', favoriteFood: 'ube_potion', greeting: 'Rawr!',
+        skillName: 'Bakunawa Flame', skillEmoji: '\ud83d\udd25', speed: 42, shopOnly: true,
+        dialogues: ['Rawr! Ako ang apoy!', 'Bakunawa mode!', 'Lilipad tayo!', 'Ang ganda ng apoy ko!'],
+        pngAnim: { dir: 'pusa/dragon_flame', frames: 12 },
       }
     ];
 

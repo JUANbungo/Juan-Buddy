@@ -303,6 +303,7 @@ function render(snapshot) {
   renderRpg(d);
   renderExplore(d);
   renderBag(d);
+  renderPetShop(d);
 
   if (d.rpg.items.evolved && !evoTrack.shown) {
     evoTrack.shown = true;
@@ -744,16 +745,34 @@ function spawnFx(kind, x, y, opts) {
 const STAGE_STATE_FILE = { IDLE: 'idle', WALK: 'walk', HAPPY: 'happy', EAT: 'eat', SLEEP: 'sleep' };
 const stageFrames = {};
 
+const STAGE_PNG_ANIMS = {
+  pusa: { dir: 'pusa/pusa', name: 'pusa', frames: 8 },
+  agila: { dir: 'pusa/agila', name: 'agila', frames: 8 },
+  uwak: { dir: 'pusa/uwak', name: 'uwak', frames: 8 },
+  ahas: { dir: 'pusa/ahas', name: 'ahas', frames: 8 },
+  dragon: { dir: 'pusa/dragon_flame', name: 'dragon_flame', frames: 12 },
+};
+
 function stageFramesFor(id, state) {
-  const key = `${id}_${state}`;
+  const anim = STAGE_PNG_ANIMS[id];
+  const key = anim ? `${id}#${state}` : `${id}_${state}`;
   if (!(key in stageFrames)) {
-    const sf = STAGE_STATE_FILE[state];
     const imgs = [];
-    for (let f = 0; f < 4; f += 1) {
-      const img = new Image();
-      img.onerror = () => { img.bad = true; };
-      img.src = `../../assets/sprites/${id}_${sf}_${f}.png`;
-      imgs.push(img);
+    if (anim) {
+      for (let f = 1; f <= anim.frames; f += 1) {
+        const img = new Image();
+        img.onerror = () => { img.bad = true; };
+        img.src = `../../assets/sprites/${anim.dir}/frames/${anim.name}_frame_${String(f).padStart(2, '0')}.png`;
+        imgs.push(img);
+      }
+    } else {
+      const sf = STAGE_STATE_FILE[state];
+      for (let f = 0; f < 4; f += 1) {
+        const img = new Image();
+        img.onerror = () => { img.bad = true; };
+        img.src = `../../assets/sprites/${id}_${sf}_${f}.png`;
+        imgs.push(img);
+      }
     }
     stageFrames[key] = imgs;
   }
@@ -1595,9 +1614,46 @@ function drawEquippedOnPet(now) {
 
 let battleFx = null;
 function startBattleFx(mon, win) {
-  battleFx = { icon: mon.icon, name: mon.name, win: !!win, t0: performance.now(), dur: 3800 };
+  battleFx = { icon: mon.icon, name: mon.name, win: !!win, t0: performance.now(), dur: 3800, monId: mon.id };
 }
 
+const MONSTER_ARENAS = {
+  guard_slime: 'arena_meadow_day',
+  cave_bat: 'arena_cavern_night',
+  wild_boar: 'arena_meadow_day',
+  ridge_wolf: 'arena_meadow_day',
+  kumiho: 'arena_mystic_boss',
+  oni_brute: 'arena_cavern_night',
+  ember_wyvern: 'arena_mystic_boss',
+  void_titan: 'arena_mystic_boss',
+};
+const monsterAnimCache = {};
+function monsterFrames(monId, kind) {
+  const key = `${monId}:${kind}`;
+  if (!(key in monsterAnimCache)) {
+    const spec = { idle: ['', '', 8], attack: ['attack/frames/', 'attack_', 6], hurt: ['hurt_defeated/frames/', 'hurt_defeated_', 4] }[kind] || ['', '', 8];
+    const imgs = [];
+    for (let f = 1; f <= spec[2]; f += 1) {
+      const img = new Image();
+      img.onerror = () => { img.bad = true; };
+      img.src = `../../assets/sprites/battle/monsters/${monId}/${spec[0]}${monId}_${spec[1]}frame_${String(f).padStart(2, '0')}.png`;
+      imgs.push(img);
+    }
+    monsterAnimCache[key] = imgs;
+  }
+  return monsterAnimCache[key].filter((i) => !i.bad && i.complete && i.naturalWidth > 0);
+}
+const arenaCache = {};
+function arenaImg(name) {
+  if (!(name in arenaCache)) {
+    const img = new Image();
+    img.onerror = () => { img.bad = true; };
+    img.src = `../../assets/sprites/battle/arena_backgrounds/${name}.png`;
+    arenaCache[name] = img;
+  }
+  const img = arenaCache[name];
+  return img && !img.bad && img.complete && img.naturalWidth > 0 ? img : null;
+}
 function drawBattleFx(now) {
   if (!battleFx) return;
   const t = (now - battleFx.t0) / battleFx.dur;
@@ -1606,6 +1662,25 @@ function drawBattleFx(now) {
   const exit = t > 0.8 ? (t - 0.8) / 0.2 : 0;
   const mx = Math.round(STAGE_CX + 118 * enter);
   const my = 284;
+  const arena = arenaImg(MONSTER_ARENAS[battleFx.monId] || 'arena_meadow_day');
+  const arenaAlpha = Math.max(0, Math.min(1, t / 0.08) * (t > 0.85 ? (1 - (t - 0.85) / 0.15) : 1));
+  if (arena) {
+    stageCtx.save();
+    stageCtx.globalAlpha = arenaAlpha * 0.94;
+    stageCtx.imageSmoothingEnabled = false;
+    stageCtx.drawImage(arena, 0, 0, petStageCanvas.width, petStageCanvas.height);
+    stageCtx.restore();
+  }
+  const attackFrame = t >= 0.14 && t < 0.78;
+  const fallen = battleFx.win && t >= 0.78;
+  const frames = fallen ? monsterFrames(battleFx.monId, 'hurt')
+    : attackFrame ? monsterFrames(battleFx.monId, 'attack')
+      : monsterFrames(battleFx.monId, 'idle');
+  let monImg = null;
+  if (frames.length) {
+    const speed = attackFrame ? 55 : fallen ? 300 : 140;
+    monImg = frames[Math.floor((now - battleFx.t0) / speed) % frames.length];
+  }
   const bob = Math.sin(now / 150) * 4;
   const hitPhase = t > 0.14 && t < 0.78;
   stageCtx.save();
@@ -1614,9 +1689,17 @@ function drawBattleFx(now) {
   stageCtx.beginPath();
   stageCtx.ellipse(mx, my + 4, 26, 7, 0, 0, Math.PI * 2);
   stageCtx.fill();
-  stageCtx.font = '46px sans-serif';
-  stageCtx.textAlign = 'center';
-  stageCtx.fillText(battleFx.icon, mx, my - 20 + bob);
+  if (monImg) {
+    const msize = Math.round(84 + bob);
+    stageCtx.save();
+    stageCtx.imageSmoothingEnabled = false;
+    stageCtx.drawImage(monImg, mx - msize / 2, my - msize + 4, msize, msize);
+    stageCtx.restore();
+  } else {
+    stageCtx.font = '46px sans-serif';
+    stageCtx.textAlign = 'center';
+    stageCtx.fillText(battleFx.icon, mx, my - 20 + bob);
+  }
   stageCtx.fillStyle = '#2a2018';
   stageCtx.fillRect(mx - 28, my - 84, 56, 7);
   const hpFrac = battleFx.win ? Math.max(0.05, 1 - (t / 0.78) * 0.95) : Math.max(0.3, 1 - t * 0.5);
@@ -2627,6 +2710,49 @@ function bonusText(it) {
   if (it.luk) parts.push(`+${it.luk} LUK`);
   return parts.length ? parts.join(' ') : (it.id === 'eq_evo_stone' ? 'Unlocks Stage 2 Evolution' : 'Keepsake');
 }
+
+const petShopTiles = {};
+function renderPetShop(d) {
+  const wrap = el('pet-shop');
+  if (!wrap || !d.petShop) return;
+  for (const pt of d.petShop) {
+    let card = petShopTiles[pt.id] || document.createElement('div');
+    if (!petShopTiles[pt.id]) {
+      card.className = 'pet-shop-card';
+      card.dataset.shoppet = pt.id;
+      const img = document.createElement('img');
+      const anim = STAGE_PNG_ANIMS[pt.id];
+      img.className = 'pixelated petshop-ico';
+      img.src = anim ? `../../assets/sprites/${anim.dir}/frames/${anim.name}_frame_01.png` : '';
+      const body = document.createElement('div');
+      body.innerHTML = '<div class="b-name"></div><div class="b-bonus small muted"></div>';
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-violet b-btn';
+      card.appendChild(img);
+      card.appendChild(body);
+      card.appendChild(btn);
+      card._els = { name: body.querySelector('.b-name'), desc: body.querySelector('.b-bonus'), btn };
+      wrap.appendChild(card);
+      petShopTiles[pt.id] = card;
+    }
+    card._els.name.textContent = `${pt.icon} ${pt.name}`;
+    card._els.desc.textContent = pt.desc;
+    const btn = card._els.btn;
+    if (pt.owned) { btn.textContent = '\u2713 Adopted!'; btn.disabled = true; }
+    else {
+      btn.textContent = `\ud83e\ude99${pt.cost.toLocaleString('en-US')}`;
+      btn.disabled = d.coins < pt.cost;
+    }
+  }
+}
+
+on('pet-shop', 'click', async (e) => {
+  const card = e.target.closest('[data-shoppet]');
+  if (!card) return;
+  const btn = card.querySelector('button');
+  if (btn && btn.disabled) return;
+  await act('buyShopPet', { petId: card.dataset.shoppet });
+});
 
 function renderBag(d) {
   const r = d.rpg;
