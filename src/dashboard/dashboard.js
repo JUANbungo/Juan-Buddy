@@ -383,12 +383,13 @@ function stageSingleFor(id, state) {
   return img && img.complete && img.naturalWidth > 0 ? img : null;
 }
 
-function stageStateFor(now) {
+function stageStateFor() {
   if (!latest) return 'IDLE';
   const s = latest.state;
+  const t = Date.now();
   if (s.flags.sleeping) return 'SLEEP';
-  if (s.effects && s.effects.eatUntil > now) return 'EAT';
-  if (s.effects && s.effects.happyUntil > now) return 'HAPPY';
+  if (s.effects && s.effects.eatUntil > t) return 'EAT';
+  if (s.effects && s.effects.happyUntil > t) return 'HAPPY';
   return s.activity || s.flags.working ? 'WALK' : 'IDLE';
 }
 
@@ -406,7 +407,7 @@ function drawStagePet(now) {
 
   if (!latest) return;
   const speciesId = latest.state.pet.species || 'kala';
-  const state = stageStateFor(now);
+  const state = stageStateFor();
   const bobbing = state === 'HAPPY' || state === 'WALK';
   const yOff = bobbing ? Math.round(Math.sin(now / 260) * 4) : 0;
 

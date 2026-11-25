@@ -87,5 +87,15 @@ console.log('food icon asset coverage');
   assert(files.length >= 14, `expected 14+ food PNGs, found ${files.length}`);
 }
 
+console.log('effect timers use Date.now');
+{
+  const dash = fs.readFileSync(path.join(root, 'src', 'dashboard', 'dashboard.js'), 'utf8');
+  const mob = fs.readFileSync(path.join(root, 'mobile', 'app.js'), 'utf8');
+  for (const [name, js] of [['dashboard.js', dash], ['mobile/app.js', mob]]) {
+    assert(!/eatUntil > now/.test(js), `${name} compares eatUntil with performance.now (stuck EAT bug)`);
+    assert(!/happyUntil > now/.test(js), `${name} compares happyUntil with performance.now (stuck HAPPY bug)`);
+  }
+}
+
 console.log(`${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

@@ -159,10 +159,11 @@ $('m-sleep').addEventListener('click', () => run('toggleSleep'));
 
 $('m-food-search').addEventListener('input', () => renderFoods());
 
-const petStateFor = (now) => {
+const petStateFor = () => {
+  const t = Date.now();
   if (state.flags.sleeping) return 'SLEEP';
-  if (state.effects.eatUntil > now) return 'EAT';
-  if (state.effects.happyUntil > now) return 'HAPPY';
+  if (state.effects.eatUntil > t) return 'EAT';
+  if (state.effects.happyUntil > t) return 'HAPPY';
   return state.activity || state.flags.working ? 'WALK' : 'IDLE';
 };
 
@@ -206,7 +207,7 @@ function drawPet(now) {
   const bank = sprites.ensurePetSprites(speciesId);
   if (!bank) return;
 
-  const anim = petStateFor(now);
+  const anim = petStateFor();
   const yOff = anim === 'HAPPY' || anim === 'WALK' ? Math.round(Math.sin(now / 260) * 4) : 0;
   petCtx.imageSmoothingEnabled = false;
 
