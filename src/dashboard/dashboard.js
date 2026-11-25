@@ -269,8 +269,6 @@ function render(snapshot) {
 
   el('pet-name').textContent = s.pet.name;
   el('level').textContent = s.pet.level;
-  el('xp-text').textContent = `${Math.floor(s.pet.xp)} / ${d.nextLevelXp} XP`;
-  el('xp-fill').style.width = pct(Math.min(100, (s.pet.xp / d.nextLevelXp) * 100));
 
   el('coins').textContent = Math.floor(s.coins);
   el('coin-rate').textContent = s.flags.working ? `+${d.coinRate.toFixed(1)}/s` : 'not working';
@@ -278,10 +276,6 @@ function render(snapshot) {
   setMeter('hunger', s.meters.hunger);
   setMeter('energy', s.meters.energy);
   setMeter('happy', s.meters.happiness);
-
-  const pill = el('status-pill');
-  pill.textContent = d.buffLabel ? `${d.statusText} · ${d.buffLabel}` : d.statusText;
-  pill.classList.toggle('active', s.flags.working || s.flags.sleeping);
 
   const stateBadge = el('play-state');
   const t = Date.now();
@@ -609,9 +603,6 @@ function renderBuddyPicker(s) {
 function setMeter(prefix, value) {
   el(`${prefix}-fill`).style.width = pct(value);
   el(`${prefix}-val`).textContent = `${Math.round(value)}%`;
-  const miniKey = prefix === 'hunger' ? 'mini-hunger' : prefix === 'happy' ? 'mini-happy' : 'mini-energy';
-  const mini = el(miniKey);
-  if (mini) mini.style.width = pct(value);
 }
 
 function renderShop(s, d) {
