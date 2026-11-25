@@ -238,6 +238,10 @@
     { file: 'bgm/mp3/idle_pet_groove.mp3', label: 'Idle Pet Groove' },
     { file: 'bgm/mp3/level_1_1.mp3', label: 'Level 1-1' },
     { file: 'bgm/mp3/level_13.mp3', label: 'Level 13' },
+    { file: 'bgm/mp3/cozy_pixel_exploration.mp3', label: 'Cozy Pixel Exploration' },
+    { file: 'bgm/mp3/exploratory_groove.mp3', label: 'Exploratory Groove' },
+    { file: 'bgm/mp3/pixel_adventure.mp3', label: 'Pixel Adventure' },
+    { file: 'bgm/mp3/wistful_pixel_folk.mp3', label: 'Wistful Pixel Folk' },
   ];
   let mp3Audio = null;
   let mp3Role = null;
