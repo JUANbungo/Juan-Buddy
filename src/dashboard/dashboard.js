@@ -847,27 +847,6 @@ function drawRoom(now, phaseId, weatherId) {
   stageCtx.fillStyle = '#5d3317';
   stageCtx.fillRect(wx - 6, wy + wh, ww + 12, 7);
 
-  stageCtx.strokeStyle = '#3b3226';
-  stageCtx.lineWidth = 2;
-  stageCtx.beginPath();
-  stageCtx.moveTo(0, 8);
-  stageCtx.quadraticCurveTo(STAGE_CX, 34, STAGE_W, 8);
-  stageCtx.stroke();
-  const lightCols = ['#f87171', '#fbbf24', '#4ade80', '#60a5fa', '#c084fc'];
-  for (let i = 0; i < 14; i += 1) {
-    const lx = 20 + i * 34;
-    const ly = 8 + 26 * (4 * (lx / STAGE_W) * (1 - lx / STAGE_W));
-    stageCtx.fillStyle = lightCols[i % 5];
-    stageCtx.beginPath();
-    stageCtx.arc(lx, ly + 3, 5, 0, Math.PI * 2);
-    stageCtx.fill();
-    stageCtx.globalAlpha = 0.3;
-    stageCtx.beginPath();
-    stageCtx.arc(lx, ly + 3, 8, 0, Math.PI * 2);
-    stageCtx.fill();
-    stageCtx.globalAlpha = 1;
-  }
-
   const px = 150;
   stageCtx.strokeStyle = '#6b5d43';
   stageCtx.lineWidth = 2;
@@ -943,27 +922,6 @@ function drawRoom(now, phaseId, weatherId) {
   stageCtx.moveTo(330, 78);
   stageCtx.lineTo(330 + Math.sin(minA) * 13, 78 - Math.cos(minA) * 13);
   stageCtx.stroke();
-
-  stageCtx.strokeStyle = '#6b5d43';
-  stageCtx.lineWidth = 1.5;
-  stageCtx.beginPath();
-  stageCtx.moveTo(166, 24);
-  stageCtx.quadraticCurveTo(240, 34, 314, 24);
-  stageCtx.stroke();
-  const flagCols = ['#f87171', '#4ade80', '#60a5fa', '#fbbf24', '#f472b6', '#a78bfa'];
-  let fi = 0;
-  for (let fx = 174; fx < 310; fx += 19) {
-    const t = (fx - 166) / 148;
-    const fy2 = 24 + 10 * (t * (2 - t)) * 0.25;
-    stageCtx.fillStyle = flagCols[fi % flagCols.length];
-    stageCtx.beginPath();
-    stageCtx.moveTo(fx - 6, fy2);
-    stageCtx.lineTo(fx + 6, fy2);
-    stageCtx.lineTo(fx, fy2 + 12);
-    stageCtx.closePath();
-    stageCtx.fill();
-    fi += 1;
-  }
 
   const floorGrad = stageCtx.createLinearGradient(0, fy, 0, STAGE_H);
   floorGrad.addColorStop(0, '#cfa06e');
