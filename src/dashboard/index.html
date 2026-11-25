@@ -85,6 +85,7 @@
         <button data-tab="pets" class="studio-tab">🐾 Pets</button>
         <button data-tab="battle" class="studio-tab">⚔️ Battle</button>
         <button data-tab="gear" class="studio-tab">🛡️ Gear</button>
+        <button data-tab="bag" class="studio-tab">🎒 Bag</button>
         <button data-tab="explore" class="studio-tab">🌏 Explore</button>
         <button data-tab="path" class="studio-tab">🌀 Path</button>
         <button data-tab="gacha" class="studio-tab">🎰 Gacha</button>
@@ -194,6 +195,18 @@
           </section>
         </div>
 
+        <div class="tab-panel hidden panel-bag">
+          <section class="card">
+            <h2>🎒 Cozy Bag <small class="muted">— cosmetics &amp; relic gear · unlocks day 3</small></h2>
+            <div id="bag-lock" class="rpg-lock hidden"></div>
+            <div id="bag-body">
+              <div id="bag-bonus" class="battle-stats"></div>
+              <div id="bag-evostone" class="muted hint"></div>
+              <div id="bag-grid" class="bag-grid"></div>
+            </div>
+          </section>
+        </div>
+
         <div class="tab-panel hidden panel-explore">
           <section class="card">
             <h2>🌏 Explore Asia <small class="muted">— day trips na may coins, XP at sceneries</small></h2>
@@ -230,6 +243,15 @@
     <button id="btn-sfx" class="link"><span id="sfx-label">🔊 Sound: On</span></button>
     <button id="btn-reset" class="link danger">Reset progress</button>
   </footer>
+
+  <div id="evo-popup" class="evo-popup hidden">
+    <div class="evo-card">
+      <div class="evo-banner">✨ EVOLUTION ✨</div>
+      <canvas id="evo-canvas" width="96" height="96"></canvas>
+      <div class="evo-name" id="evo-name"></div>
+      <div class="evo-sub" id="evo-sub">Base stats +25% · say hello to Stage 2!</div>
+    </div>
+  </div>
 
   <div id="death-overlay" class="death-overlay hidden">
     <div class="death-card">

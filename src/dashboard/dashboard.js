@@ -26,6 +26,7 @@ function playActionSound(action, res) {
     rename: 'click', setSpecies: 'happy',
     battleMonster: 'happy', allocateStat: 'levelup', buyGear: 'buy', equipGear: 'happy',
     pullGearGacha: 'coin', choosePath: 'achv', cleanWaste: 'click',
+    buyItem: 'buy', equipItem: 'happy', useEvoStone: 'evolve',
   };
   sfxOnce(map[action] || 'click');
 }
@@ -144,6 +145,14 @@ function render(snapshot) {
   renderExtras(d);
   renderRpg(d);
   renderExplore(d);
+  renderBag(d);
+
+  if (d.rpg.items.evolved && !evoTrack.shown) {
+    evoTrack.shown = true;
+    showEvoPopup(s.pet.species);
+  } else if (!d.rpg.items.evolved) {
+    evoTrack.shown = false;
+  }
 
   el('btn-work').textContent = s.flags.working ? '💼 Working...' : '💼 Work: Off';
   el('btn-work').classList.toggle('on', s.flags.working);
@@ -464,6 +473,42 @@ function stageSingleFor(id, state) {
   }
   const img = stageSingle[key];
   return img && img.complete && img.naturalWidth > 0 ? img : null;
+}
+
+const evoSingle = {};
+
+function evoSingleFor(id, state) {
+  const key = `${id}_evo_${STAGE_STATE_FILE[state]}`;
+  if (!(key in evoSingle)) {
+    const img = new Image();
+    img.onerror = () => { evoSingle[key] = null; };
+    img.src = `../assets/sprites/evolutions/single/${key}.png`;
+    evoSingle[key] = img;
+  }
+  const img = evoSingle[key];
+  return img && img.complete && img.naturalWidth > 0 ? img : null;
+}
+
+const evoSheets = {};
+const EVO_SHEET_ORDER = { IDLE: 0, WALK: 1, HAPPY: 2, EAT: 3, SLEEP: 4 };
+
+function evoSheetFrameFor(id, state) {
+  const key = `${id}_evo_sheet`;
+  if (!(key in evoSheets)) {
+    const img = new Image();
+    img.onerror = () => { evoSheets[key] = null; };
+    img.src = `../assets/sprites/evolutions/sheets/${key}.png`;
+    evoSheets[key] = img;
+  }
+  const img = evoSheets[key];
+  if (!img || img.naturalWidth <= 0) return null;
+  return { img, idx: EVO_SHEET_ORDER[state] || 0, frameW: img.naturalWidth / 5, frameH: img.naturalHeight };
+}
+
+function evoNameFor(id) {
+  const list = sprites.EVO_DEFS || [];
+  const def = list.find((e) => e.id === id);
+  return def ? def.evolvedName : null;
 }
 
 function stageStateFor() {
@@ -1253,9 +1298,19 @@ function drawStagePet(now) {
       if (petWalk.dir < 0) g.scale(-1, 1);
       const bx = -boxSize / 2;
       const by = petWalk.y - boxSize + yOff;
-      const pngs = stageFramesFor(s.pet.species || 'kala', st);
-      const single = stageSingleFor(s.pet.species || 'kala', st);
-      if (pngs.length > 0) {
+      const speciesId = s.pet.species || 'kala';
+      const evoSingle = s.pet.evolved ? evoSingleFor(speciesId, st) : null;
+      const evoFrame = s.pet.evolved && !evoSingle ? evoSheetFrameFor(speciesId, st) : null;
+      if (evoSingle) {
+        g.drawImage(evoSingle, bx, by, boxSize, boxSize);
+      } else if (evoFrame) {
+        g.drawImage(evoFrame.img, evoFrame.idx * evoFrame.frameW, 0, evoFrame.frameW, evoFrame.frameH, bx, by, boxSize, boxSize);
+      }
+      const pngs = stageFramesFor(speciesId, st);
+      const single = stageSingleFor(speciesId, st);
+      if (evoSingle || evoFrame) {
+        // evolved art fully drawn above
+      } else if (pngs.length > 0) {
         const img = pngs[Math.floor(now / 170) % pngs.length];
         g.drawImage(img, bx, by, boxSize, boxSize);
       } else if (single) {
@@ -1858,3 +1913,127 @@ async function pullGearWish(times) {
 
 el('btn-gear-gacha-1').addEventListener('click', () => pullGearWish(1));
 el('btn-gear-gacha-10').addEventListener('click', () => pullGearWish(10));
+
+// ===== Cozy Bag: cosmetics & equipment inventory with PNG item icons =====
+const evoTrack = { shown: false };
+const bagCards = {};
+
+function itemIconNode(itemId, fallbackEmoji) {
+  const folder = itemId.startsWith('cos_') ? 'cosmetics' : 'equipment';
+  const img = new Image();
+  img.className = 'bag-ico pixelated';
+  img.onerror = () => {
+    const fb = document.createElement('span');
+    fb.className = 'bag-ico';
+    fb.textContent = fallbackEmoji;
+    if (img.parentNode) img.parentNode.replaceChild(fb, img);
+  };
+  img.src = `../assets/sprites/items/${folder}/${itemId}.png`;
+  return img;
+}
+
+function bonusText(it) {
+  const parts = [];
+  if (it.str) parts.push(`+${it.str} STR`);
+  if (it.def) parts.push(`+${it.def} DEF`);
+  if (it.agi) parts.push(`+${it.agi} AGI`);
+  if (it.mag) parts.push(`+${it.mag} MAG`);
+  if (it.luk) parts.push(`+${it.luk} LUK`);
+  return parts.length ? parts.join(' ') : (it.id === engine.EVO_STONE_ID ? 'Unlocks Stage 2 Evolution' : 'Keepsake');
+}
+
+function renderBag(d) {
+  const r = d.rpg;
+  const lock = el('bag-lock');
+  const body = el('bag-body');
+  const unlock = (r.unlocks || []).find((u) => u.id === 'items');
+  if (!unlock || !unlock.unlocked) {
+    lock.classList.remove('hidden');
+    lock.textContent = unlock
+      ? `${unlock.icon} ${unlock.name} unlocks after ${unlock.day} days of play \u2014 ${unlock.daysLeft} day${unlock.daysLeft === 1 ? '' : 's'} to go!`
+      : 'The Cozy Bag is still locked.';
+    body.classList.add('hidden');
+    return;
+  }
+  lock.classList.add('hidden');
+  body.classList.remove('hidden');
+  const b = r.items.bonus;
+  el('bag-bonus').textContent = `Bag bonus \u00b7 STR +${b.str} \u00b7 DEF +${b.def} \u00b7 AGI +${b.agi} \u00b7 MAG +${b.mag} \u00b7 LUK +${b.luk}${r.items.evolved ? ' \u00b7 \u2b50 Stage 2 (+25%)' : ''}`;
+  const stone = el('bag-evostone');
+  if (r.items.evolutionNote !== false) {
+    stone.textContent = r.items.evoStoneCount > 0
+      ? `\ud83d\udd2e ${r.items.evoStoneCount} Evo Stone${r.items.evoStoneCount === 1 ? '' : 's'} in your bag${r.items.evolved ? ' \u2014 already Stage 2!' : ' \u2014 evolve anytime, or wait for Level 10!'}`
+      : (r.items.evolved ? '\u2728 Stage 2 achieved \u2014 bathala-level style!' : `\ud83d\udd2e Evo Stone auto-evolves at Level ${r.items.evolveAt}`);
+  }
+  const grid = el('bag-grid');
+  grid.innerHTML = '';
+  for (const it of r.items.shop) {
+    let card = bagCards[it.id] || document.createElement('div');
+    if (!bagCards[it.id]) {
+      card.className = 'bag-card';
+      card.dataset.item = it.id;
+      card.appendChild(itemIconNode(it.id, it.icon));
+      const mid = document.createElement('div');
+      mid.innerHTML = '<div class="b-name"></div><div class="b-bonus"></div><div class="b-slot"></div>';
+      const btn = document.createElement('button');
+      btn.className = 'btn b-btn';
+      card.appendChild(mid);
+      card.appendChild(btn);
+      card._els = {
+        name: mid.querySelector('.b-name'),
+        bonus: mid.querySelector('.b-bonus'),
+        slot: mid.querySelector('.b-slot'),
+        btn,
+      };
+    }
+    card._els.name.textContent = `${it.icon} ${it.name}`;
+    card._els.bonus.textContent = bonusText(it);
+    card._els.slot.textContent = it.kind === 'cosmetic' ? `Cosmetic \u00b7 ${it.slot}` : `${it.type}${it.kind === 'special' ? ' \u00b7 keepsake' : ''}`;
+    const btn = card._els.btn;
+    if (!it.owned) {
+      btn.textContent = `\ud83e\ude99${it.cost}`;
+      btn.disabled = !!latest.state.dead || latest.state.coins < it.cost;
+    } else if (it.equipped) {
+      btn.textContent = 'Unequip';
+    } else {
+      btn.textContent = 'Equip';
+    }
+    grid.appendChild(card);
+  }
+}
+
+function showEvoPopup(speciesId) {
+  const popup = el('evo-popup');
+  const canvasEl = el('evo-canvas');
+  if (!popup || !canvasEl) return;
+  el('evo-name').textContent = evoNameFor(speciesId) || 'Stage 2 Form';
+  const cctx = canvasEl.getContext('2d');
+  cctx.imageSmoothingEnabled = false;
+  cctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+  const evoSingle = evoSingleFor(speciesId, 'IDLE');
+  const evoFrame = !evoSingle ? evoSheetFrameFor(speciesId, 'IDLE') : null;
+  if (evoSingle) {
+    cctx.drawImage(evoSingle, 0, 0, canvasEl.width, canvasEl.height);
+  } else if (evoFrame) {
+    cctx.drawImage(evoFrame.img, evoFrame.idx * evoFrame.frameW, 0, evoFrame.frameW, evoFrame.frameH, 0, 0, canvasEl.width, canvasEl.height);
+  } else {
+    try {
+      const bank = sprites.ensurePetSprites(speciesId);
+      if (bank && bank.IDLE) cctx.drawImage(bank.IDLE[0], 0, 0, canvasEl.width, canvasEl.height);
+    } catch (err) { /* fallback keeps frame empty */ }
+  }
+  popup.classList.remove('hidden');
+  spawnConfetti(popup, 5);
+  if (sfx) sfx.play('evolve');
+  setTimeout(() => popup.classList.add('hidden'), 5200);
+}
+
+el('bag-grid').addEventListener('click', (e) => {
+  const card = e.target.closest('.bag-card');
+  if (!card || !card.dataset.item) return;
+  const itemId = card.dataset.item;
+  const it = engine.ITEMS.find((x) => x.id === itemId);
+  if (!it) return;
+  if (!it.owned) act('buyItem', { itemId });
+  else act('equipItem', { itemId });
+});

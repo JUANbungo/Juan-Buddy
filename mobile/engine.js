@@ -135,10 +135,37 @@ const GACHA = {
 };
 
 const UNLOCKS = [
+  { id: 'items', day: 3, icon: '\ud83c\udf92', name: 'Cozy Bag', desc: 'Buy and equip cosmetics & relic gear \u2014 bonuses to STR/DEF/AGI/MAG/LUK' },
   { id: 'battle', day: 7, icon: '\u2694\ufe0f', name: 'Battle Arena', desc: 'Fight monsters, earn glory \u2014 stat points every level up' },
   { id: 'gear', day: 14, icon: '\ud83d\udee1\ufe0f', name: 'Gear Forge', desc: 'Equip weapons, armor and charms \u2014 best gear in the gacha' },
   { id: 'path', day: 30, icon: '\ud83c\udf00', name: 'Destiny Path', desc: 'Commit to Work or Battle mastery \u2014 forever' },
 ];
+
+const EVOLVE_LEVEL = 10;
+const EVO_STONE_ID = 'eq_evo_stone';
+const ITEMS = [
+  { id: 'eq_kampilan_sword', kind: 'equipment', type: 'Weapon', icon: '\ud83d\udde1\ufe0f', name: 'Kampilan Blade', cost: 900, str: 5 },
+  { id: 'eq_rattan_shield', kind: 'equipment', type: 'Armor', icon: '\ud83d\udee1\ufe0f', name: 'Rattan Buckler', cost: 850, def: 5 },
+  { id: 'eq_agimat_amulet', kind: 'equipment', type: 'Relic', icon: '\ud83e\ude9c', name: 'Agimat Amulet', cost: 1100, mag: 4, luk: 2 },
+  { id: 'eq_bamboo_staff', kind: 'equipment', type: 'Weapon', icon: '\ud83c\udf8b', name: 'Bamboo Sage Staff', cost: 1000, mag: 5 },
+  { id: 'eq_lucky_coin_pouch', kind: 'equipment', type: 'Relic', icon: '\ud83e\ude99', name: 'Fortune Coin Pouch', cost: 1300, luk: 6 },
+  { id: 'eq_hermes_boots', kind: 'equipment', type: 'Relic', icon: '\ud83d\udc62', name: 'Swift Wind Boots', cost: 1150, agi: 5 },
+  { id: 'eq_evo_stone', kind: 'special', type: 'Special', icon: '\ud83d\udd2e', name: 'Ascension Evo Stone', cost: 1500 },
+  { id: 'eq_promise_ring', kind: 'special', type: 'Special', icon: '\ud83d\udc8d', name: 'Couple Promise Ring', cost: 2000 },
+  { id: 'cos_witch_hat', kind: 'cosmetic', slot: 'Head', icon: '\ud83e\uddd9', name: 'Mini Witch Hat', cost: 420, mag: 2, luk: 1 },
+  { id: 'cos_salakot', kind: 'cosmetic', slot: 'Head', icon: '\ud83c\udffa', name: 'Golden Salakot', cost: 380, def: 2, luk: 1 },
+  { id: 'cos_sakura_crown', kind: 'cosmetic', slot: 'Head', icon: '\ud83c\udf38', name: 'Sakura Crown', cost: 420, agi: 2, luk: 1 },
+  { id: 'cos_gold_crown', kind: 'cosmetic', slot: 'Head', icon: '\ud83d\udc51', name: 'Royal Gold Crown', cost: 760, str: 2, mag: 2 },
+  { id: 'cos_ushanka', kind: 'cosmetic', slot: 'Head', icon: '\ud83e\udde2', name: 'Cozy Ushanka', cost: 380, def: 2, str: 1 },
+  { id: 'cos_shades', kind: 'cosmetic', slot: 'Head', icon: '\ud83d\ude0e', name: 'Cool Pixel Shades', cost: 400, agi: 2, str: 1 },
+  { id: 'cos_red_scarf', kind: 'cosmetic', slot: 'Neck', icon: '\ud83e\uddf0', name: 'Hero Red Scarf', cost: 360, str: 2, def: 1 },
+  { id: 'cos_bell_collar', kind: 'cosmetic', slot: 'Neck', icon: '\ud83d\dd14', name: 'Gold Bell Collar', cost: 360, luk: 2, agi: 1 },
+  { id: 'cos_bowtie', kind: 'cosmetic', slot: 'Neck', icon: '\ud83c\udf73', name: 'Dapper Bowtie', cost: 340, agi: 2, luk: 1 },
+  { id: 'cos_angel_wings', kind: 'cosmetic', slot: 'Back', icon: '\ud83d\udc7c', name: 'Angel Wings', cost: 820, agi: 2, def: 2 },
+  { id: 'cos_lantern', kind: 'cosmetic', slot: 'Back', icon: '\ud83c\udfee', name: 'Floating Lantern', cost: 780, mag: 2, luk: 2 },
+  { id: 'cos_parol_aura', kind: 'cosmetic', slot: 'Back', icon: '\u2b50', name: 'Parol Star Aura', cost: 900, luk: 3, mag: 1 },
+];
+const ITEM_SLOTS = ['Head', 'Neck', 'Back', 'Weapon', 'Armor', 'Relic'];
 
 const MONSTERS = [
   { id: 'slime', name: 'Guard Slime', icon: '\ud83d\udfe2', lvl: 1, hp: 26, atk: 7, def: 2, energy: 8, coins: [12, 20], xp: 6 },
@@ -283,14 +310,39 @@ function gearBonus(state) {
   return total;
 }
 
+function itemBonus(state) {
+  const inv = state.items || { owned: [], equipped: {} };
+  const out = { str: 0, def: 0, agi: 0, mag: 0, luk: 0 };
+  for (const id of Object.values(inv.equipped || {})) {
+    if (!id) continue;
+    const it = ITEMS.find((x) => x.id === id);
+    if (!it) continue;
+    for (const k of ['str', 'def', 'agi', 'mag', 'luk']) out[k] += it[k] || 0;
+  }
+  return out;
+}
+
+function evolvePet(state) {
+  if (state.pet.evolved) return false;
+  state.pet.evolved = true;
+  state.meters.happiness = clamp100(Math.min(100, state.meters.happiness + 20));
+  state.meters.energy = clamp100(Math.min(100, state.meters.energy + 20));
+  return true;
+}
+
 function petBattleStats(state) {
   const lvl = state.pet.level;
   const g = gearBonus(state);
+  const ib = itemBonus(state);
   const isBattlePath = state.path === 'battle';
+  const evoMul = state.pet.evolved ? 1.25 : 1;
   return {
-    atk: Math.round((3 + lvl * 1.5 + (state.allocated ? state.allocated.atk : 0) * 2) * (isBattlePath ? 1.15 : 1)) + g.atk,
-    def: Math.round((2 + lvl * 1.1 + (state.allocated ? state.allocated.def : 0) * 2) * (isBattlePath ? 1.1 : 1)) + g.def,
-    spd: Math.round(2 + lvl * 0.8 + (state.allocated ? state.allocated.spd : 0) * 2) + g.spd,
+    atk: Math.round((3 + lvl * 1.5 + (state.allocated ? state.allocated.atk : 0) * 2 + ib.str + Math.round(ib.mag * 0.5)) * evoMul * (isBattlePath ? 1.15 : 1)) + g.atk,
+    def: Math.round((2 + lvl * 1.1 + (state.allocated ? state.allocated.def : 0) * 2 + ib.def) * evoMul * (isBattlePath ? 1.1 : 1)) + g.def,
+    spd: Math.round((2 + lvl * 0.8 + (state.allocated ? state.allocated.spd : 0) * 2 + ib.agi) * evoMul) + g.spd,
+    mag: ib.mag,
+    luk: ib.luk,
+    evolved: !!state.pet.evolved,
   };
 }
 
@@ -314,6 +366,50 @@ function allocateStat(state, statId) {
   state.allocated[statId] = (state.allocated[statId] || 0) + 1;
   const labels = { atk: 'Attack \u2694\ufe0f', def: 'Defense \ud83d\udee1\ufe0f', spd: 'Speed \ud83d\udca8' };
   return { ok: true, message: `\u2b06\ufe0f ${labels[statId]} +1! ${state.statPoints} point${state.statPoints === 1 ? '' : 's'} left.` };
+}
+
+function buyItem(state, itemId) {
+  const gate = deadGate(state);
+  if (gate) return gate;
+  if (!rpgUnlocked(state, 'items')) return { ok: false, message: '\ud83c\udf92 Cozy Bag unlocks at 3 days of play!' };
+  const it = ITEMS.find((x) => x.id === itemId);
+  if (!it) return { ok: false, message: 'Unknown item.' };
+  if (state.items.owned.includes(it.id)) return { ok: false, message: 'Already owned!' };
+  if (state.coins < it.cost) return { ok: false, message: `\ud83e\ude99 Not enough coins \u2014 ${it.name} costs ${it.cost}.` };
+  state.coins -= it.cost;
+  state.items.owned.push(it.id);
+  checkAchievements(state, []);
+  return { ok: true, message: `\ud83c\udf92 Bought ${it.name}!` };
+}
+
+function equipItem(state, itemId) {
+  const gate = deadGate(state);
+  if (gate) return gate;
+  if (!rpgUnlocked(state, 'items')) return { ok: false, message: '\ud83c\udf92 Cozy Bag unlocks at 3 days of play!' };
+  const it = ITEMS.find((x) => x.id === itemId);
+  if (!it) return { ok: false, message: 'Unknown item.' };
+  if (!state.items.owned.includes(it.id)) return { ok: false, message: 'Not owned yet.' };
+  const key = it.kind === 'cosmetic' ? it.slot : it.type;
+  if (!ITEM_SLOTS.includes(key)) return { ok: false, message: '\ud83d\udd2e Use this stone from the Bag tab instead!' };
+  if (state.items.equipped[key] === it.id) {
+    state.items.equipped[key] = null;
+    return { ok: true, message: `\ud83d\uddc3\ufe0f Unequipped ${it.name}.` };
+  }
+  state.items.equipped[key] = it.id;
+  checkAchievements(state, []);
+  return { ok: true, message: `\u2728 Equipped ${it.name}!` };
+}
+
+function useEvoStone(state) {
+  const gate = deadGate(state);
+  if (gate) return gate;
+  if (state.pet.stage === 'egg') return { ok: false, message: '\ud83e\udd5a Hatch your buddy first!' };
+  if (state.pet.evolved) return { ok: false, message: '\u2728 Already in Stage 2 form!' };
+  const idx = state.items.owned.indexOf(EVO_STONE_ID);
+  if (idx === -1) return { ok: false, message: '\ud83d\udd2e You need an Ascension Evo Stone \u2014 grab one in the Bag tab!' };
+  state.items.owned.splice(idx, 1);
+  evolvePet(state);
+  return { ok: true, message: '\ud83d\udcab EVOLUTION! Your buddy ascended to Stage 2 \u2014 base stats +25%!' };
 }
 
 function battleMonster(state, monsterId) {
@@ -346,7 +442,7 @@ function battleMonster(state, monsterId) {
   const win = monHp <= 0 && petHp > 0;
   const events = [];
   if (win) {
-    const coins = mon.coins[0] + Math.floor(Math.random() * (mon.coins[1] - mon.coins[0] + 1));
+    const coins = mon.coins[0] + Math.floor(Math.random() * (mon.coins[1] - mon.coins[0] + 1)) + (bs.luk || 0) * 3;
     state.coins += coins;
     state.stats.coinsEarned += coins;
     state.pet.xp += mon.xp * currentXpMul(state);
@@ -476,6 +572,8 @@ const ACHIEVEMENTS = [
   { id: 'battle_25', icon: '🏆', name: 'Monster Hunter', desc: 'Win 25 battles', check: (s) => !!(s.battle && s.battle.wins >= 25) },
   { id: 'gear_1', icon: '🛡️', name: 'Field Ready', desc: 'Equip your first gear', check: (s) => !!(s.gear && (s.gear.weapon || s.gear.armor || s.gear.charm)) },
   { id: 'path_1', icon: '🌀', name: 'Destiny Chosen', desc: 'Commit to a path', check: (s) => !!s.path },
+  { id: 'evo_1', icon: '\ud83d\udcab', name: 'Ascended', desc: 'Evolve to Stage 2 form', check: (s) => !!(s.pet && s.pet.evolved) },
+  { id: 'items_3', icon: '\ud83c\udf92', name: 'Glammed Up', desc: 'Own 3 cozy items', check: (s) => !!(s.items && s.items.owned.length >= 3) },
 ];
 
 const WEATHER_POOL = ['clear', 'clear', 'cloudy', 'clear', 'rainy', 'cloudy', 'clear', 'stormy', 'cloudy', 'clear', 'snowy', 'clear'];
@@ -494,7 +592,7 @@ function xpForNextLevel(level) {
 function defaultState() {
   return {
     version: 2,
-    pet: { name: 'Buddy', species: null, stage: 'egg', level: 1, xp: 0 },
+    pet: { name: 'Buddy', species: null, stage: 'egg', level: 1, xp: 0, evolved: false },
     meters: { hunger: 80, energy: 90, happiness: 85 },
     coins: 20,
     flags: { sleeping: false, working: false },
@@ -515,6 +613,7 @@ function defaultState() {
     path: null,
     battle: { wins: 0, losses: 0 },
     waste: [],
+    items: { owned: [], equipped: { Head: null, Neck: null, Back: null, Weapon: null, Armor: null, Relic: null } },
     skin: 'classic',
     skinsOwned: ['classic'],
     neglect: 0,
@@ -530,6 +629,14 @@ function ensureState(state) {
   }
   if (state.statPoints === undefined) state.statPoints = 0;
   if (state.path === undefined) state.path = null;
+  if (state.items === undefined) {
+    state.items = fresh.items;
+  } else {
+    if (!Array.isArray(state.items.owned)) state.items.owned = fresh.items.owned;
+    state.items.equipped = { ...fresh.items.equipped, ...(state.items.equipped || {}) };
+    for (const k of ITEM_SLOTS) if (state.items.equipped[k] === undefined) state.items.equipped[k] = null;
+  }
+  if (state.pet.evolved === undefined) state.pet.evolved = false;
   if (!state.pet) state.pet = fresh.pet;
   if (state.pet.stage === undefined) {
     state.pet.stage = state.pet.species ? 'adult' : 'egg';
@@ -569,6 +676,7 @@ function coinRate(state) {
   let rate = 0.5 * Math.pow(1.6, job - 1) * petBonus;
   if (state.meters.happiness < 25) rate *= 0.6;
   if (state.path === 'work') rate *= 1.5;
+  rate += itemBonus(state).luk * 0.02;
   return rate;
 }
 
@@ -745,6 +853,9 @@ function applyLevelUps(state) {
     state.pet.level += 1;
     state.statPoints = (state.statPoints || 0) + 2;
     need = xpForNextLevel(state.pet.level);
+    if (state.pet.level >= EVOLVE_LEVEL && !state.pet.evolved && state.pet.stage !== 'egg') {
+      evolvePet(state);
+    }
   }
   const curIdx = Math.max(0, STAGES.findIndex((st) => st.id === state.pet.stage));
   const levelStageIdx = STAGES.findIndex((st) => st.id === stageForLevel(state.pet.level).id);
@@ -982,6 +1093,7 @@ function saveCode(state) {
     path: state.path,
     battle: state.battle,
     waste: state.waste,
+    items: state.items,
   };
   return 'JB2.' + btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
 }
@@ -1021,6 +1133,7 @@ function importSave(state, code) {
   if (payload.path) state.path = payload.path;
   if (payload.battle) state.battle = payload.battle;
   if (Array.isArray(payload.waste)) state.waste = payload.waste;
+  if (payload.items) state.items = payload.items;
   state.activity = null;
   state.activityCooldowns = {};
   state.neglect = 0;
@@ -1031,7 +1144,7 @@ function importSave(state, code) {
 
 function newGame(state) {
   if (!state.dead) return { ok: false, message: 'Your buddy is still alive! (Reset progress in footer if you really want to start over.)' };
-  const kept = { achievements: state.achievements, daily: state.daily, skinsOwned: state.skinsOwned, gacha: state.gacha, skin: state.skin, gearGacha: state.gearGacha };
+  const kept = { achievements: state.achievements, daily: state.daily, skinsOwned: state.skinsOwned, gacha: state.gacha, skin: state.skin, gearGacha: state.gearGacha, itemsOwned: state.items ? state.items.owned : [] };
   const fresh = defaultState();
   Object.keys(state).forEach((key) => { delete state[key]; });
   Object.assign(state, fresh);
@@ -1041,6 +1154,7 @@ function newGame(state) {
   state.gacha = kept.gacha;
   state.gearGacha = kept.gearGacha;
   state.skin = kept.skinsOwned.includes(kept.skin) ? kept.skin : 'classic';
+  state.items = { owned: kept.itemsOwned || [], equipped: fresh.items.equipped };
   return { ok: true, message: '🌱 A new egg awaits! Take good care of your next buddy.' };
 }
 
@@ -1134,6 +1248,30 @@ function cleanWaste(state, index) {
   return { ok: true, message: '\ud83e\uddf9 Squeaky clean! Buddy says salamat.' };
 }
 
+function slotKeyOf(it) {
+  return it.kind === 'cosmetic' ? it.slot : it.type;
+}
+
+function itemsStats(state) {
+  const inv = state.items || { owned: [], equipped: {} };
+  const equipped = { ...inv.equipped };
+  return {
+    unlocked: (state.playdays && state.playdays.count >= 3) || false,
+    bonus: itemBonus(state),
+    owned: [...inv.owned],
+    equipped,
+    evoStoneCount: inv.owned.filter((x) => x === EVO_STONE_ID).length,
+    evolved: !!state.pet.evolved,
+    evolveAt: EVOLVE_LEVEL,
+    slots: ITEM_SLOTS,
+    shop: ITEMS.map((it) => ({
+      ...it,
+      owned: inv.owned.includes(it.id),
+      equipped: equipped[slotKeyOf(it)] === it.id,
+    })),
+  };
+}
+
 function rpgStats(state) {
   const now = Date.now();
   const days = (state.playdays && state.playdays.count) || 0;
@@ -1146,6 +1284,7 @@ function rpgStats(state) {
     battle: { ...bs, gearBonus: gb, wins: (state.battle && state.battle.wins) || 0, losses: (state.battle && state.battle.losses) || 0 },
     path: state.path,
     cooldownMs: Math.max(0, (state.activityCooldowns.battle || 0) - now),
+    items: itemsStats(state),
     unlocks: UNLOCKS.map((u) => ({ ...u, unlocked: days >= u.day, daysLeft: Math.max(0, u.day - days) })),
     monsters: MONSTERS.map((mo) => ({
       id: mo.id, icon: mo.icon, name: mo.name, lvl: mo.lvl, hp: mo.hp, atk: mo.atk, def: mo.def,
@@ -1213,6 +1352,14 @@ return {
   GEAR_GACHA,
   UNLOCKS,
   MONSTERS,
+  ITEMS,
+  ITEM_SLOTS,
+  EVOLVE_LEVEL,
+  EVO_STONE_ID,
+  buyItem,
+  equipItem,
+  useEvoStone,
+  itemBonus,
   allocateStat,
   battleMonster,
   buyGear,

@@ -416,5 +416,92 @@ check('explore activities: six Asia trips, startable with energy', () => {
   assert(s.coins > before, 'trip pays out coins');
 });
 
+check('evolution: level 10 auto-evolves with +25% base stats', () => {
+  const s = engine.defaultState();
+  s.pet.stage = 'adult';
+  s.pet.species = 'kala';
+  s.pet.level = 9;
+  s.meters.energy = 100;
+  const before = engine.petBattleStats(s);
+  s.pet.xp += engine.xpForNextLevel ? 999999 : 999999;
+  engine.play(s);
+  assert(s.pet.evolved === true, `evolved flag=${s.pet.evolved}`);
+  const after = engine.petBattleStats(s);
+  assert(after.atk > before.atk, `atk grew ${before.atk} -> ${after.atk}`);
+  const d = engine.derivedStats(s);
+  assert(d.rpg.items.evolved === true, 'evolution exposed in derived');
+});
+
+check('evolution stone: buys and evolves before level 10', () => {
+  const s = engine.defaultState();
+  s.pet.stage = 'baby';
+  s.pet.species = 'bao';
+  s.pet.level = 4;
+  s.coins = 5000;
+  s.playdays = { last: 't', count: 5 };
+  const r1 = engine.buyItem(s, 'eq_evo_stone');
+  assert(r1.ok === true, `buy stone=${r1.message}`);
+  assert(s.items.owned.includes('eq_evo_stone'), 'stone owned');
+  const r2 = engine.useEvoStone(s);
+  assert(r2.ok === true, `use stone=${r2.message}`);
+  assert(s.pet.evolved === true, 'evolved via stone');
+  assert(!s.items.owned.includes('eq_evo_stone'), 'stone consumed');
+});
+
+check('cozy items: buy + equip applies STR/DEF/AGI/MAG/LUK bonuses', () => {
+  const s = engine.defaultState();
+  s.coins = 99999;
+  const base = engine.petBattleStats(s);
+  s.playdays = { last: 't', count: 5 };
+  const rb = engine.buyItem(s, 'eq_kampilan_sword');
+  const rr = engine.buyItem(s, 'eq_rattan_shield');
+  const re = engine.buyItem(s, 'eq_hermes_boots');
+  assert(rb.ok && rr.ok && re.ok, `buys ok=${rb.ok}${rr.ok}${re.ok}`);
+  assert(engine.buyItem(s, 'mystery_box').ok === false, 'unknown item safely rejected');
+  engine.equipItem(s, 'eq_kampilan_sword');
+  engine.equipItem(s, 'eq_rattan_shield');
+  engine.equipItem(s, 'eq_hermes_boots');
+  const buffed = engine.petBattleStats(s);
+  assert(buffed.atk >= base.atk + 5, `atk bonus ${base.atk} -> ${buffed.atk}`);
+  assert(buffed.def >= base.def + 5, `def bonus ${base.def} -> ${buffed.def}`);
+  assert(buffed.spd >= base.spd + 5, `spd bonus ${base.spd} -> ${buffed.spd}`);
+  assert(engine.itemBonus(s).str === 5 && engine.itemBonus(s).luk === 0, 'itemBonus aggregates');
+  const r2 = engine.equipItem(s, 'eq_kampilan_sword');
+  assert(r2.ok === true && engine.itemBonus(s).str === 0, 'toggle unequip strips bonus');
+});
+
+check('luck: LUK items boost daily reward and coin rate', () => {
+  const s = engine.defaultState();
+  s.coins = 99999;
+  s.playdays = { last: 't', count: 5 };
+  engine.buyItem(s, 'eq_lucky_coin_pouch');
+  const rateBefore = engine.coinRate(s);
+  engine.equipItem(s, 'eq_lucky_coin_pouch');
+  const rateAfter = engine.coinRate(s);
+  assert(rateAfter > rateBefore, `coin rate ${rateBefore.toFixed(3)} -> ${rateAfter.toFixed(3)}`);
+  const d = engine.derivedStats(s);
+  const shopEntry = d.rpg.items.shop.find((x) => x.id === 'eq_lucky_coin_pouch');
+  assert(shopEntry && shopEntry.owned && shopEntry.equipped, 'item state in derived');
+  assert(d.rpg.items.bonus.luk === 6, `luk=6 exposed (${d.rpg.items.bonus.luk})`);
+});
+
+check('bag tab: gated at day 3, cosmetics equippable by slot', () => {
+  const s = engine.defaultState();
+  s.pet.stage = 'adult';
+  s.pet.species = 'tala';
+  s.coins = 9999;
+  const blocked = engine.buyItem(s, 'cos_witch_hat');
+  assert(blocked.ok === false, 'blocked before day 3');
+  s.playdays = { last: 't', count: 3 };
+  const ok = engine.buyItem(s, 'cos_witch_hat');
+  assert(ok.ok === true, `after day 3=${ok.message}`);
+  const eq = engine.equipItem(s, 'cos_witch_hat');
+  assert(eq.ok === true, `equip cos=${eq.message}`);
+  assert(s.items.equipped.Head === 'cos_witch_hat', 'head slot filled');
+  const d = engine.derivedStats(s);
+  const ms = d.rpg.unlocks.find((u) => u.id === 'items');
+  assert(ms && ms.day === 3 && ms.unlocked, 'items unlock exposed at day 3');
+});
+
 console.log(`  ${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

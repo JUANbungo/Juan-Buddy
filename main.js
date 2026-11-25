@@ -76,10 +76,14 @@ function runAction(action, payload) {
     case 'pullGacha': result = engine.pullGacha(state, payload && payload.times); break;
     case 'pullGearGacha': result = engine.pullGearGacha(state, payload && payload.times); break;
     case 'allocateStat': result = engine.allocateStat(state, payload && payload.statId); break;
+    case 'buyItem': result = engine.buyItem(state, payload && payload.itemId); break;
+    case 'equipItem': result = engine.equipItem(state, payload && payload.itemId); break;
+    case 'useEvoStone': result = engine.useEvoStone(state); break;
     case 'battleMonster': result = engine.battleMonster(state, payload && payload.monsterId); break;
     case 'buyGear': result = engine.buyGear(state, payload && payload.gearId); break;
     case 'equipGear': result = engine.equipGear(state, payload && payload.gearId); break;
     case 'choosePath': result = engine.choosePath(state, payload && payload.pathId); break;
+    case 'cleanWaste': result = engine.cleanWaste(state, payload ? payload.index : undefined); break;
     case 'buySkin': result = engine.buySkin(state, payload && payload.skinId); break;
     case 'setSkin': result = engine.setSkin(state, payload && payload.skinId); break;
     case 'exportSave':

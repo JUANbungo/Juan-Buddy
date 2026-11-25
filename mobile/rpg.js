@@ -323,3 +323,71 @@ render = function wrappedRender(d) {
 };
 
 render(engine.derivedStats(state));
+
+// ===== Cozy Bag (mobile): PNG-iconed cosmetics & equipment =====
+const itemCards = {};
+
+function itemBonusLabel(it) {
+  const parts = [];
+  if (it.str) parts.push(`+${it.str} STR`);
+  if (it.def) parts.push(`+${it.def} DEF`);
+  if (it.agi) parts.push(`+${it.agi} AGI`);
+  if (it.mag) parts.push(`+${it.mag} MAG`);
+  if (it.luk) parts.push(`+${it.luk} LUK`);
+  return parts.length ? parts.join(' ') : 'Keepsake';
+}
+
+function renderItems(d) {
+  const inv = d.rpg.items;
+  const list = $('m-items');
+  if (!list) return;
+  list.innerHTML = '';
+  for (const it of inv.shop) {
+    let row = itemCards[it.id] || document.createElement('div');
+    if (!itemCards[it.id]) {
+      row.className = 'activity-item';
+      const ico = document.createElement('img');
+      ico.className = 'm-item-ico pixelated';
+      ico.onerror = () => { ico.replaceWith(document.createTextNode(it.icon)); };
+      ico.src = it.id.startsWith('cos_') ? `sprites/items/cosmetics/${it.id}.png` : `sprites/items/equipment/${it.id}.png`;
+      row.appendChild(ico);
+      const mid = document.createElement('div');
+      mid.innerHTML = '<div class="a-name"></div><div class="a-rewards"></div>';
+      row.appendChild(mid);
+      const btn = document.createElement('button');
+      btn.className = 'btn a-btn';
+      row.appendChild(btn);
+      row.querySelector('.a-btn').addEventListener('click', () => {
+        if (!it.owned) run('buyItem', { itemId: it.id });
+        else run('equipItem', { itemId: it.id });
+      });
+      itemCards[it.id] = row;
+    }
+    row.querySelector('.a-name').textContent = `${it.icon} ${it.name}`;
+    row.querySelector('.a-rewards').textContent = `${itemBonusLabel(it)} \u00b7 ${it.kind === 'cosmetic' ? it.slot : it.type}`;
+    const btn = row.querySelector('.a-btn');
+    if (!it.owned) {
+      btn.disabled = state.dead || state.coins < it.cost;
+      btn.textContent = `\u{1F4B0}${it.cost}`;
+    } else if (it.equipped) {
+      btn.disabled = state.dead;
+      btn.textContent = 'Unequip';
+    } else {
+      btn.disabled = state.dead;
+      btn.textContent = 'Equip';
+    }
+    list.appendChild(row);
+  }
+}
+
+const baseWrapped = render;
+render = function renderWithItems(d) {
+  baseWrapped(d);
+  try {
+    renderItems(d);
+  } catch (err) {
+    /* keep UI alive */
+  }
+};
+
+renderItems(engine.derivedStats(state));

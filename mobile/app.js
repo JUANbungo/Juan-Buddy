@@ -40,6 +40,20 @@ function spriteSingleFor(speciesId, anim) {
   return img && img.complete && img.naturalWidth > 0 ? img : null;
 }
 
+const evoSingles = {};
+
+function evoSingleFor(speciesId, anim) {
+  const key = `${speciesId}_evo_${STATE_FILE[anim]}`;
+  if (!(key in evoSingles)) {
+    const img = new Image();
+    img.onerror = () => { evoSingles[key] = null; };
+    img.src = `sprites/evolutions/single/${key}.png`;
+    evoSingles[key] = img;
+  }
+  const img = evoSingles[key];
+  return img && img.complete && img.naturalWidth > 0 ? img : null;
+}
+
 function loadState() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
@@ -379,6 +393,14 @@ function drawPet(now) {
   const petTop = 214 - boxSize + (anim === 'HAPPY' || anim === 'WALK' ? Math.round(Math.sin(now / 260) * 4) : 0);
   petCtx.imageSmoothingEnabled = false;
 
+  if (state.pet.evolved) {
+    const evoSingle = evoSingleFor(speciesId, anim);
+    if (evoSingle) {
+      petCtx.drawImage(evoSingle, petLeft, petTop, boxSize, boxSize);
+      if (anim === 'SLEEP' && Math.random() < 0.02) particles.push({ kind: 'z', x: 150, y: 30, vy: -0.5, life: 1, size: 16, wobble: 0 });
+      return;
+    }
+  }
   const pngs = spriteFramesFor(speciesId, anim);
   if (pngs.length > 0) {
     const img = pngs[Math.floor(now / 170) % pngs.length];
@@ -656,6 +678,14 @@ setInterval(() => {
   last = now;
   const events = engine.tick(state, dt, false);
   if (events.length) showToast(events[events.length - 1]);
+  if (state.pet.evolved && !globalThis.__evoShown) {
+    globalThis.__evoShown = true;
+    const def = sprites.EVO_DEFS ? sprites.EVO_DEFS.find((e) => e.id === state.pet.species) : null;
+    showToast(`\u2728 EVOLUTION! ${def ? def.evolvedName : 'Stage 2'} unlocked \u2014 base stats +25%!`, 5000);
+    if (sfx) sfx.play('evolve');
+  } else if (!state.pet.evolved) {
+    globalThis.__evoShown = false;
+  }
   render(engine.derivedStats(state));
   if (now % 30000 < 1000) save();
 }, 1000);

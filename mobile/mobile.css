@@ -519,3 +519,14 @@ nav {
   from { transform: scale(1.25); }
   to { transform: scale(1); }
 }
+
+.m-item-ico {
+  width: 34px;
+  height: 34px;
+  image-rendering: pixelated;
+  flex: 0 0 34px;
+  border-radius: 6px;
+  background: #262038;
+}
+
+.pixelated { image-rendering: pixelated; }

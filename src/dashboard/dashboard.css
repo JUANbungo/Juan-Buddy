@@ -998,3 +998,122 @@ header .title-row.secondary { margin-top: 5px; }
 }
 
 .stage-hint::after { content: ''; }
+
+/* ===== Cozy warm-cream pixel HUD (evolution UI pack) ===== */
+.pixelated { image-rendering: pixelated; }
+
+header.topbar {
+  background-image: url('../assets/sprites/ui/hud/hud_top_bar.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+.tab-panel > .card {
+  border: 8px solid transparent;
+  border-image-source: url('../assets/sprites/ui/panels/cozy_panel_frame.png');
+  border-image-slice: 12 fill;
+  border-image-repeat: stretch;
+  image-rendering: pixelated;
+  background: #f7ecd4;
+  color: #4a3b28;
+}
+
+.tab-panel > .card h2 { color: #6b4a2f; }
+.tab-panel > .card .muted { color: #8a7761; }
+
+.btn {
+  border: 4px solid transparent;
+  border-image-source: url('../assets/sprites/ui/buttons/btn_mint.png');
+  border-image-slice: 8 fill;
+  border-image-repeat: stretch;
+  image-rendering: pixelated;
+  background: transparent;
+  box-shadow: none;
+}
+
+.btn:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.btn:active { transform: translateY(1px); }
+
+.btn.btn-danger,
+.btn-danger { border-image-source: url('../assets/sprites/ui/buttons/btn_berry.png'); }
+.btn.btn-gold { border-image-source: url('../assets/sprites/ui/buttons/btn_peach.png'); }
+.btn.btn-primary { border-image-source: url('../assets/sprites/ui/buttons/btn_sky.png'); }
+
+/* ===== Cozy Bag grid ===== */
+.bag-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.bag-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff8ea;
+  border: 3px solid #d9c39a;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.bag-card:hover { border-color: #b89a63; transform: translateY(-1px); transition: 0.15s; }
+
+.bag-ico {
+  width: 44px;
+  height: 44px;
+  image-rendering: pixelated;
+  font-size: 26px;
+  text-align: center;
+  flex: 0 0 44px;
+}
+
+.bag-card .b-name { font-weight: 700; font-size: 13px; color: #4a3b28; }
+.bag-card .b-bonus { font-size: 12px; color: #7a5c33; }
+.bag-card .b-slot { font-size: 11px; color: #9c8969; }
+.bag-card .b-btn { flex-shrink: 0; min-width: 64px; }
+
+/* ===== Evolution popup ===== */
+.evo-popup {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 16, 30, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 400;
+}
+
+.evo-card {
+  background: radial-gradient(circle at 50% 30%, #fff3d6, #f3d9a4);
+  border: 6px solid #b8860b;
+  border-radius: 18px;
+  padding: 26px 44px;
+  text-align: center;
+  animation: evo-pop 0.5s cubic-bezier(0.22, 1.4, 0.4, 1);
+}
+
+.evo-banner {
+  font-weight: 900;
+  letter-spacing: 2px;
+  font-size: 20px;
+  color: #b8860b;
+  margin-bottom: 8px;
+}
+
+.evo-popup canvas,
+.evo-popup img {
+  width: 96px;
+  height: 96px;
+  image-rendering: pixelated;
+}
+
+.evo-name { font-size: 20px; font-weight: 900; color: #4a3b28; margin-top: 8px; }
+.evo-sub { font-size: 13px; color: #7a5c33; margin-top: 4px; }
+
+.evo-popup .confetti-bit { position: absolute; top: -10px; z-index: 401; }
+
+@keyframes evo-pop {
+  from { transform: scale(0.4) rotate(-6deg); opacity: 0; }
+  to { transform: scale(1) rotate(0); opacity: 1; }
+}

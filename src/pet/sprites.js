@@ -1034,8 +1034,26 @@ function ensureFoodSprite(delId) {
   return SpriteBank.foods[delId];
 }
 
+const EVO_DEFS = [
+  { id: 'bantay', evolvedName: "Datu Bantay", country: 'Philippines' },
+  { id: 'kala', evolvedName: "Bathala Kala", country: 'Philippines' },
+  { id: 'tala', evolvedName: "Archmage Tala", country: 'Philippines' },
+  { id: 'chai', evolvedName: "Maharaja Chai", country: 'Thailand' },
+  { id: 'linh', evolvedName: "Empress Linh", country: 'Vietnam' },
+  { id: 'bara', evolvedName: "Raja Naga Bara", country: 'Indonesia' },
+  { id: 'rimau', evolvedName: "Sultan Rimau", country: 'Malaysia' },
+  { id: 'merli', evolvedName: "Poseidon Merli", country: 'Singapore' },
+  { id: 'raja', evolvedName: "Samrat Raja", country: 'India' },
+  { id: 'moti', evolvedName: "Gajendra Moti", country: 'India' },
+  { id: 'mochi', evolvedName: "Shogun Mochi", country: 'Japan' },
+  { id: 'bao', evolvedName: "Emperor Bao", country: 'China' },
+  { id: 'misha', evolvedName: "Tsar Misha", country: 'Russia' },
+  { id: 'gino', evolvedName: "Doge Gino", country: 'Italy' },
+];
+
 return {
   PET_ROSTER,
+  EVO_DEFS,
   DELICACIES,
   STATES,
   FRAMES_PER_STATE,
