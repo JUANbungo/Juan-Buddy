@@ -444,6 +444,10 @@ function stageFramesFor(id, state) {
 
 const stageSingle = {};
 
+const eggSprite = new Image();
+eggSprite.onerror = () => { eggSprite.bad = true; };
+eggSprite.src = '../assets/sprites/egg.png';
+
 function stageSingleFor(id, state) {
   const key = `${id}_${STAGE_STATE_FILE[state]}`;
   if (!(key in stageSingle)) {
@@ -950,6 +954,21 @@ function drawStagePet(now) {
   stageCtx.fill();
   stageCtx.restore();
 
+  if (latest && !latest.state.dead && petWalk.target !== null) {
+    const pulse = 0.5 + 0.5 * Math.sin(now / 170);
+    stageCtx.save();
+    stageCtx.strokeStyle = `rgba(255, 220, 120, ${0.35 + 0.4 * pulse})`;
+    stageCtx.lineWidth = 2.5;
+    stageCtx.beginPath();
+    stageCtx.ellipse(petWalk.target, groundY + 3, 15 + 5 * pulse, 5 + 2 * pulse, 0, 0, Math.PI * 2);
+    stageCtx.stroke();
+    stageCtx.fillStyle = 'rgba(255, 220, 120, 0.6)';
+    stageCtx.beginPath();
+    stageCtx.ellipse(petWalk.target, groundY + 3, 3 + 2 * pulse, 1.5 + pulse, 0, 0, Math.PI * 2);
+    stageCtx.fill();
+    stageCtx.restore();
+  }
+
   if (st === 'EAT') drawFoodBowl(petWalk.x + 52 * petWalk.dir);
 
   const phaseTint = d.phase && d.phase.tint;
@@ -979,11 +998,28 @@ function drawStagePet(now) {
   const tint = skinDef ? skinDef.tint : null;
 
   if (isEgg) {
+    petWalk.target = null;
+    petWalk.x = STAGE_CX;
+    petDraw = { cx: STAGE_CX, size: 96, dir: 1 };
     const prog = Math.max(0.04, Math.min(1, (s.pet.xp || 0) / 14));
     if (prog > 0.8 && Math.random() < 0.05) spawnFx('spark', STAGE_CX + (Math.random() * 40 - 20), 220, { vy: -0.3, size: 10 });
     stageCtx.save();
     stageCtx.imageSmoothingEnabled = false;
-    drawWithSkin((g) => eggToCtx(g, now, prog), tint);
+    const shake = prog > 0.6 ? Math.sin(now / 55) * 4 * prog : 0;
+    const eggOk = !eggSprite.bad && eggSprite.complete && eggSprite.naturalWidth > 0;
+    if (eggOk) {
+      const eggH = 100;
+      const eggW = Math.round(eggH * eggSprite.naturalWidth / eggSprite.naturalHeight);
+      stageCtx.drawImage(eggSprite, STAGE_CX + shake - eggW / 2, STAGE_GROUND - eggH + Math.round(Math.sin(now / 500) * 2), eggW, eggH);
+    } else {
+      drawWithSkin((g) => eggToCtx(g, now, prog), tint);
+    }
+    stageCtx.restore();
+    stageCtx.save();
+    stageCtx.font = '11px sans-serif';
+    stageCtx.textAlign = 'center';
+    stageCtx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    stageCtx.fillText(prog > 0.8 ? 'crack... crack!' : `keep caring... ${Math.round(prog * 100)}%`, STAGE_CX, STAGE_GROUND + 26);
     stageCtx.restore();
   } else {
     const bobbing = st === 'HAPPY' || st === 'WALK';
@@ -1111,7 +1147,9 @@ petStageCanvas.addEventListener('click', async (e) => {
   const rect = petStageCanvas.getBoundingClientRect();
   const x = ((e.clientX - rect.left) / rect.width) * STAGE_W;
   const y = ((e.clientY - rect.top) / rect.height) * STAGE_H;
-  if (latest && !latest.state.dead && Math.abs(x - petDraw.cx) < petDraw.size / 2 + 14 && y > 20 && y < STAGE_GROUND + 16) {
+  if (latest && latest.state.dead) return;
+  const patW = Math.max(44, petDraw.size * 0.25);
+  if (Math.abs(x - petDraw.cx) < patW && y > STAGE_GROUND - petDraw.size * 0.85 && y < STAGE_GROUND + 18) {
     const now = performance.now();
     if (now - lastStagePat < 900) return;
     lastStagePat = now;
@@ -1123,7 +1161,10 @@ petStageCanvas.addEventListener('click', async (e) => {
     showToast((res && res.message) || 'hehe~', 1500);
     return;
   }
-  if (latest && latest.state.dead) return;
+  if (stageStateFor() === 'SLEEP') {
+    showToast('Shhh... your buddy is sleeping! \u{1F4A4}', 1600);
+    return;
+  }
   petWalk.target = Math.max(70, Math.min(STAGE_W - 70, x));
   if (sfx) sfx.play('click');
 });

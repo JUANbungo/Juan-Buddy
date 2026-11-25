@@ -31,9 +31,6 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Generate bonus content
-        run: node scripts/generate-pad.js
-
       - name: Build installer
         run: npx electron-builder --publish never
         env:

@@ -8,6 +8,3 @@ dist/
 !android/app/src/main/res/**/*.png
 !android/app/src/main/res/**/*.xml
 !assets/sheets-src/*.png
-
-# Gacha bonus content (generated, not in repo)
-pad/

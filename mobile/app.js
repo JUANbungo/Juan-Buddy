@@ -224,6 +224,10 @@ const petStateFor = () => {
   return state.activity || state.flags.working ? 'WALK' : 'IDLE';
 };
 
+const eggImg = new Image();
+eggImg.onerror = () => { eggImg.bad = true; };
+eggImg.src = 'sprites/egg.png';
+
 const petCanvas = $('m-pet');
 const petCtx = petCanvas.getContext('2d');
 const particles = [];
@@ -240,20 +244,30 @@ function drawMobileEgg(now) {
   petCtx.ellipse(120 + shake, 218, 26, 7, 0, 0, Math.PI * 2);
   petCtx.fill();
   petCtx.restore();
-  petCtx.save();
-  petCtx.translate(120 + shake, 184);
-  petCtx.fillStyle = '#f5eede';
-  petCtx.strokeStyle = '#6b5d43';
-  petCtx.lineWidth = 3;
-  petCtx.beginPath();
-  petCtx.ellipse(0, 0, 26, 34, 0, 0, Math.PI * 2);
-  petCtx.fill();
-  petCtx.stroke();
-  petCtx.fillStyle = '#ffd97a';
-  petCtx.fillRect(-17, -8, 9, 9);
-  petCtx.fillRect(5, 10, 8, 8);
-  petCtx.fillRect(10, -20, 7, 7);
-  petCtx.restore();
+  const eggOk = !eggImg.bad && eggImg.complete && eggImg.naturalWidth > 0;
+  if (eggOk) {
+    const eggH = 88;
+    const eggW = eggH * (eggImg.naturalWidth / eggImg.naturalHeight);
+    petCtx.save();
+    petCtx.translate(120 + shake, 218);
+    petCtx.drawImage(eggImg, -eggW / 2, -eggH, eggW, eggH);
+    petCtx.restore();
+  } else {
+    petCtx.save();
+    petCtx.translate(120 + shake, 184);
+    petCtx.fillStyle = '#f5eede';
+    petCtx.strokeStyle = '#6b5d43';
+    petCtx.lineWidth = 3;
+    petCtx.beginPath();
+    petCtx.ellipse(0, 0, 26, 34, 0, 0, Math.PI * 2);
+    petCtx.fill();
+    petCtx.stroke();
+    petCtx.fillStyle = '#ffd97a';
+    petCtx.fillRect(-17, -8, 9, 9);
+    petCtx.fillRect(5, 10, 8, 8);
+    petCtx.fillRect(10, -20, 7, 7);
+    petCtx.restore();
+  }
   petCtx.save();
   petCtx.font = '11px sans-serif';
   petCtx.textAlign = 'center';

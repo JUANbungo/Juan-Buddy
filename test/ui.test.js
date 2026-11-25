@@ -65,7 +65,7 @@ console.log('sprite asset coverage');
   let frameCount = 0;
   for (const file of files) {
     if (!file.endsWith('.png')) continue;
-    const m = file.match(/^([a-z]+)_([a-z]+)(_([0-3]))?\.png$/);
+    const m = file.match(/^([a-z]+)_([a-z]+)(_([0-3]))?\.png$/) || file === 'egg.png';
     assert(m, `bad sprite filename: ${file}`);
     if (m && m[4]) frameCount += 1;
   }
