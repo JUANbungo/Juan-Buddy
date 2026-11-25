@@ -278,10 +278,10 @@ header h1:hover { color: #fff; }
 .care-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px 16px;
+  gap: 6px 16px;
   background: var(--inner);
   border-top: 1px solid var(--border);
-  padding: 11px 16px;
+  padding: 9px 16px 8px;
 }
 
 .care-row {
@@ -322,10 +322,10 @@ header h1:hover { color: #fff; }
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: var(--card2);
   border-top: 1px solid var(--border);
-  padding: 11px 14px;
+  padding: 9px 14px 10px;
 }
 
 /* Chunky retro RPG buttons */
@@ -915,6 +915,8 @@ header .title-row.secondary { margin-top: 5px; }
 .explore-card.active { border-color: #4ade80; box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.4); }
 
 .mo-ico, .gc-ico, .ex-ico { font-size: 30px; line-height: 1.2; }
+.mo-ico img.mo-sprite { width: 52px; height: 52px; object-fit: contain; image-rendering: pixelated; will-change: transform; }
+.monster-card.locked .mo-ico img.mo-sprite { filter: grayscale(0.8) brightness(0.7); }
 .mo-name, .gc-name, .ex-name { font-weight: 700; margin-top: 2px; }
 .mo-stats, .gc-stats, .ex-meta { margin: 4px 0 8px; }
 .mo-lvl { font-size: 11px; }
@@ -952,27 +954,74 @@ header .title-row.secondary { margin-top: 5px; }
 
 .path-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 16px;
 }
 
 .path-card {
-  border: 1px solid #3a4152;
-  border-radius: 12px;
-  padding: 18px 14px;
-  background: rgba(255, 255, 255, 0.03);
+  position: relative;
+  border: 3px solid #3a4152;
+  border-radius: 14px;
+  padding: 20px 14px 14px;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(251, 191, 36, 0.10), transparent 55%),
+    linear-gradient(180deg, rgba(59, 46, 30, 0.92) 0%, rgba(43, 34, 24, 0.96) 100%);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.08);
   color: #e6e9f2;
   cursor: pointer;
   text-align: center;
-  transition: transform 0.12s ease, border-color 0.12s ease;
+  overflow: hidden;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.path-card:hover { transform: translateY(-3px); }
+.path-card::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 2px dashed rgba(255, 253, 247, 0.18);
+  border-radius: 9px;
+  pointer-events: none;
+}
+.path-card:hover { transform: translateY(-4px);
+  box-shadow: 0 7px 0 rgba(0, 0, 0, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.1); }
+.path-card:active { transform: translateY(1px) scale(0.99); box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35); }
 .path-card.work:hover { border-color: #fbbf24; }
 .path-card.fight:hover { border-color: #ef4444; }
-.pc-ico { font-size: 34px; }
-.pc-name { font-size: 17px; font-weight: 800; margin: 6px 0; }
+.pc-ico {
+  font-size: 34px;
+  width: 64px;
+  height: 64px;
+  line-height: 64px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, rgba(255, 251, 235, 0.22), rgba(0, 0, 0, 0.28));
+  border: 3px solid var(--amber, #fbbf24);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.3), 0 0 14px rgba(251, 191, 36, 0.25);
+}
+.path-card.fight .pc-ico { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.3), 0 0 14px rgba(239, 68, 68, 0.25); }
+.pc-name { font-size: 17px; font-weight: 800; margin: 8px 0 4px; letter-spacing: 0.4px; }
 .path-card.work .pc-name { color: #fbbf24; }
 .path-card.fight .pc-name { color: #f87171; }
+.pc-hint { margin-top: 8px; font-style: italic; opacity: 0.75; }
+.path-card.confirming {
+  border-color: #86efac;
+  animation: pathConfirmPulse 0.9s ease-in-out infinite;
+}
+.path-card.confirming .pc-hint { color: #86efac; opacity: 1; font-weight: 700; }
+@keyframes pathConfirmPulse {
+  0%, 100% { box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35), 0 0 0 0 rgba(134, 239, 172, 0.45); }
+  50% { box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35), 0 0 0 10px rgba(134, 239, 172, 0); }
+}
+.path-pill {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--amber, #fbbf24), #b45309);
+  border: 2px solid #1F3327;
+  color: #FFFDF7;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
+}
 
 .path-chosen {
   padding: 12px;

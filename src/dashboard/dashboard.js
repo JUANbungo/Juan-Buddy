@@ -664,8 +664,10 @@ function setMeter(prefix, value) {
   const rounded = Math.round(value);
   if (meterCache[prefix] === rounded) return;
   meterCache[prefix] = rounded;
-  el(`${prefix}-fill`).style.width = pct(value);
-  el(`${prefix}-val`).textContent = `${Math.round(value)}%`;
+  const fill = el(`${prefix}-fill`);
+  const val = el(`${prefix}-val`);
+  if (fill) fill.style.width = pct(value);
+  if (val) val.textContent = `${Math.round(value)}%`;
   if (prefix === 'xp') {
     const hudFill = el('hud-exp-fill');
     const hudPct = el('hud-exp-pct');
@@ -2796,7 +2798,19 @@ function renderRpg(d) {
     for (const mo of rpg.monsters) {
       const card = monsterCards[mo.id];
       card.classList.toggle('locked', !mo.canFight);
-      card.querySelector('.mo-ico').textContent = mo.icon;
+      const icoEl = card.querySelector('.mo-ico');
+      const spriteSrc = `../../assets/sprites/battle/monsters/${mo.id}/${mo.id}_static.png`;
+      if (icoEl.dataset.imgSrc !== spriteSrc) {
+        icoEl.dataset.imgSrc = spriteSrc;
+        icoEl.innerHTML = '';
+        const img = document.createElement('img');
+        img.className = 'pixelated mo-sprite';
+        img.alt = mo.name;
+        img.draggable = false;
+        img.addEventListener('error', () => { icoEl.textContent = mo.icon; });
+        img.src = spriteSrc;
+        icoEl.appendChild(img);
+      }
       card.querySelector('.mo-name').textContent = mo.name;
       card.querySelector('.mo-lvl').textContent = `Lv ${mo.lvl} monster`;
       card.querySelector('.mo-stats').textContent = `HP ${mo.hp} \u00b7 ATK ${mo.atk} \u00b7 \ud83e\ude99${mo.coins[0]}-${mo.coins[1]} +${mo.xp}xp \u00b7 \u26a1${mo.energy}`;
@@ -2887,8 +2901,8 @@ function renderRpg(d) {
     if (rpg.path) {
       chosen.classList.remove('hidden');
       chosen.textContent = rpg.path === 'work'
-        ? '\ud83d\udcbc Work Master \u2014 +50% coin rate for life. The idle tycoon!'
-        : '\u2694\ufe0f Battle Master \u2014 +15% battle ATK/DEF for life. The arena legend!';
+        ? '\ud83d\udcbc Work Master chosen \u2014 +50% coin rate for life. The idle tycoon!'
+        : '\u2694\ufe0f Battle Master chosen \u2014 +15% battle ATK/DEF for life. The arena legend!';
       cardsEl.innerHTML = '';
     } else {
       chosen.classList.add('hidden');
@@ -2898,12 +2912,27 @@ function renderRpg(d) {
             <div class="pc-ico">\ud83d\udcbc</div>
             <div class="pc-name">Work Master</div>
             <div class="pc-desc muted small">+50% coin rate for life. Dominate the idle grind, buy everything, max the gacha.</div>
+            <div class="pc-hint muted small">Tap once, then confirm below</div>
           </button>
           <button class="path-card fight" data-choosepath="battle">
             <div class="pc-ico">\u2694\ufe0f</div>
             <div class="pc-name">Battle Master</div>
             <div class="pc-desc muted small">+15% ATK &amp; DEF for life. Hunt monsters, hit hard, tank anything.</div>
+            <div class="pc-hint muted small">Tap once, then confirm below</div>
           </button>`;
+      }
+      if (pathPending === 'work' || pathPending === 'battle') {
+        const pendingCard = cardsEl.querySelector(`[data-choosepath="${pathPending}"]`);
+        if (pendingCard && !pendingCard.classList.contains('confirming')) {
+          cardsEl.querySelectorAll('.path-card.confirming').forEach((c) => {
+            c.classList.remove('confirming');
+            const h = c.querySelector('.pc-hint');
+            if (h) h.textContent = 'Tap once, then confirm';
+          });
+          pendingCard.classList.add('confirming');
+          const hint = pendingCard.querySelector('.pc-hint');
+          if (hint) hint.textContent = '\u2728 Tap again to lock in \u2014 permanent!';
+        }
       }
     }
   }
@@ -2992,10 +3021,18 @@ on('gear-slots','click', async (e) => {
   showToast((res && res.message) || '. ..', 2000);
 });
 
+let pathPending = null;
 on('path-cards','click', async (e) => {
   const card = e.target.closest('button[data-choosepath]');
   if (!card || card.disabled) return;
-  if (!window.confirm('Ito na talaga? The Destiny choice is PERMANENT for this buddy.')) return;
+  if (pathPending !== card.dataset.choosepath) {
+    pathPending = card.dataset.choosepath;
+    if (cuteSfx) cuteSfx.play('pop');
+    renderRpg(latest);
+    showToast('\u2728 Tap the card again to lock in this Destiny \u2014 it is permanent!', 2600);
+    return;
+  }
+  pathPending = null;
   const res = await api.action('choosePath', { pathId: card.dataset.choosepath });
   showToast((res && res.message) || '. ..', 3600);
 });

@@ -324,10 +324,26 @@ function rollGearRarity() {
   return GEAR_GACHA.rates[4];
 }
 
+function playDaysOf(state, now) {
+  const pd = state.playdays;
+  if (!pd) return 0;
+  let days = pd.count || 0;
+  const started = Number(pd.started) || 0;
+  if (started) {
+    const b = new Date(now || Date.now());
+    const a = new Date(started);
+    const floorA = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+    const floorB = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+    const elapsed = Math.floor((floorB - floorA) / 86400000) + 1;
+    if (elapsed > days) days = elapsed;
+  }
+  return days;
+}
+
 function rpgUnlocked(state, unlockId) {
   const def = UNLOCKS.find((u) => u.id === unlockId);
   if (!def) return false;
-  return (state.playdays ? state.playdays.count || 0 : 0) >= def.day;
+  return playDaysOf(state) >= def.day;
 }
 
 function gearDef(gearId) {
@@ -384,7 +400,7 @@ function petBattleStats(state) {
 
 function grantMilestones(state) {
   if (!state.milestones) state.milestones = { rename60: false, pathReset100: false, coins150: false, badge300: false };
-  const days = (state.playdays && state.playdays.count) || 0;
+  const days = playDaysOf(state);
   const M = state.milestones;
   if (days >= 60 && !M.rename60) {
     M.rename60 = true;
@@ -411,8 +427,14 @@ function grantMilestones(state) {
 }
 
 function trackPlayday(state) {
-  if (!state.playdays) state.playdays = { last: null, count: 0 };
-  const tk = todayKey(Date.now());
+  const now = Date.now();
+  if (!state.playdays) state.playdays = { last: null, count: 0, started: null };
+  if (!state.playdays.started) {
+    state.playdays.started = (state.playdays.count || 0) > 0
+      ? now - ((state.playdays.count - 1) * 86400000)
+      : now;
+  }
+  const tk = todayKey(now);
   if (state.playdays.last !== tk) {
     state.playdays.last = tk;
     state.playdays.count = (state.playdays.count || 0) + 1;
@@ -696,7 +718,7 @@ function defaultState() {
     daily: { last: null, streak: 0, best: 0 },
     quests: { last: '', feed: 0, play: 0, clean: 0, feedClaimed: false, playClaimed: false, cleanClaimed: false },
     gacha: { pulls: 0, fiveStars: 0, mythics: 0 },
-    playdays: { last: null, count: 0 },
+    playdays: { last: null, count: 0, started: null },
     statPoints: 0,
     allocated: { atk: 0, def: 0, spd: 0 },
     gear: { weapon: null, armor: null, charm: null },
@@ -1600,7 +1622,7 @@ function itemsStats(state) {
   const inv = state.items || { owned: [], equipped: {} };
   const equipped = { ...inv.equipped };
   return {
-    unlocked: (state.playdays && state.playdays.count >= 3) || false,
+    unlocked: playDaysOf(state) >= 3 || false,
     bonus: itemBonus(state),
     owned: [...inv.owned],
     equipped,
@@ -1619,7 +1641,7 @@ function itemsStats(state) {
 
 function rpgStats(state) {
   const now = Date.now();
-  const days = (state.playdays && state.playdays.count) || 0;
+  const days = playDaysOf(state);
   const gb = gearBonus(state);
   const bs = petBattleStats(state);
   return {
