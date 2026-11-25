@@ -51,7 +51,7 @@
         </div>
         <div class="playground-wrap">
           <canvas id="dash-pet" width="480" height="360"></canvas>
-          <div class="stage-hint">Tap pet to greet · Tap floor to walk</div>
+          <div class="stage-hint">Tap pet = greet 💕 · Tap floor = walk 🚶 · Tap 💩💧 = clean it 🧹</div>
           <div id="danger-banner" class="danger-banner hidden">⚠️ Your buddy needs care NOW — feed them or let them sleep!</div>
         </div>
         <div class="care-grid">
@@ -83,6 +83,10 @@
         <button data-tab="activities" class="studio-tab">🎯 Activities</button>
         <button data-tab="shop" class="studio-tab">🛠️ Shop</button>
         <button data-tab="pets" class="studio-tab">🐾 Pets</button>
+        <button data-tab="battle" class="studio-tab">⚔️ Battle</button>
+        <button data-tab="gear" class="studio-tab">🛡️ Gear</button>
+        <button data-tab="explore" class="studio-tab">🌏 Explore</button>
+        <button data-tab="path" class="studio-tab">🌀 Path</button>
         <button data-tab="gacha" class="studio-tab">🎰 Gacha</button>
         <button data-tab="life" class="studio-tab">✨ Life</button>
       </nav>
@@ -136,7 +140,7 @@
 
         <div class="tab-panel hidden panel-gacha">
           <section class="card">
-            <h2>🎰 Wish Machine <small class="muted">— gamble your coins, chase the 0.0001%</small></h2>
+            <h2>🎦 Cosmetic Wish <small class="muted">— skins &amp; coin showers · chase the 0.0001%</small></h2>
             <div id="gacha-frame" class="gacha-frame">
               <div id="gacha-orb" class="gacha-orb">🎰</div>
               <div id="gacha-result" class="gacha-result hidden"></div>
@@ -147,6 +151,64 @@
             </div>
             <div id="gacha-rates" class="gacha-rates muted small"></div>
             <div id="gacha-stats" class="muted small"></div>
+          </section>
+        </div>
+
+        <div class="tab-panel hidden panel-battle">
+          <section class="card">
+            <h2>⚔️ Battle Arena <small class="muted">— 7-day unlock · stat points every level up</small></h2>
+            <div id="battle-lock" class="rpg-lock hidden"></div>
+            <div id="battle-body" class="hidden">
+              <div id="battle-stats" class="battle-stats"></div>
+              <div id="battle-points-row" class="battle-points">
+                <span id="battle-points-label" class="muted small"></span>
+                <button class="btn-stat" data-stat="atk" title="+Attack">⚔️ +ATK</button>
+                <button class="btn-stat" data-stat="def" title="+Defense">🛡️ +DEF</button>
+                <button class="btn-stat" data-stat="spd" title="+Speed">💨 +SPD</button>
+              </div>
+              <div id="monster-grid" class="monster-grid"></div>
+              <div id="battle-record" class="muted small"></div>
+            </div>
+          </section>
+        </div>
+
+        <div class="tab-panel hidden panel-gear">
+          <section class="card">
+            <h2>🛡️ Gear Forge <small class="muted">— 14-day unlock · strongest gear hides in the wish</small></h2>
+            <div id="gear-lock" class="rpg-lock hidden"></div>
+            <div id="gear-body" class="hidden">
+              <div id="gear-slots" class="gear-slots"></div>
+              <h3 class="gear-sub">🎰 Equipment Wish — mythic 0.0001%</h3>
+              <div id="gear-gacha-frame" class="gacha-frame">
+                <div id="gear-gacha-result" class="gacha-result hidden"></div>
+              </div>
+              <div class="gacha-actions">
+                <button id="btn-gear-gacha-1" class="btn btn-amber">🗡️ Wish ×1 — 🪙100</button>
+                <button id="btn-gear-gacha-10" class="btn btn-violet">✨ Wish ×10 — 🪙900</button>
+              </div>
+              <div id="gear-gacha-rates" class="gacha-rates muted small"></div>
+              <div id="gear-gacha-stats" class="muted small"></div>
+              <h3 class="gear-sub">🛒 Forge Clearance — solid starter gear</h3>
+              <div id="gear-shop" class="gear-shop"></div>
+            </div>
+          </section>
+        </div>
+
+        <div class="tab-panel hidden panel-explore">
+          <section class="card">
+            <h2>🌏 Explore Asia <small class="muted">— day trips na may coins, XP at sceneries</small></h2>
+            <div id="explore-grid" class="explore-grid"></div>
+          </section>
+        </div>
+
+        <div class="tab-panel hidden panel-path">
+          <section class="card">
+            <h2>🌀 Destiny Path <small class="muted">— 30-day unlock · choose once, keep forever</small></h2>
+            <div id="path-lock" class="rpg-lock hidden"></div>
+            <div id="path-body" class="hidden">
+              <p id="path-chosen" class="path-chosen hidden"></p>
+              <div id="path-cards" class="path-cards"></div>
+            </div>
           </section>
         </div>
 

@@ -423,3 +423,99 @@ nav {
   from { transform: translateY(-12px) rotate(0); }
   to { transform: translateY(160px) rotate(540deg); opacity: 0; }
 }
+
+/* ===== RPG: battle / gear / explore / path ===== */
+nav {
+  grid-template-columns: repeat(9, 1fr);
+}
+
+.tab {
+  font-size: 16px;
+  padding: 10px 0;
+}
+
+.m-lock {
+  background: #1f1b2e;
+  border: 1px dashed #4a4368;
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #b9b0d6;
+  font-size: 13px;
+  margin-bottom: 10px;
+  line-height: 1.45;
+}
+
+.m-stats-pill {
+  background: linear-gradient(135deg, #2b2340, #1c1925);
+  border: 1px solid #4a4368;
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: #ffd166;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.m-points-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.m-stat { flex: 1; min-width: 70px; }
+
+.m-sec-title {
+  color: #ffd166;
+  font-size: 14px;
+  margin: 12px 0 8px;
+}
+
+.m-gear-slots {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.m-gear-slot {
+  background: #1f1b2e;
+  border: 1px solid #322d4a;
+  border-radius: 8px;
+  padding: 7px 10px;
+  color: #cfc6ee;
+  font-size: 12px;
+}
+
+#m-gear-gacha-kit .btn { display: block; width: 100%; margin-bottom: 8px; }
+
+.m-path-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.m-path-card {
+  background: #1f1b2e;
+  border: 2px solid #322d4a;
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+}
+
+.m-path-card h4 { margin: 0 0 6px; color: #fff; font-size: 15px; }
+.m-path-card p { margin: 0 0 10px; color: #9a92b5; font-size: 12px; line-height: 1.4; }
+.m-path-card.work { border-color: #3d7a4f; }
+.m-path-card.fight { border-color: #a03d3d; }
+
+.activity-item.locked { opacity: 0.45; }
+.activity-item.active { border-color: #4ade80; }
+
+.waste-flash { animation: waste-pop 0.35s ease; }
+
+@keyframes waste-pop {
+  from { transform: scale(1.25); }
+  to { transform: scale(1); }
+}

@@ -100,6 +100,13 @@ function run(action, payload) {
       result = { ok: true, message: '' };
       break;
     case 'claimDaily': result = engine.claimDaily(state); break;
+    case 'allocateStat': result = engine.allocateStat(state, payload && payload.statId); break;
+    case 'battleMonster': result = engine.battleMonster(state, payload && payload.monsterId); break;
+    case 'buyGear': result = engine.buyGear(state, payload && payload.gearId); break;
+    case 'equipGear': result = engine.equipGear(state, payload && payload.gearId); break;
+    case 'pullGearGacha': result = engine.pullGearGacha(state, payload && payload.times); break;
+    case 'choosePath': result = engine.choosePath(state, payload && payload.pathId); break;
+    case 'cleanWaste': result = engine.cleanWaste(state, payload && payload.index); break;
     case 'newGame':
       result = engine.newGame(state);
       if (result.ok) save();
@@ -109,7 +116,7 @@ function run(action, payload) {
   if (sfx) {
     if (!result.ok) sfx.play('error');
     else {
-      const soundMap = { feed: 'feed', play: 'happy', pat: 'pat', toggleWork: 'click', toggleSleep: 'click', startActivity: 'click', claimDaily: 'daily', newGame: 'hatch', cheer: 'happy' };
+      const soundMap = { feed: 'feed', play: 'happy', pat: 'pat', toggleWork: 'click', toggleSleep: 'click', startActivity: 'click', claimDaily: 'daily', newGame: 'hatch', cheer: 'happy', allocateStat: 'levelup', battleMonster: 'happy', buyGear: 'buy', equipGear: 'happy', pullGearGacha: 'coin', choosePath: 'achv', cleanWaste: 'click' };
       sfx.play(soundMap[action] || 'click');
     }
   }
@@ -307,6 +314,26 @@ function drawPet(now) {
   if (state.dead) {
     drawMobileGrave();
     return;
+  }
+
+  if (state.waste && state.waste.length) {
+    for (const w of state.waste) {
+      const wx = Math.round(30 + (w.x - 60) * 0.45);
+      const wy = Math.round(194 + (w.y - 240) * 0.25);
+      if (w.kind === 'poop') {
+        petCtx.font = '15px sans-serif';
+        petCtx.textAlign = 'center';
+        petCtx.fillText('\uD83D\uDCA9', wx, wy);
+      } else {
+        petCtx.save();
+        petCtx.globalAlpha = 0.55;
+        petCtx.fillStyle = '#4fa3e3';
+        petCtx.beginPath();
+        petCtx.ellipse(wx, wy - 3, 7 + Math.sin(performance.now() / 400 + wx) * 0.8, 2.6, 0, 0, Math.PI * 2);
+        petCtx.fill();
+        petCtx.restore();
+      }
+    }
   }
   if (state.pet.stage === 'egg') {
     drawMobileEgg(now);

@@ -206,7 +206,7 @@ assert(engine.startActivity(s, 'walk').ok === false, 'still busy until timer');
 s = engine.defaultState();
 assert(s.pet.stage === 'egg' && s.pet.species === null, 'default state starts as mystery egg');
 const da = engine.derivedStats(engine.defaultState());
-assert(da.activities.length === 5, 'five activities offered');
+assert(da.activities.length === 11, 'five home activities plus six Asia explore trips offered');
 assert(da.activities.every((a) => !a.active), 'no activity active by default');
 assert(engine.startActivity(engine.defaultState(), 'nope').ok === false, 'unknown activity rejected');
 

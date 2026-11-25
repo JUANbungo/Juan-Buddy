@@ -866,3 +866,135 @@ header .title-row.secondary { margin-top: 5px; }
   0%, 100% { transform: translateY(0) rotate(-2deg); }
   50% { transform: translateY(-2px) rotate(2deg); }
 }
+
+/* ===== RPG: Battle / Gear / Path / Explore ===== */
+.rpg-lock {
+  padding: 18px;
+  border: 1px dashed var(--border, #4a5164);
+  border-radius: 10px;
+  text-align: center;
+  color: #8b93a8;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.battle-stats {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  color: #fbbf24;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.battle-points {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.btn-stat {
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid #4a5164;
+  background: #232838;
+  color: #e6e9f2;
+  font-size: 12px;
+  cursor: pointer;
+}
+.btn-stat:disabled { opacity: 0.45; cursor: default; }
+.btn-stat:not(:disabled):hover { border-color: #fbbf24; color: #fbbf24; }
+
+.monster-grid, .gear-shop, .explore-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.monster-card, .gear-card, .explore-card {
+  border: 1px solid #3a4152;
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  text-align: center;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.monster-card:hover, .gear-card:hover, .explore-card:hover { transform: translateY(-2px); border-color: #fbbf24; }
+.monster-card.locked, .explore-card.locked, .gear-card.locked { opacity: 0.55; }
+.explore-card.active { border-color: #4ade80; box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.4); }
+
+.mo-ico, .gc-ico, .ex-ico { font-size: 30px; line-height: 1.2; }
+.mo-name, .gc-name, .ex-name { font-weight: 700; margin-top: 2px; }
+.mo-stats, .gc-stats, .ex-meta { margin: 4px 0 8px; }
+.mo-lvl { font-size: 11px; }
+
+.gear-card.gr-rare { border-color: #3b82f6; }
+.gear-card.gr-epic { border-color: #a78bfa; }
+.gear-card.gr-legendary { border-color: #f59e0b; }
+.gear-card.gr-mythic { border-color: #ef4444; box-shadow: 0 0 12px rgba(239, 68, 68, 0.25); }
+
+.gear-slots {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.gear-slot {
+  flex: 1;
+  border: 1px solid #3a4152;
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  transition: border-color 0.12s ease;
+}
+.gear-slot:hover { border-color: #fbbf24; }
+.gear-slot.filled { border-color: #4ade80; background: rgba(74, 222, 128, 0.06); }
+.gs-ico { font-size: 26px; }
+
+.gear-sub {
+  margin: 14px 0 8px;
+  font-size: 15px;
+  color: #fbbf24;
+}
+
+.path-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.path-card {
+  border: 1px solid #3a4152;
+  border-radius: 12px;
+  padding: 18px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #e6e9f2;
+  cursor: pointer;
+  text-align: center;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.path-card:hover { transform: translateY(-3px); }
+.path-card.work:hover { border-color: #fbbf24; }
+.path-card.fight:hover { border-color: #ef4444; }
+.pc-ico { font-size: 34px; }
+.pc-name { font-size: 17px; font-weight: 800; margin: 6px 0; }
+.path-card.work .pc-name { color: #fbbf24; }
+.path-card.fight .pc-name { color: #f87171; }
+
+.path-chosen {
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  color: #fbbf24;
+  font-weight: 700;
+  text-align: center;
+}
+
+.stage-hint::after { content: ''; }

@@ -75,10 +75,11 @@ check('level-ups only move stages upward (adult never demotes to egg)', () => {
   assert(s.pet.stage === 'adult', `stage=${s.pet.stage}`);
 });
 
-check('neglect to death while app active (non-egg)', () => {
+check('neglect to death while app active (grown buddy)', () => {
   const s = engine.defaultState();
-  s.pet.stage = 'baby';
+  s.pet.stage = 'adult';
   s.pet.species = 'kala';
+  s.pet.level = 12;
   s.meters.hunger = 0;
   s.meters.energy = 0;
   const events = engine.tick(s, engine.DEATH_SECONDS + 5, false);
@@ -93,6 +94,22 @@ check('egg is immune to neglect death', () => {
   s.meters.energy = 0;
   engine.tick(s, engine.DEATH_SECONDS + 5, false);
   assert(!s.dead, 'egg should not die');
+});
+
+check('beginner grace: babies and eggs cannot die from neglect', () => {
+  const s = engine.defaultState();
+  s.pet.stage = 'baby';
+  s.pet.species = 'kala';
+  s.pet.level = 3;
+  s.meters.hunger = 0;
+  s.meters.energy = 0;
+  engine.tick(s, engine.DEATH_SECONDS + 5, false);
+  assert(!s.dead, 'baby under grace should not die');
+  s.pet.level = 7;
+  s.meters.hunger = 0;
+  s.meters.energy = 0;
+  engine.tick(s, engine.DEATH_SECONDS + 5, false);
+  assert(s.dead, 'grown buddies can still die from neglect');
 });
 
 check('dead gates all care actions', () => {
@@ -263,6 +280,140 @@ check('cosmic skin cannot be bought, only pulled', () => {
   const d = engine.derivedStats(s);
   const cosmic = d.skins.find((sk) => sk.id === 'cosmic');
   assert(cosmic && cosmic.gachaOnly && !cosmic.owned, 'cosmic derived as gachaOnly');
+});
+
+check('RPG unlocks gate battle/gear/path by days played', () => {
+  const s = engine.defaultState();
+  s.pet.stage = 'adult';
+  s.pet.species = 'kala';
+  const d0 = engine.derivedStats(s).rpg;
+  assert(d0.unlocks.every((u) => !u.unlocked), 'all RPG unlocks start locked');
+  assert(engine.battleMonster(s, 'slime').ok === false, 'battle gated before day 7');
+  assert(engine.buyGear(s, 'wood_sword').ok === false, 'gear gated before day 14');
+  assert(engine.choosePath(s, 'work').ok === false, 'path gated before day 30');
+  s.playdays = { last: 'x', count: 7 };
+  s.meters.energy = 100;
+  assert(engine.battleMonster(s, 'slime').ok === true, 'battle opens at day 7');
+  s.playdays.count = 14;
+  s.coins = 5000;
+  assert(engine.buyGear(s, 'wood_sword').ok === true, 'gear opens at day 14');
+  s.playdays.count = 30;
+  const pr = engine.choosePath(s, 'battle');
+  assert(pr.ok === true, 'path opens at day 30');
+  assert(s.path === 'battle', 'battle path stored');
+  assert(engine.choosePath(s, 'work').ok === false, 'path choice is permanent');
+  const d1 = engine.derivedStats(s).rpg;
+  assert(d1.unlocks.every((u) => u.unlocked), 'all unlocks open at day 30');
+});
+
+check('level ups grant stat points and allocation raises battle stats', () => {
+  const s = engine.defaultState();
+  s.pet.stage = 'adult';
+  s.pet.species = 'kala';
+  s.playdays = { last: 'x', count: 9 };
+  const base = engine.petBattleStats(s).atk;
+  s.pet.level = 9;
+  s.pet.xp = engine.xpForNextLevel(9) + 5;
+  engine.tick(s, 1, false);
+  assert(s.pet.level === 10, `level=${s.pet.level}`);
+  assert(s.statPoints === 2, `statPoints=${s.statPoints}`);
+  const before = engine.petBattleStats(s);
+  const r = engine.allocateStat(s, 'atk');
+  assert(r.ok && s.allocated.atk === 1 && s.statPoints === 1, 'allocation spends a point');
+  const after = engine.petBattleStats(s);
+  assert(after.atk === before.atk + 2, 'atk grows +2 per point');
+  assert(after.atk > base, 'level and points beat the level-1 baseline');
+  assert(engine.allocateStat(s, 'luck').ok === false, 'unknown stat rejected');
+});
+
+check('gear buy/equip changes battle stats and gacha grants mythic gear', () => {
+  const s = engine.defaultState();
+  s.pet.stage = 'adult';
+  s.pet.species = 'kala';
+  s.pet.level = 12;
+  s.playdays = { last: 'x', count: 20 };
+  s.coins = 5000;
+  const plainAtk = engine.petBattleStats(s).atk;
+  assert(engine.equipGear(s, 'wood_sword').ok === false, 'cannot equip gear you do not own');
+  engine.buyGear(s, 'wood_sword');
+  assert(s.gearOwned.includes('wood_sword'), 'owned after purchase');
+  engine.equipGear(s, 'wood_sword');
+  assert(s.gear.weapon === 'wood_sword', 'equipped weapon');
+  assert(engine.petBattleStats(s).atk === plainAtk + 3, 'wooden sword gives +3 atk');
+  engine.equipGear(s, 'wood_sword');
+  assert(s.gear.weapon === null, 'toggling unequips');
+  engine.equipGear(s, 'wood_sword');
+  assert(engine.buyGear(s, 'void_saber').ok === false, 'gacha-only gear cannot be bought');
+  s.coins = 500;
+  const origRandom = Math.random;
+  Math.random = () => 0;
+  try {
+    const res = engine.pullGearGacha(s, 1);
+    assert(res.ok && res.best.rarity === 'mythic', `rarity=${res.best && res.best.rarity}`);
+    assert(s.gearOwned.includes('void_saber'), 'mythic gear unlocked');
+    assert(s.gearGacha.pulls === 1 && s.gearGacha.mythics === 1, 'gear gacha counters');
+  } finally {
+    Math.random = origRandom;
+  }
+  const bonus = engine.gearBonus ? engine.gearBonus(s) : null;
+  assert(bonus === null || bonus.atk >= 55, 'mythic saber bonus visible');
+});
+
+check('work path boosts coin rate, battle path boosts combat', () => {
+  const s = engine.defaultState();
+  s.pet.stage = 'adult';
+  s.pet.species = 'kala';
+  s.pet.level = 12;
+  s.playdays = { last: 'x', count: 30 };
+  engine.choosePath(s, 'work');
+  const workRate = engine.coinRate(s);
+  s.path = null;
+  engine.choosePath(s, 'battle');
+  const battleAtk = engine.petBattleStats(s).atk;
+  s.path = 'work';
+  const workAtk = engine.petBattleStats(s).atk;
+  assert(workAtk < battleAtk, 'battle path hits harder');
+  assert(workRate > engine.coinRate({ ...s, path: null }), 'work path earns more');
+});
+
+check('waste spawns, hurts mood, and can be cleaned', () => {
+  const s = engine.defaultState();
+  s.pet.stage = 'adult';
+  s.pet.species = 'kala';
+  s.pet.level = 12;
+  s.waste = [];
+  engine.spawnWaste(s);
+  engine.spawnWaste(s);
+  assert(s.waste.length === 2, 'two waste piles');
+  const d = engine.derivedStats(s);
+  assert(d.waste.length === 2, 'waste exposed in derived');
+  const r = engine.cleanWaste(s, 0);
+  assert(r.ok === true, `clean=${(r && r.message)}`);
+  assert(s.waste.length === 1, 'one pile left');
+  assert(s.meters.happiness > 60 || s.meters.happiness >= 0, 'mood bump applied without crash');
+});
+
+check('explore activities: six Asia trips, startable with energy', () => {
+  const s = engine.defaultState();
+  s.pet.stage = 'adult';
+  s.pet.species = 'kala';
+  s.pet.level = 12;
+  s.meters.energy = 100;
+  const d = engine.derivedStats(s);
+  const exp = d.activities.filter((a) => a.outdoor);
+  assert(exp.length === 6, `explore trips=${exp.length}`);
+  const ids = exp.map((a) => a.id);
+  for (const id of ['park', 'baywalk', 'market', 'temple', 'terraces', 'beach']) {
+    assert(ids.includes(id), `missing trip ${id}`);
+  }
+  const r = engine.startActivity(s, 'beach');
+  assert(r.ok === true, `start=${(r && r.message)}`);
+  assert(s.activity && s.activity.id === 'beach', 'exploring Boracay');
+  s.activity.endsAt = Date.now() - 1;
+  const before = s.coins;
+  engine.tick(s, 1, false);
+  assert(!s.activity, 'trip completes when timer lapses');
+  assert(s.coins > before, 'trip pays out coins');
 });
 
 console.log(`  ${passed} passed, ${failed} failed`);

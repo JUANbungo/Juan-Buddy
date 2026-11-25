@@ -68,6 +68,36 @@ const ACTIVITIES = {
     desc: 'Patience may land a big, lucky catch.',
     duration: 90, energy: 25, coins: [28, 45], xp: 16, cooldown: 120, lucky: 0.15,
   },
+  park: {
+    id: 'park', name: 'Barangay Park', icon: '🌳',
+    desc: 'Run around the park. Fresh air + sniffy trees.',
+    duration: 40, energy: 12, coins: [10, 18], xp: 9, cooldown: 60, outdoor: 'park',
+  },
+  baywalk: {
+    id: 'baywalk', name: 'Manila Baywalk', icon: '🌅',
+    desc: 'Sunset by the bay. Peak Filipino romanticism.',
+    duration: 55, energy: 16, coins: [18, 30], xp: 12, cooldown: 90, outdoor: 'baywalk',
+  },
+  market: {
+    id: 'market', name: 'Floating Market', icon: '🚣',
+    desc: 'Bangkok canals full of mangoes and boat noodles.',
+    duration: 65, energy: 18, coins: [24, 38], xp: 14, cooldown: 100, outdoor: 'market',
+  },
+  temple: {
+    id: 'temple', name: 'Kyoto Zen Garden', icon: '⛩',
+    desc: 'Rake sand, pet a lucky cat, find inner peace.',
+    duration: 70, energy: 14, coins: [20, 34], xp: 16, cooldown: 110, outdoor: 'temple',
+  },
+  terraces: {
+    id: 'terraces', name: 'Rice Terraces', icon: '🌾',
+    desc: 'Climb the emerald steps of Banaue.',
+    duration: 85, energy: 26, coins: [34, 52], xp: 20, cooldown: 130, outdoor: 'terraces',
+  },
+  beach: {
+    id: 'beach', name: 'Boracay Beach', icon: '🏖️',
+    desc: 'Powder sand, clear water, pure island bliss.',
+    duration: 95, energy: 24, coins: [40, 60], xp: 22, cooldown: 150, outdoor: 'beach',
+  },
 };
 
 const MAX_METERS = 100;
@@ -81,7 +111,7 @@ const STAGES = [
   { id: 'teen', name: 'Teen', minLevel: 6, scale: 0.8 },
   { id: 'adult', name: 'Adult', minLevel: 10, scale: 1 },
 ];
-const DEATH_SECONDS = 30 * 60;
+const DEATH_SECONDS = 60 * 60;
 
 const SKINS = {
   classic: { id: 'classic', name: 'Classic', cost: 0, tint: null },
@@ -102,6 +132,72 @@ const GACHA = {
     { id: 'rare', stars: 2, name: 'Rare', rate: 30, coins: [80, 160] },
     { id: 'common', stars: 1, name: 'Common', rate: 55, coins: [15, 40] },
   ],
+};
+
+const UNLOCKS = [
+  { id: 'battle', day: 7, icon: '\u2694\ufe0f', name: 'Battle Arena', desc: 'Fight monsters, earn glory \u2014 stat points every level up' },
+  { id: 'gear', day: 14, icon: '\ud83d\udee1\ufe0f', name: 'Gear Forge', desc: 'Equip weapons, armor and charms \u2014 best gear in the gacha' },
+  { id: 'path', day: 30, icon: '\ud83c\udf00', name: 'Destiny Path', desc: 'Commit to Work or Battle mastery \u2014 forever' },
+];
+
+const MONSTERS = [
+  { id: 'slime', name: 'Guard Slime', icon: '\ud83d\udfe2', lvl: 1, hp: 26, atk: 7, def: 2, energy: 8, coins: [12, 20], xp: 6 },
+  { id: 'bat', name: 'Cave Bat', icon: '\ud83e\udd87', lvl: 4, hp: 40, atk: 12, def: 5, energy: 12, coins: [22, 34], xp: 12 },
+  { id: 'boar', name: 'Wild Boar', icon: '\ud83d\udc17', lvl: 8, hp: 62, atk: 19, def: 9, energy: 16, coins: [38, 55], xp: 20 },
+  { id: 'wolf', name: 'Ridge Wolf', icon: '\ud83d\udc3a', lvl: 13, hp: 90, atk: 28, def: 14, energy: 20, coins: [55, 80], xp: 32 },
+  { id: 'kumiho', name: 'Kumiho', icon: '\ud83e\udd8a', lvl: 18, hp: 120, atk: 38, def: 20, energy: 26, coins: [80, 115], xp: 48 },
+  { id: 'oni', name: 'Oni Brute', icon: '\ud83d\udc79', lvl: 24, hp: 165, atk: 50, def: 28, energy: 32, coins: [115, 160], xp: 70 },
+  { id: 'wyvern', name: 'Ember Wyvern', icon: '\ud83d\udc09', lvl: 30, hp: 220, atk: 66, def: 38, energy: 40, coins: [160, 230], xp: 100 },
+  { id: 'titan', name: 'Void Titan', icon: '\ud83d\udc7e', lvl: 40, hp: 320, atk: 88, def: 52, energy: 50, coins: [240, 340], xp: 150 },
+];
+
+const GEAR = [
+  { id: 'wood_sword', slot: 'weapon', icon: '\ud83d\udde1\ufe0f', name: 'Wooden Sword', cost: 180, atk: 3, rarity: 'common' },
+  { id: 'bamboo_katana', slot: 'weapon', icon: '\ud83c\udf8b', name: 'Bamboo Katana', cost: 400, atk: 7, rarity: 'common' },
+  { id: 'kris', slot: 'weapon', icon: '\u2694\ufe0f', name: 'Kris Blade', cost: 850, atk: 14, rarity: 'rare' },
+  { id: 'sun_lance', slot: 'weapon', icon: '\ud83d\udd28', name: 'Sunforged Lance', cost: 1600, atk: 24, rarity: 'epic' },
+  { id: 'straw_hat', slot: 'armor', icon: '\ud83d\udc52', name: 'Straw Hat', cost: 160, def: 3, rarity: 'common' },
+  { id: 'barong_vest', slot: 'armor', icon: '\ud83e\udd4b', name: 'Barong Vest', cost: 420, def: 8, rarity: 'common' },
+  { id: 'samurai_plate', slot: 'armor', icon: '\ud83d\udee1\ufe0f', name: 'Samurai Plate', cost: 950, def: 16, rarity: 'rare' },
+  { id: 'dragon_mail', slot: 'armor', icon: '\ud83d\udc32', name: 'Dragon Mail', cost: 1800, def: 26, rarity: 'epic' },
+  { id: 'dream_charm', slot: 'charm', icon: '\ud83e\udd74', name: 'Dream Charm', cost: 260, spd: 4, rarity: 'common' },
+  { id: 'moon_ring', slot: 'charm', icon: '\ud83c\udf19', name: 'Moon Ring', cost: 700, spd: 9, rarity: 'rare' },
+  { id: 'star_brooch', slot: 'charm', icon: '\ud83c\udf1f', name: 'Star Brooch', cost: 1400, atk: 4, spd: 14, rarity: 'epic' },
+  { id: 'void_saber', slot: 'weapon', icon: '\ud83c\udf0c', name: 'Cosmic Saber', gachaOnly: true, rarity: 'mythic', atk: 55, spd: 8 },
+  { id: 'cosmic_aegis', slot: 'armor', icon: '\u2728', name: 'Cosmic Aegis', gachaOnly: true, rarity: 'mythic', def: 48, spd: 6 },
+  { id: 'starfall_charm', slot: 'charm', icon: '\ud83d\udcab', name: 'Starfall Charm', gachaOnly: true, rarity: 'mythic', atk: 10, def: 10, spd: 14 },
+  { id: 'phoenix_blade', slot: 'weapon', icon: '\ud83d\udd25', name: 'Phoenix Blade', gachaOnly: true, rarity: 'legendary', atk: 34, spd: 4 },
+  { id: 'sunforged_plate', slot: 'armor', icon: '\u2600\ufe0f', name: 'Sunforged Aegis', gachaOnly: true, rarity: 'legendary', atk: 3, def: 34 },
+  { id: 'storm_lance', slot: 'weapon', icon: '\u26a1', name: 'Storm Lance', gachaOnly: true, rarity: 'epic', atk: 20 },
+  { id: 'tide_scale', slot: 'armor', icon: '\ud83c\udf0a', name: 'Tide Scale Mail', gachaOnly: true, rarity: 'epic', def: 21, spd: 2 },
+  { id: 'wind_bow', slot: 'weapon', icon: '\ud83c\udff9', name: 'Wind Bow', gachaOnly: true, rarity: 'rare', atk: 11, spd: 2 },
+  { id: 'shadow_cloak', slot: 'armor', icon: '\ud83c\udf11', name: 'Shadow Cloak', gachaOnly: true, rarity: 'rare', def: 12, spd: 2 },
+];
+
+const GEAR_SLOTS = [
+  { id: 'weapon', icon: '\ud83d\udde1\ufe0f', name: 'Weapon' },
+  { id: 'armor', icon: '\ud83d\udee1\ufe0f', name: 'Armor' },
+  { id: 'charm', icon: '\ud83e\udd74', name: 'Charm' },
+];
+
+const GEAR_GACHA = {
+  cost: 100,
+  multiCost: 900,
+  multiCount: 10,
+  rates: [
+    { id: 'mythic', stars: 5, name: 'Mythic', rate: 0.0001 },
+    { id: 'legendary', stars: 4, name: 'Legendary', rate: 0.9999 },
+    { id: 'epic', stars: 3, name: 'Epic', rate: 14 },
+    { id: 'rare', stars: 2, name: 'Rare', rate: 30 },
+    { id: 'common', stars: 1, name: 'Common', rate: 55 },
+  ],
+  pool: {
+    mythic: ['void_saber', 'cosmic_aegis', 'starfall_charm'],
+    legendary: ['phoenix_blade', 'sunforged_plate'],
+    epic: ['storm_lance', 'tide_scale'],
+    rare: ['wind_bow', 'shadow_cloak'],
+    common: [],
+  },
 };
 
 function rollGachaRarity() {
@@ -153,6 +249,213 @@ function pullGacha(state, times) {
   return { ok: true, results, best, events: out, message: msg };
 }
 
+
+function rollGearRarity() {
+  const roll = Math.random() * 100;
+  let acc = 0;
+  const ordered = [...GEAR_GACHA.rates].sort((a, b) => a.rate - b.rate);
+  for (const g of ordered) {
+    acc += g.rate;
+    if (roll < acc) return g;
+  }
+  return GEAR_GACHA.rates[4];
+}
+
+function rpgUnlocked(state, unlockId) {
+  const def = UNLOCKS.find((u) => u.id === unlockId);
+  if (!def) return false;
+  return (state.playdays ? state.playdays.count || 0 : 0) >= def.day;
+}
+
+function gearDef(gearId) {
+  return GEAR.find((g) => g.id === gearId) || null;
+}
+
+function gearBonus(state) {
+  const total = { atk: 0, def: 0, spd: 0 };
+  for (const slot of ['weapon', 'armor', 'charm']) {
+    const g = gearDef(state.gear && state.gear[slot]);
+    if (!g) continue;
+    total.atk += g.atk || 0;
+    total.def += g.def || 0;
+    total.spd += g.spd || 0;
+  }
+  return total;
+}
+
+function petBattleStats(state) {
+  const lvl = state.pet.level;
+  const g = gearBonus(state);
+  const isBattlePath = state.path === 'battle';
+  return {
+    atk: Math.round((3 + lvl * 1.5 + (state.allocated ? state.allocated.atk : 0) * 2) * (isBattlePath ? 1.15 : 1)) + g.atk,
+    def: Math.round((2 + lvl * 1.1 + (state.allocated ? state.allocated.def : 0) * 2) * (isBattlePath ? 1.1 : 1)) + g.def,
+    spd: Math.round(2 + lvl * 0.8 + (state.allocated ? state.allocated.spd : 0) * 2) + g.spd,
+  };
+}
+
+function trackPlayday(state) {
+  if (!state.playdays) state.playdays = { last: null, count: 0 };
+  const tk = todayKey(Date.now());
+  if (state.playdays.last !== tk) {
+    state.playdays.last = tk;
+    state.playdays.count = (state.playdays.count || 0) + 1;
+  }
+}
+
+function allocateStat(state, statId) {
+  const gate = deadGate(state);
+  if (gate) return gate;
+  if (!rpgUnlocked(state, 'battle')) return { ok: false, message: '\u2694\ufe0f Stats unlock at 7 days played!' };
+  if (!['atk', 'def', 'spd'].includes(statId)) return { ok: false, message: 'Unknown stat.' };
+  if (!state.statPoints || state.statPoints <= 0) return { ok: false, message: '\ud83d\udcaa No stat points \u2014 level up muna! (Every level up = +2 points.)' };
+  state.statPoints -= 1;
+  state.allocated = state.allocated || { atk: 0, def: 0, spd: 0 };
+  state.allocated[statId] = (state.allocated[statId] || 0) + 1;
+  const labels = { atk: 'Attack \u2694\ufe0f', def: 'Defense \ud83d\udee1\ufe0f', spd: 'Speed \ud83d\udca8' };
+  return { ok: true, message: `\u2b06\ufe0f ${labels[statId]} +1! ${state.statPoints} point${state.statPoints === 1 ? '' : 's'} left.` };
+}
+
+function battleMonster(state, monsterId) {
+  const gate = deadGate(state);
+  if (gate) return gate;
+  if (!rpgUnlocked(state, 'battle')) return { ok: false, message: '\u2694\ufe0f Battle Arena unlocks at 7 days played! Keep playing daily \ud83d\udd25' };
+  const mon = MONSTERS.find((m) => m.id === monsterId);
+  if (!mon) return { ok: false, message: 'Unknown monster.' };
+  if (state.pet.stage === 'egg') return { ok: false, message: '\ud83e\udd7a Hatch your buddy first!' };
+  if (state.pet.level < mon.lvl) return { ok: false, message: `\ud83d\udc76 Too scary! ${mon.name} needs level ${mon.lvl}.` };
+  if (state.meters.energy < mon.energy) return { ok: false, message: `\ud83d\ude34 Not enough energy (needs ${mon.energy}). Sleep muna!` };
+  const now = Date.now();
+  const cdUntil = state.activityCooldowns.battle || 0;
+  if (now < cdUntil) return { ok: false, message: `\ud83d\udcaa Resting... next battle in ${Math.ceil((cdUntil - now) / 1000)}s.` };
+  state.meters.energy = Math.max(0, state.meters.energy - mon.energy);
+  state.activityCooldowns.battle = now + 20000;
+  const bs = petBattleStats(state);
+  const petMaxHp = 40 + bs.def * 4 + state.pet.level * 6;
+  let petHp = petMaxHp;
+  let monHp = mon.hp;
+  const hit = (atk, def) => Math.max(1, Math.round((atk - def * 0.5) * (0.8 + Math.random() * 0.4)));
+  let rounds = 0;
+  const petFirst = bs.spd >= mon.atk * 2;
+  while (petHp > 0 && monHp > 0 && rounds < 40) {
+    if (petFirst || rounds % 2 === 0) monHp -= hit(bs.atk, mon.def);
+    else monHp -= 0;
+    if (monHp > 0) petHp -= hit(mon.atk, bs.def);
+    rounds += 1;
+  }
+  const win = monHp <= 0 && petHp > 0;
+  const events = [];
+  if (win) {
+    const coins = mon.coins[0] + Math.floor(Math.random() * (mon.coins[1] - mon.coins[0] + 1));
+    state.coins += coins;
+    state.stats.coinsEarned += coins;
+    state.pet.xp += mon.xp * currentXpMul(state);
+    state.battle.wins += 1;
+    state.meters.happiness = clamp100(Math.min(100, state.meters.happiness + 4));
+    events.push({ ok: true, message: `\u2694\ufe0f Victory over ${mon.icon} ${mon.name}! +\ud83e\ude99${coins} +${mon.xp} XP ${petHp < petMaxHp * 0.25 ? '(naughty scar!)' : ''}` });
+  } else {
+    state.battle.losses += 1;
+    const salvage = Math.max(3, Math.floor(mon.coins[0] * 0.2));
+    state.coins += salvage;
+    state.stats.coinsEarned += salvage;
+    state.meters.happiness = Math.max(0, state.meters.happiness - 3);
+    events.push({ ok: true, message: `\ud83d\udc80 ${mon.name} won this round... regroup, feed your buddy, try again! +\ud83e\ude99${salvage} salvage` });
+  }
+  applyLevelUps(state);
+  trackPlayday(state);
+  checkAchievements(state, events);
+  return { ok: true, win, results: [], message: events[events.length - 1].message, events };
+}
+
+function buyGear(state, gearId) {
+  const gate = deadGate(state);
+  if (gate) return gate;
+  if (!rpgUnlocked(state, 'gear')) return { ok: false, message: '\ud83d\udee1\ufe0f Gear Forge unlocks at 14 days played!' };
+  const g = gearDef(gearId);
+  if (!g) return { ok: false, message: 'Unknown gear.' };
+  if (g.gachaOnly) return { ok: false, message: '\ud83c\udfb0 This gear is gacha-only \u2014 try the Equipment Wish!' };
+  if (state.gearOwned.includes(g.id)) return { ok: false, message: 'Already owned \u2014 equip it in the Gear tab!' };
+  if (state.coins < g.cost) return { ok: false, message: `\ud83e\ude99 Not enough coins \u2014 ${g.name} costs ${g.cost}.` };
+  state.coins -= g.cost;
+  state.gearOwned.push(g.id);
+  return { ok: true, message: `\ud83d\udee1\ufe0f Bought ${g.icon} ${g.name}! Equip it sa Gear tab.` };
+}
+
+function equipGear(state, gearId) {
+  const gate = deadGate(state);
+  if (gate) return gate;
+  if (!rpgUnlocked(state, 'gear')) return { ok: false, message: '\ud83d\udee1\ufe0f Gear Forge unlocks at 14 days played!' };
+  if (!gearId) return { ok: false, message: 'No gear selected.' };
+  const g = gearDef(gearId);
+  if (!g) return { ok: false, message: 'Unknown gear.' };
+  if (!state.gearOwned.includes(g.id)) return { ok: false, message: 'You do not own that gear yet.' };
+  if (state.gear[g.slot] === g.id) {
+    state.gear[g.slot] = null;
+    return { ok: true, message: `\ud83e\uddf3 Unequipped ${g.name}.` };
+  }
+  state.gear[g.slot] = g.id;
+  return { ok: true, message: `\u2699\ufe0f Equipped ${g.icon} ${g.name}!` };
+}
+
+function pullGearGacha(state, times) {
+  const gate = deadGate(state);
+  if (gate) return gate;
+  if (!rpgUnlocked(state, 'gear')) return { ok: false, message: '\ud83c\udfb0 Equipment Wish unlocks at 14 days played!' };
+  const count = times === GEAR_GACHA.multiCount ? GEAR_GACHA.multiCount : 1;
+  const cost = count === GEAR_GACHA.multiCount ? GEAR_GACHA.multiCost : GEAR_GACHA.cost;
+  if (state.coins < cost) {
+    return { ok: false, message: `\ud83e\ude99 Not enough coins \u2014 a \u00d7${count} Equipment Wish costs ${cost}.` };
+  }
+  state.coins -= cost;
+  if (!state.gearGacha) state.gearGacha = { pulls: 0, fiveStars: 0, mythics: 0 };
+  const out = [];
+  const results = [];
+  let best = null;
+  for (let i = 0; i < count; i += 1) {
+    const g = rollGearRarity();
+    state.gearGacha.pulls += 1;
+    if (g.id === 'legendary') state.gearGacha.fiveStars += 1;
+    if (g.id === 'mythic') state.gearGacha.mythics += 1;
+    const pool = GEAR_GACHA.pool[g.id] || [];
+    let gearUnlocked = null;
+    let coins = g.id === 'common' ? 15 + Math.floor(Math.random() * 26) : 60 + Math.floor(Math.random() * 120);
+    if (pool.length > 0) {
+      const pickId = pool[Math.floor(Math.random() * pool.length)];
+      const pg = gearDef(pickId);
+      if (!state.gearOwned.includes(pickId)) {
+        state.gearOwned.push(pickId);
+        gearUnlocked = `${pg.icon} ${pg.name}`;
+      } else {
+        coins += 150;
+      }
+    }
+    state.coins += coins;
+    state.stats.coinsEarned += coins;
+    results.push({ rarity: g.id, stars: g.stars, name: g.name, coins, gearUnlocked });
+    if (!best || best.stars < g.stars) best = results[results.length - 1];
+  }
+  checkAchievements(state, out);
+  const starStr = '\u2b50'.repeat(best.stars);
+  let msg = `${starStr} Equipment Wish: ${best.name}! +\ud83e\ude99${best.coins}`;
+  if (best.gearUnlocked) msg = `${starStr} NEW GEAR \u2014 ${best.gearUnlocked}! +\ud83e\ude99${best.coins}`;
+  if (best.rarity === 'mythic') msg = `\ud83c\udfaf \u2b50 MYTHIC GEAR!! 0.0001% JACKPOT!! \u2b50 \ud83c\udfaf ${best.gearUnlocked || 'Legendary relic'} + \ud83e\ude99${best.coins}!`;
+  out.push({ ok: true, message: msg });
+  return { ok: true, results, best, events: out, message: msg };
+}
+
+function choosePath(state, pathId) {
+  const gate = deadGate(state);
+  if (gate) return gate;
+  if (!rpgUnlocked(state, 'path')) return { ok: false, message: '\ud83c\udf00 Destiny Path unlocks at 30 days played!' };
+  if (!['work', 'battle'].includes(pathId)) return { ok: false, message: 'Unknown path.' };
+  if (state.path) return { ok: false, message: `\ud83c\udf00 Destiny already chosen: ${state.path === 'work' ? '\ud83d\udcbc Work Master' : '\u2694\ufe0f Battle Master'}!` };
+  state.path = pathId;
+  const msg = pathId === 'work'
+    ? '\ud83d\udcbc Work Master! +50% coin rate for life \u2014 the idle tycoon road.'
+    : '\u2694\ufe0f Battle Master! +15% battle power for life \u2014 the warrior road.';
+  return { ok: true, message: msg };
+}
+
 const ACHIEVEMENTS = [
   { id: 'first_feed', icon: '🍜', name: 'First Bite', desc: 'Feed your buddy', check: (s) => s.stats.feedCount >= 1 },
   { id: 'feast_10', icon: '😋', name: 'Little Foodie', desc: 'Feed 10 meals', check: (s) => s.stats.feedCount >= 10 },
@@ -169,6 +472,10 @@ const ACHIEVEMENTS = [
   { id: 'gacha_1', icon: '🎰', name: 'First Wish', desc: 'Try your luck in the Gacha', check: (s) => !!(s.gacha && s.gacha.pulls >= 1) },
   { id: 'gacha_100', icon: '🎰', name: 'Gacha Addict', desc: '100 summons', check: (s) => !!(s.gacha && s.gacha.pulls >= 100) },
   { id: 'gacha_mythic', icon: '🎯', name: 'Chosen One', desc: 'Pull the 0.0001% Mythic', check: (s) => !!(s.gacha && s.gacha.mythics >= 1) },
+  { id: 'battle_1', icon: '⚔️', name: 'First Blood', desc: 'Win your first battle', check: (s) => !!(s.battle && s.battle.wins >= 1) },
+  { id: 'battle_25', icon: '🏆', name: 'Monster Hunter', desc: 'Win 25 battles', check: (s) => !!(s.battle && s.battle.wins >= 25) },
+  { id: 'gear_1', icon: '🛡️', name: 'Field Ready', desc: 'Equip your first gear', check: (s) => !!(s.gear && (s.gear.weapon || s.gear.armor || s.gear.charm)) },
+  { id: 'path_1', icon: '🌀', name: 'Destiny Chosen', desc: 'Commit to a path', check: (s) => !!s.path },
 ];
 
 const WEATHER_POOL = ['clear', 'clear', 'cloudy', 'clear', 'rainy', 'cloudy', 'clear', 'stormy', 'cloudy', 'clear', 'snowy', 'clear'];
@@ -199,6 +506,15 @@ function defaultState() {
     achievements: [],
     daily: { last: null, streak: 0, best: 0 },
     gacha: { pulls: 0, fiveStars: 0, mythics: 0 },
+    playdays: { last: null, count: 0 },
+    statPoints: 0,
+    allocated: { atk: 0, def: 0, spd: 0 },
+    gear: { weapon: null, armor: null, charm: null },
+    gearOwned: [],
+    gearGacha: { pulls: 0, fiveStars: 0, mythics: 0 },
+    path: null,
+    battle: { wins: 0, losses: 0 },
+    waste: [],
     skin: 'classic',
     skinsOwned: ['classic'],
     neglect: 0,
@@ -209,9 +525,11 @@ function defaultState() {
 
 function ensureState(state) {
   const fresh = defaultState();
-  for (const key of ['stats', 'achievements', 'daily', 'gacha', 'skin', 'skinsOwned', 'neglect', 'dead']) {
+  for (const key of ['stats', 'achievements', 'daily', 'gacha', 'playdays', 'allocated', 'gear', 'gearOwned', 'gearGacha', 'battle', 'waste', 'skin', 'skinsOwned', 'neglect', 'dead']) {
     if (state[key] === undefined) state[key] = fresh[key];
   }
+  if (state.statPoints === undefined) state.statPoints = 0;
+  if (state.path === undefined) state.path = null;
   if (!state.pet) state.pet = fresh.pet;
   if (state.pet.stage === undefined) {
     state.pet.stage = state.pet.species ? 'adult' : 'egg';
@@ -250,6 +568,7 @@ function coinRate(state) {
   const petBonus = 1 + (state.pet.level - 1) * 0.1;
   let rate = 0.5 * Math.pow(1.6, job - 1) * petBonus;
   if (state.meters.happiness < 25) rate *= 0.6;
+  if (state.path === 'work') rate *= 1.5;
   return rate;
 }
 
@@ -281,18 +600,25 @@ function tick(state, dtSeconds, offline) {
     return events;
   }
 
+  trackPlayday(state);
   careLevel(state);
+  if (!f.sleeping && state.pet.stage !== 'egg') {
+    const pottyRate = 0.004 + ((state.effects.eatUntil || 0) > Date.now() ? 0.005 : 0);
+    if (Math.random() < pottyRate * dt) spawnWaste(state);
+  }
 
-  const careScale = state.pet.stage === 'egg' ? 0.35 : 1;
+  const isBabyGrace = state.pet.stage !== 'egg' && state.pet.level <= 3;
+  const careScale = state.pet.stage === 'egg' ? 0.35 : isBabyGrace ? 0.65 : 1;
 
-  let energyDrain = 0.035 * bedFactor * (f.working ? 2.2 : 1);
-  let hungerDrain = 0.045 * (f.working ? 1.6 : 1);
-  let happinessDrain = 0.025;
+  let energyDrain = 0.021 * bedFactor * (f.working ? 1.8 : 1);
+  let hungerDrain = 0.028 * (f.working ? 1.5 : 1);
+  let happinessDrain = 0.017;
   if (m.hunger < 25) happinessDrain += 0.03;
   if (m.energy < 20) happinessDrain += 0.02;
+  if ((state.waste || []).length > 0) happinessDrain += 0.02 * state.waste.length;
 
   if (f.sleeping) {
-    m.energy = clamp100(m.energy + 0.55 * dt);
+    m.energy = clamp100(m.energy + 0.8 * dt);
     hungerDrain = 0.02;
   } else if (f.working) {
     const gained = coinRate(state) * dt * (offline ? 0.5 : 1);
@@ -312,8 +638,8 @@ function tick(state, dtSeconds, offline) {
 
   if (!offline && state.pet.stage !== 'egg') {
     const inDanger = m.hunger <= 0 || m.energy <= 0;
-    if (inDanger) {
-      state.neglect = Math.min(DEATH_SECONDS, (state.neglect || 0) + dt);
+    if (inDanger && !isBabyGrace) {
+      state.neglect = Math.min(DEATH_SECONDS, (state.neglect || 0) + dt * (state.pet.level <= 6 ? 0.6 : 1));
       if (state.neglect >= DEATH_SECONDS) {
         state.dead = {
           cause: m.hunger <= 0 ? 'starvation' : 'exhaustion',
@@ -417,6 +743,7 @@ function applyLevelUps(state) {
   while (state.pet.xp >= need) {
     state.pet.xp -= need;
     state.pet.level += 1;
+    state.statPoints = (state.statPoints || 0) + 2;
     need = xpForNextLevel(state.pet.level);
   }
   const curIdx = Math.max(0, STAGES.findIndex((st) => st.id === state.pet.stage));
@@ -646,6 +973,15 @@ function saveCode(state) {
     daily: state.daily,
     skin: state.skin,
     skinsOwned: state.skinsOwned,
+    playdays: state.playdays,
+    statPoints: state.statPoints,
+    allocated: state.allocated,
+    gear: state.gear,
+    gearOwned: state.gearOwned,
+    gearGacha: state.gearGacha,
+    path: state.path,
+    battle: state.battle,
+    waste: state.waste,
   };
   return 'JB2.' + btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
 }
@@ -676,6 +1012,15 @@ function importSave(state, code) {
   if (payload.daily) state.daily = payload.daily;
   if (payload.skin) state.skin = payload.skin;
   if (Array.isArray(payload.skinsOwned)) state.skinsOwned = payload.skinsOwned;
+  if (payload.playdays) state.playdays = payload.playdays;
+  if (typeof payload.statPoints === 'number') state.statPoints = payload.statPoints;
+  if (payload.allocated) state.allocated = payload.allocated;
+  if (payload.gear) state.gear = payload.gear;
+  if (Array.isArray(payload.gearOwned)) state.gearOwned = payload.gearOwned;
+  if (payload.gearGacha) state.gearGacha = payload.gearGacha;
+  if (payload.path) state.path = payload.path;
+  if (payload.battle) state.battle = payload.battle;
+  if (Array.isArray(payload.waste)) state.waste = payload.waste;
   state.activity = null;
   state.activityCooldowns = {};
   state.neglect = 0;
@@ -686,7 +1031,7 @@ function importSave(state, code) {
 
 function newGame(state) {
   if (!state.dead) return { ok: false, message: 'Your buddy is still alive! (Reset progress in footer if you really want to start over.)' };
-  const kept = { achievements: state.achievements, daily: state.daily, skinsOwned: state.skinsOwned, gacha: state.gacha, skin: state.skin };
+  const kept = { achievements: state.achievements, daily: state.daily, skinsOwned: state.skinsOwned, gacha: state.gacha, skin: state.skin, gearGacha: state.gearGacha };
   const fresh = defaultState();
   Object.keys(state).forEach((key) => { delete state[key]; });
   Object.assign(state, fresh);
@@ -694,6 +1039,7 @@ function newGame(state) {
   state.daily = kept.daily;
   state.skinsOwned = kept.skinsOwned;
   state.gacha = kept.gacha;
+  state.gearGacha = kept.gearGacha;
   state.skin = kept.skinsOwned.includes(kept.skin) ? kept.skin : 'classic';
   return { ok: true, message: '🌱 A new egg awaits! Take good care of your next buddy.' };
 }
@@ -756,6 +1102,75 @@ function derivedStats(state) {
     danger: Math.max(0, Math.min(1, (state.neglect || 0) / DEATH_SECONDS)),
     dead: state.dead,
     stats: state.stats,
+    waste: (state.waste || []).map((w, i) => ({ ...w, index: i })),
+    rpg: rpgStats(state),
+  };
+}
+
+const WASTE_CAP = 5;
+
+function spawnWaste(state) {
+  if (!state.waste) state.waste = [];
+  if (state.waste.length >= WASTE_CAP) return;
+  state.waste.push({
+    kind: Math.random() < 0.55 ? 'poop' : 'pee',
+    x: 60 + Math.floor(Math.random() * 360),
+    y: 240 + Math.floor(Math.random() * 52),
+    at: Date.now(),
+  });
+}
+
+function cleanWaste(state, index) {
+  const gate = deadGate(state);
+  if (gate) return gate;
+  if (!state.waste || !state.waste.length) return { ok: false, message: '\u2728 Already squeaky clean!' };
+  const idx = typeof index === 'number' ? index : 0;
+  const w = state.waste[idx];
+  if (!w) return { ok: false, message: '\u2728 Already squeaky clean!' };
+  state.waste.splice(idx, 1);
+  state.meters.happiness = clamp100(Math.min(100, state.meters.happiness + 2));
+  state.pet.xp += 1;
+  applyLevelUps(state);
+  return { ok: true, message: '\ud83e\uddf9 Squeaky clean! Buddy says salamat.' };
+}
+
+function rpgStats(state) {
+  const now = Date.now();
+  const days = (state.playdays && state.playdays.count) || 0;
+  const gb = gearBonus(state);
+  const bs = petBattleStats(state);
+  return {
+    daysPlayed: days,
+    statPoints: state.statPoints || 0,
+    allocated: { ...(state.allocated || { atk: 0, def: 0, spd: 0 }) },
+    battle: { ...bs, gearBonus: gb, wins: (state.battle && state.battle.wins) || 0, losses: (state.battle && state.battle.losses) || 0 },
+    path: state.path,
+    cooldownMs: Math.max(0, (state.activityCooldowns.battle || 0) - now),
+    unlocks: UNLOCKS.map((u) => ({ ...u, unlocked: days >= u.day, daysLeft: Math.max(0, u.day - days) })),
+    monsters: MONSTERS.map((mo) => ({
+      id: mo.id, icon: mo.icon, name: mo.name, lvl: mo.lvl, hp: mo.hp, atk: mo.atk, def: mo.def,
+      energy: mo.energy, coins: mo.coins, xp: mo.xp,
+      canFight: state.pet.stage !== 'egg' && state.pet.level >= mo.lvl && state.meters.energy >= mo.energy,
+    })),
+    gear: {
+      slots: GEAR_SLOTS,
+      equipped: { ...state.gear },
+      owned: [...state.gearOwned],
+      bonus: gb,
+    },
+    gearShop: GEAR.filter((g) => !g.gachaOnly).map((g) => ({
+      ...g,
+      owned: state.gearOwned.includes(g.id),
+      equipped: state.gear[g.slot] === g.id,
+    })),
+    gearGacha: {
+      cost: GEAR_GACHA.cost, multiCost: GEAR_GACHA.multiCost, multiCount: GEAR_GACHA.multiCount,
+      rates: GEAR_GACHA.rates,
+      poolPreview: Object.keys(GEAR_GACHA.pool).flatMap((r) => GEAR_GACHA.pool[r].map((id) => ({ rarity: r, item: gearDef(id) }))).filter((x) => x.item).map((x) => ({ rarity: x.rarity, icon: x.item.icon, name: x.item.name, slot: x.item.slot })),
+      pulls: (state.gearGacha && state.gearGacha.pulls) || 0,
+      fiveStars: (state.gearGacha && state.gearGacha.fiveStars) || 0,
+      mythics: (state.gearGacha && state.gearGacha.mythics) || 0,
+    },
   };
 }
 
@@ -794,6 +1209,20 @@ return {
   newGame,
   SKINS,
   GACHA,
+  GEAR,
+  GEAR_GACHA,
+  UNLOCKS,
+  MONSTERS,
+  allocateStat,
+  battleMonster,
+  buyGear,
+  equipGear,
+  pullGearGacha,
+  choosePath,
+  cleanWaste,
+  spawnWaste,
+  petBattleStats,
+  rpgUnlocked,
   ACHIEVEMENTS,
   STAGES,
   DEATH_SECONDS,

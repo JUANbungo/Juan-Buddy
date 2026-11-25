@@ -1,11 +1,12 @@
 'use strict';
 
-const CACHE = 'juanbuddy-v1';
+const CACHE = 'juanbuddy-v2';
 const ASSETS = [
   './',
   './index.html',
   './mobile.css',
   './app.js',
+  './rpg.js',
   './motivation.js',
   './sprites.js',
   './engine.js',

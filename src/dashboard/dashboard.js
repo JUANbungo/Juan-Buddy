@@ -24,6 +24,8 @@ function playActionSound(action, res) {
     setSkin: 'happy', claimDaily: 'daily', newGame: 'hatch', startActivity: 'click',
     toggleWork: 'click', toggleSleep: 'click', exportSave: 'click', importSave: 'click',
     rename: 'click', setSpecies: 'happy',
+    battleMonster: 'happy', allocateStat: 'levelup', buyGear: 'buy', equipGear: 'happy',
+    pullGearGacha: 'coin', choosePath: 'achv', cleanWaste: 'click',
   };
   sfxOnce(map[action] || 'click');
 }
@@ -140,6 +142,8 @@ function render(snapshot) {
   }
 
   renderExtras(d);
+  renderRpg(d);
+  renderExplore(d);
 
   el('btn-work').textContent = s.flags.working ? '💼 Working...' : '💼 Work: Off';
   el('btn-work').classList.toggle('on', s.flags.working);
@@ -412,8 +416,10 @@ const STAGE_W = 480;
 const STAGE_H = 360;
 const STAGE_CX = 240;
 const STAGE_GROUND = 284;
+const WALK_Y_MIN = 286;
+const WALK_Y_MAX = 348;
 
-const petWalk = { x: STAGE_CX, dir: 1, target: null, moving: false };
+const petWalk = { x: STAGE_CX, y: 312, dir: 1, target: null, moving: false };
 const stageFx = [];
 let lastStageNow = 0;
 let petDraw = { cx: STAGE_CX, size: 264, dir: 1 };
@@ -909,11 +915,218 @@ function drawRoom(now, phaseId, weatherId) {
   }
 }
 
+function drawFurniture() {
+  if (!latest || !latest.state || !latest.state.upgrades) return;
+  const up = latest.state.upgrades;
+  stageCtx.save();
+  if (up.bed >= 1) {
+    const bx = 18;
+    const bwy = 296 + Math.min(3, up.bed - 1) * 2;
+    const h = 34 + up.bed * 5;
+    stageCtx.fillStyle = '#8a5a33';
+    stageCtx.fillRect(bx, bwy, 84, h);
+    stageCtx.fillStyle = '#a15c2f';
+    stageCtx.fillRect(bx + 4, bwy - 8, 76, 12);
+    stageCtx.fillStyle = fromLevelBedColor(up.bed);
+    stageCtx.fillRect(bx + 5, bwy + 6, 74, h - 10);
+    if (up.bed >= 3) {
+      stageCtx.fillStyle = '#fff';
+      stageCtx.fillRect(bx + 10, bwy + 2, 20, 12);
+      stageCtx.fillRect(bx + 54, bwy + 8, 24, 10);
+    }
+  }
+  if (up.toys >= 1) {
+    stageCtx.fillStyle = '#dc2626';
+    stageCtx.fillRect(404, 316, 44, 32);
+    stageCtx.fillStyle = '#b91c1c';
+    stageCtx.fillRect(404, 316, 44, 6);
+    stageCtx.fillStyle = '#ffd166';
+    stageCtx.beginPath();
+    stageCtx.arc(470 - Math.abs(Math.sin(Date.now() / 2100)) * 34, 352, 6, 0, Math.PI * 2);
+    stageCtx.fill();
+  }
+  if (up.feeder >= 1) {
+    stageCtx.fillStyle = '#475569';
+    stageCtx.fillRect(128, 320, 26, 30);
+    stageCtx.fillStyle = '#22d3ee';
+    stageCtx.fillRect(133, 326, 16, 6);
+    stageCtx.fillStyle = '#94a3b8';
+    stageCtx.fillRect(133, 340, 16, 6);
+  }
+  stageCtx.restore();
+}
+
+function fromLevelBedColor(lvl) {
+  return ['#7f1d1d', '#9d174d', '#6d28d9', '#1d4ed8', '#134e4a'][Math.min(4, Math.max(0, lvl - 1))];
+}
+
+function drawWaste(now, list) {
+  if (!list || !list.length) return;
+  stageCtx.save();
+  stageCtx.font = '16px sans-serif';
+  stageCtx.textAlign = 'center';
+  for (const w of list) {
+    const wob = Math.sin(now / 400 + w.x) * 2;
+    if (w.kind === 'poop') {
+      stageCtx.font = '17px sans-serif';
+      stageCtx.fillText('\u{1F4A9}', w.x + wob, w.y);
+    } else {
+      stageCtx.fillStyle = 'rgba(96, 165, 250, 0.5)';
+      stageCtx.beginPath();
+      stageCtx.ellipse(w.x + wob, w.y - 4, 16, 5, 0, 0, Math.PI * 2);
+      stageCtx.fill();
+      stageCtx.fillStyle = 'rgba(147, 197, 253, 0.7)';
+      stageCtx.beginPath();
+      stageCtx.ellipse(w.x + wob, w.y - 5, 8, 3, 0, 0, Math.PI * 2);
+      stageCtx.fill();
+    }
+  }
+  stageCtx.restore();
+}
+
+const PARK_SKIES = {
+  park: ['#38bdf8', '#bbf7d0'],
+  baywalk: ['#7e22ce', '#fb923c'],
+  market: ['#0ea5e9', '#a7f3d0'],
+  temple: ['#fda4af', '#fef3c7'],
+  terraces: ['#60a5fa', '#86efac'],
+  beach: ['#2563eb', '#fde68a'],
+};
+
+function drawPark(now, phaseId, mode) {
+  const skies = PARK_SKIES[mode] || PARK_SKIES.park;
+  const night = phaseId === 'night';
+  const sky = stageCtx.createLinearGradient(0, 0, 0, 284);
+  sky.addColorStop(0, night ? '#0f172a' : skies[0]);
+  sky.addColorStop(1, night ? '#312e81' : skies[1]);
+  stageCtx.fillStyle = sky;
+  stageCtx.fillRect(0, 0, STAGE_W, 284);
+  stageCtx.fillStyle = night ? '#fef9c3' : '#fef08a';
+  stageCtx.beginPath();
+  const sunX = mode === 'baywalk' ? STAGE_CX : 380;
+  const sunY = mode === 'baywalk' ? 240 : 62;
+  stageCtx.arc(sunX, sunY, mode === 'baywalk' ? 22 : 18, 0, Math.PI * 2);
+  stageCtx.fill();
+  stageCtx.fillStyle = 'rgba(255,255,255,0.8)';
+  for (let i = 0; i < 3; i += 1) {
+    const cx = ((now / 34 + i * 150) % (STAGE_W + 80)) - 40;
+    stageCtx.fillRect(cx, 40 + i * 26, 46, 10);
+  }
+  if (['park', 'terraces', 'temple'].includes(mode)) {
+    const grass = stageCtx.createLinearGradient(0, 284, 0, STAGE_H);
+    grass.addColorStop(0, night ? '#14532d' : mode === 'temple' ? '#86efac' : '#4ade80');
+    grass.addColorStop(1, night ? '#052e16' : '#16a34a');
+    stageCtx.fillStyle = grass;
+    stageCtx.fillRect(0, 284, STAGE_W, STAGE_H - 284);
+    if (mode === 'terraces') {
+      stageCtx.strokeStyle = 'rgba(20, 83, 45, 0.6)';
+      stageCtx.lineWidth = 3;
+      for (let i = 0; i < 5; i += 1) {
+        const ty = 292 + i * 12;
+        stageCtx.beginPath();
+        stageCtx.moveTo(0, ty);
+        stageCtx.quadraticCurveTo(STAGE_CX, ty + 7, STAGE_W, ty);
+        stageCtx.stroke();
+      }
+    }
+    if (mode === 'temple') {
+      stageCtx.fillStyle = night ? '#7f1d1d' : '#dc2626';
+      stageCtx.fillRect(60, 210, 120, 9);
+      stageCtx.fillRect(54, 226, 132, 8);
+      stageCtx.fillStyle = '#efe9dd';
+      stageCtx.fillRect(66, 220, 108, 6);
+      stageCtx.fillStyle = '#8b5e3c';
+      stageCtx.fillRect(72, 226, 12, 62);
+      stageCtx.fillRect(156, 226, 12, 62);
+      stageCtx.fillStyle = '#a8a29e';
+      for (let i = 0; i < 3; i += 1) stageCtx.fillRect(240 + i * 46, 316 - (i % 2) * 8, 28, 14);
+    }
+    stageCtx.fillStyle = night ? '#365314' : '#15803d';
+    for (const tx of [40, 320]) {
+      stageCtx.fillRect(tx + 12, 240, 10, 46);
+      stageCtx.beginPath();
+      stageCtx.arc(tx + 17, 226, 26, 0, Math.PI * 2);
+      stageCtx.fill();
+    }
+    if (mode === 'park') {
+      stageCtx.fillStyle = '#8a5a33';
+      stageCtx.fillRect(200, 292, 70, 8);
+      stageCtx.fillRect(205, 300, 6, 16);
+      stageCtx.fillRect(258, 300, 6, 16);
+    }
+  } else if (mode === 'beach') {
+    stageCtx.fillStyle = night ? '#1e3a5f' : '#0284c7';
+    stageCtx.fillRect(0, 210, STAGE_W, 44);
+    stageCtx.fillStyle = night ? '#78350f' : '#fcd34d';
+    stageCtx.fillRect(0, 254, STAGE_W, STAGE_H - 254);
+    stageCtx.fillStyle = '#d97706';
+    stageCtx.fillRect(96, 240, 8, 60);
+    stageCtx.fillStyle = '#16a34a';
+    stageCtx.beginPath();
+    stageCtx.ellipse(100, 236, 34, 14, -0.4, 0, Math.PI * 2);
+    stageCtx.fill();
+    stageCtx.beginPath();
+    stageCtx.ellipse(100, 226, 26, 11, 0.3, 0, Math.PI * 2);
+    stageCtx.fill();
+    stageCtx.fillStyle = '#f87171';
+    stageCtx.fillRect(330, 262, 60, 6);
+    stageCtx.fillStyle = '#fb7185';
+    stageCtx.beginPath();
+    stageCtx.arc(360, 248, 22, Math.PI, 0);
+    stageCtx.fill();
+  } else {
+    stageCtx.fillStyle = night ? '#172554' : '#0891b2';
+    stageCtx.fillRect(0, 214, STAGE_W, STAGE_H - 214);
+    stageCtx.strokeStyle = 'rgba(255,255,255,0.35)';
+    stageCtx.lineWidth = 2;
+    for (let i = 0; i < 5; i += 1) {
+      const wy = 244 + i * 20;
+      stageCtx.beginPath();
+      stageCtx.moveTo(((now / 24) % 130) - 40, wy);
+      stageCtx.lineTo(((now / 24) % 130) - 6, wy);
+      stageCtx.stroke();
+    }
+    if (mode === 'market') {
+      for (let bi = 0; bi < 3; bi += 1) {
+        const bxc = 70 + bi * 130 + Math.sin(now / 900 + bi) * 6;
+        const byc = 232 + bi * 26;
+        stageCtx.fillStyle = fromLevelBedColor(bi + 3);
+        stageCtx.beginPath();
+        stageCtx.moveTo(bxc - 34, byc);
+        stageCtx.quadraticCurveTo(bxc, byc + 20, bxc + 34, byc);
+        stageCtx.lineTo(bxc + 26, byc);
+        stageCtx.lineTo(bxc - 26, byc);
+        stageCtx.closePath();
+        stageCtx.fill();
+        stageCtx.fillStyle = '#fb923c';
+        stageCtx.fillRect(bxc - 16, byc - 14, 32, 5);
+        stageCtx.fillRect(bxc - 2, byc - 32, 4, 20);
+        stageCtx.fillRect(bxc - 2, byc - 32, 18, 4);
+      }
+    } else {
+      stageCtx.fillStyle = night ? '#1e293b' : '#334155';
+      for (const bw of [30, 74, 128, 356, 402, 448]) {
+        stageCtx.fillRect(bw, 150, 34, 64);
+        stageCtx.fillStyle = 'rgba(253, 224, 71, 0.8)';
+        for (let wy2 = 0; wy2 < 4; wy2 += 1) stageCtx.fillRect(bw + 6 + (wy2 % 2) * 14, 158 + wy2 * 12, 8, 6);
+        stageCtx.fillStyle = night ? '#1e293b' : '#334155';
+      }
+    }
+  }
+}
+
 function drawStagePet(now) {
   const groundY = STAGE_GROUND;
   stageCtx.clearRect(0, 0, petStageCanvas.width, petStageCanvas.height);
   const pre = latest && latest.derived;
-  drawRoom(now, pre && pre.phase ? pre.phase.id : 'day', pre && pre.weather ? pre.weather.id : 'clear');
+  const activeAct = pre && pre.activities ? pre.activities.find((a) => a.active) : null;
+  if (activeAct && activeAct.outdoor) {
+    drawPark(now, pre && pre.phase ? pre.phase.id : 'day', activeAct.outdoor);
+  } else {
+    drawRoom(now, pre && pre.phase ? pre.phase.id : 'day', pre && pre.weather ? pre.weather.id : 'clear');
+    drawFurniture();
+    drawWaste(now, pre ? pre.waste : []);
+  }
 
   const dt = Math.min(0.12, Math.max(0, (now - lastStageNow) / 1000));
   lastStageNow = now;
@@ -925,10 +1138,14 @@ function drawStagePet(now) {
   const st0 = stageStateFor();
   if (st0 === 'SLEEP' || st0 === 'EAT') petWalk.target = null;
   if (petWalk.target !== null) {
-    const dx = petWalk.target - petWalk.x;
-    if (Math.abs(dx) > 4) {
-      petWalk.dir = dx > 0 ? 1 : -1;
-      petWalk.x = Math.max(70, Math.min(STAGE_W - 70, petWalk.x + petWalk.dir * 95 * dt));
+    const dx = petWalk.target.x - petWalk.x;
+    const dy = petWalk.target.y - petWalk.y;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+      if (Math.abs(dx) > 2) petWalk.dir = dx > 0 ? 1 : -1;
+      const len = Math.hypot(dx, dy) || 1;
+      const speed = 95 * dt;
+      petWalk.x = Math.max(56, Math.min(STAGE_W - 56, petWalk.x + (dx / len) * speed));
+      petWalk.y = Math.max(WALK_Y_MIN, Math.min(WALK_Y_MAX, petWalk.y + (dy / len) * speed));
       petWalk.moving = true;
     } else {
       petWalk.target = null;
@@ -938,19 +1155,20 @@ function drawStagePet(now) {
     petWalk.moving = false;
   }
   if (st0 === 'IDLE' && !petWalk.target && !s.flags.working && !s.activity && Math.random() < 0.004) {
-    petWalk.target = 110 + Math.random() * 260;
+    petWalk.target = { x: 110 + Math.random() * 260, y: WALK_Y_MIN + Math.random() * (WALK_Y_MAX - WALK_Y_MIN) };
   }
 
   const st = petWalk.moving ? 'WALK' : st0;
   const stageScale = d.stage ? d.stage.scale : 1;
-  const boxSize = Math.round(264 * stageScale);
-  petDraw = { cx: petWalk.x, size: boxSize, dir: petWalk.dir };
+  const depthF = (petWalk.y - WALK_Y_MIN) / (WALK_Y_MAX - WALK_Y_MIN);
+  const boxSize = Math.round(264 * stageScale * (0.8 + 0.28 * depthF));
+  petDraw = { cx: petWalk.x, gy: petWalk.y, size: boxSize, dir: petWalk.dir };
 
   stageCtx.save();
   stageCtx.globalAlpha = 0.22;
   stageCtx.fillStyle = '#000';
   stageCtx.beginPath();
-  stageCtx.ellipse(petWalk.x, groundY + 4, 64, 10, 0, 0, Math.PI * 2);
+  stageCtx.ellipse(petWalk.x, petWalk.y + 4, 30 + 26 * depthF, 8 + 3 * depthF, 0, 0, Math.PI * 2);
   stageCtx.fill();
   stageCtx.restore();
 
@@ -960,16 +1178,16 @@ function drawStagePet(now) {
     stageCtx.strokeStyle = `rgba(255, 220, 120, ${0.35 + 0.4 * pulse})`;
     stageCtx.lineWidth = 2.5;
     stageCtx.beginPath();
-    stageCtx.ellipse(petWalk.target, groundY + 3, 15 + 5 * pulse, 5 + 2 * pulse, 0, 0, Math.PI * 2);
+    stageCtx.ellipse(petWalk.target.x, petWalk.target.y + 3, 15 + 5 * pulse, 5 + 2 * pulse, 0, 0, Math.PI * 2);
     stageCtx.stroke();
     stageCtx.fillStyle = 'rgba(255, 220, 120, 0.6)';
     stageCtx.beginPath();
-    stageCtx.ellipse(petWalk.target, groundY + 3, 3 + 2 * pulse, 1.5 + pulse, 0, 0, Math.PI * 2);
+    stageCtx.ellipse(petWalk.target.x, petWalk.target.y + 3, 3 + 2 * pulse, 1.5 + pulse, 0, 0, Math.PI * 2);
     stageCtx.fill();
     stageCtx.restore();
   }
 
-  if (st === 'EAT') drawFoodBowl(petWalk.x + 52 * petWalk.dir);
+  if (st === 'EAT') drawFoodBowl(petWalk.x + 40 * petWalk.dir, petWalk.y);
 
   const phaseTint = d.phase && d.phase.tint;
   const wTint = weatherOverlay(d.weather ? d.weather.id : 'clear');
@@ -1000,7 +1218,8 @@ function drawStagePet(now) {
   if (isEgg) {
     petWalk.target = null;
     petWalk.x = STAGE_CX;
-    petDraw = { cx: STAGE_CX, size: 96, dir: 1 };
+    petWalk.y = 312;
+    petDraw = { cx: STAGE_CX, gy: 312, size: 96, dir: 1 };
     const prog = Math.max(0.04, Math.min(1, (s.pet.xp || 0) / 14));
     if (prog > 0.8 && Math.random() < 0.05) spawnFx('spark', STAGE_CX + (Math.random() * 40 - 20), 220, { vy: -0.3, size: 10 });
     stageCtx.save();
@@ -1010,7 +1229,7 @@ function drawStagePet(now) {
     if (eggOk) {
       const eggH = 100;
       const eggW = Math.round(eggH * eggSprite.naturalWidth / eggSprite.naturalHeight);
-      stageCtx.drawImage(eggSprite, STAGE_CX + shake - eggW / 2, STAGE_GROUND - eggH + Math.round(Math.sin(now / 500) * 2), eggW, eggH);
+      stageCtx.drawImage(eggSprite, STAGE_CX + shake - eggW / 2, petWalk.y - eggH + Math.round(Math.sin(now / 500) * 2), eggW, eggH);
     } else {
       drawWithSkin((g) => eggToCtx(g, now, prog), tint);
     }
@@ -1019,7 +1238,7 @@ function drawStagePet(now) {
     stageCtx.font = '11px sans-serif';
     stageCtx.textAlign = 'center';
     stageCtx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-    stageCtx.fillText(prog > 0.8 ? 'crack... crack!' : `keep caring... ${Math.round(prog * 100)}%`, STAGE_CX, STAGE_GROUND + 26);
+    stageCtx.fillText(prog > 0.8 ? 'crack... crack!' : `keep caring... ${Math.round(prog * 100)}%`, STAGE_CX, petWalk.y + 26);
     stageCtx.restore();
   } else {
     const bobbing = st === 'HAPPY' || st === 'WALK';
@@ -1033,7 +1252,7 @@ function drawStagePet(now) {
       g.translate(petWalk.x, 0);
       if (petWalk.dir < 0) g.scale(-1, 1);
       const bx = -boxSize / 2;
-      const by = groundY - boxSize + yOff;
+      const by = petWalk.y - boxSize + yOff;
       const pngs = stageFramesFor(s.pet.species || 'kala', st);
       const single = stageSingleFor(s.pet.species || 'kala', st);
       if (pngs.length > 0) {
@@ -1060,10 +1279,10 @@ function drawStagePet(now) {
     else drawPath(stageCtx);
     stageCtx.restore();
 
-    if (st === 'SLEEP' && Math.random() < 0.02) spawnFx('z', petWalk.x + 20, groundY - boxSize + 24, { vy: -0.35, size: 15 });
-    if (st === 'EAT' && Math.random() < 0.02) spawnFx('crumb', petWalk.x + 40, groundY - 12, { vy: -0.3, size: 10 });
+    if (st === 'SLEEP' && Math.random() < 0.02) spawnFx('z', petWalk.x + 20, petWalk.y - boxSize + 24, { vy: -0.35, size: 15 });
+    if (st === 'EAT' && Math.random() < 0.02) spawnFx('crumb', petWalk.x + 40, petWalk.y - 12, { vy: -0.3, size: 10 });
     if ((s.flags.working || s.activity) && Math.random() < 0.012) spawnFx('coin', petWalk.x + (Math.random() < 0.5 ? -50 : 50), 90, { vy: -0.4, size: 18 });
-    if (petWalk.moving && Math.random() < 0.09) spawnFx('spark', petWalk.x - petWalk.dir * boxSize * 0.3, groundY - 4, { vy: -0.15, size: 10 });
+    if (petWalk.moving && Math.random() < 0.09) spawnFx('spark', petWalk.x - petWalk.dir * boxSize * 0.3, petWalk.y - 4, { vy: -0.15, size: 10 });
   }
 
   for (let i = stageFx.length - 1; i >= 0; i -= 1) {
@@ -1086,14 +1305,16 @@ function drawStagePet(now) {
   }
 }
 
-function drawFoodBowl(x) {
+function drawFoodBowl(x, gy) {
+  const by1 = (gy || STAGE_GROUND) - 9;
+  const by2 = (gy || STAGE_GROUND) + 3;
   stageCtx.save();
   stageCtx.fillStyle = '#be123c';
   stageCtx.beginPath();
-  stageCtx.moveTo(x - 17, 275);
-  stageCtx.lineTo(x + 17, 275);
-  stageCtx.lineTo(x + 12, 287);
-  stageCtx.lineTo(x - 12, 287);
+  stageCtx.moveTo(x - 17, by1);
+  stageCtx.lineTo(x + 17, by1);
+  stageCtx.lineTo(x + 12, by2);
+  stageCtx.lineTo(x - 12, by2);
   stageCtx.closePath();
   stageCtx.fill();
   stageCtx.strokeStyle = '#881337';
@@ -1101,7 +1322,7 @@ function drawFoodBowl(x) {
   stageCtx.stroke();
   stageCtx.fillStyle = Math.sin(Date.now() / 300) > 0 ? '#eab308' : '#d97706';
   stageCtx.beginPath();
-  stageCtx.ellipse(x, 275, 13, 5, 0, 0, Math.PI * 2);
+  stageCtx.ellipse(x, by1, 13, 5, 0, 0, Math.PI * 2);
   stageCtx.fill();
   stageCtx.restore();
 }
@@ -1148,8 +1369,25 @@ petStageCanvas.addEventListener('click', async (e) => {
   const x = ((e.clientX - rect.left) / rect.width) * STAGE_W;
   const y = ((e.clientY - rect.top) / rect.height) * STAGE_H;
   if (latest && latest.state.dead) return;
+  const wastes = (latest.derived && latest.derived.waste) || [];
+  let nearest = null;
+  let nd = 1e9;
+  for (const w of wastes) {
+    const dist = Math.hypot(x - w.x, y - (w.y - 8));
+    if (dist < nd) { nd = dist; nearest = w; }
+  }
+  if (nearest && nd < 30) {
+    const res = await api.action('cleanWaste', { index: nearest.index });
+    if (res && res.ok) {
+      for (let i = 0; i < 4; i += 1) spawnFx('spark', nearest.x + (Math.random() * 22 - 11), nearest.y - 10, { vy: -0.5, size: 12 });
+      sfxOnce('coin');
+    }
+    showToast((res && res.message) || 'Cleaned!', 1400);
+    return;
+  }
   const patW = Math.max(44, petDraw.size * 0.25);
-  if (Math.abs(x - petDraw.cx) < patW && y > STAGE_GROUND - petDraw.size * 0.85 && y < STAGE_GROUND + 18) {
+  const patCy = petDraw.gy - petDraw.size * 0.45;
+  if (Math.abs(x - petDraw.cx) < patW && Math.abs(y - patCy) < petDraw.size * 0.5) {
     const now = performance.now();
     if (now - lastStagePat < 900) return;
     lastStagePat = now;
@@ -1165,7 +1403,10 @@ petStageCanvas.addEventListener('click', async (e) => {
     showToast('Shhh... your buddy is sleeping! \u{1F4A4}', 1600);
     return;
   }
-  petWalk.target = Math.max(70, Math.min(STAGE_W - 70, x));
+  petWalk.target = {
+    x: Math.max(70, Math.min(STAGE_W - 70, x)),
+    y: Math.max(WALK_Y_MIN, Math.min(WALK_Y_MAX, y)),
+  };
   if (sfx) sfx.play('click');
 });
 
@@ -1348,3 +1589,272 @@ el('btn-new-game').addEventListener('click', async () => {
   const res = await api.action('newGame');
   showToast(res && res.message, 4000);
 });
+
+const monsterCards = {};
+const gearShopCards = {};
+const exploreCards = {};
+let gearGachaBusy = false;
+
+function rpgUnlock(d, id) {
+  return (d.rpg && d.rpg.unlocks.find((u) => u.id === id)) || { unlocked: false, daysLeft: 99, day: 99, icon: '', name: '', desc: '' };
+}
+
+function renderRpg(d) {
+  const rpg = d.rpg;
+  if (!rpg) return;
+
+  const bu = rpgUnlock(d, 'battle');
+  el('battle-lock').classList.toggle('hidden', bu.unlocked);
+  el('battle-body').classList.toggle('hidden', !bu.unlocked);
+  if (!bu.unlocked) {
+    el('battle-lock').textContent = `${bu.icon || '⚔\ufe0f'} ${bu.name} opens in ${bu.daysLeft} more day${bu.daysLeft === 1 ? '' : 's'} of caring \u2014 ${bu.desc} (${rpg.daysPlayed}/7 days)`;
+  } else {
+    const b = rpg.battle;
+    el('battle-stats').textContent = `\u2694\ufe0f ATK ${b.atk} \u00b7 \ud83d\udee1\ufe0f DEF ${b.def} \u00b7 \ud83d\udca8 SPD ${b.spd}${rpg.path === 'battle' ? ' \u00b7 \ud83c\udf00 Battle Master \u00d71.15' : ''}`;
+    el('battle-points-label').textContent = rpg.statPoints > 0
+      ? `\u2b06\ufe0f ${rpg.statPoints} stat point${rpg.statPoints === 1 ? '' : 's'} to spend!`
+      : 'Level up to earn stat points (+2 per level).';
+    document.querySelectorAll('#battle-points-row .btn-stat').forEach((btn) => {
+      btn.disabled = rpg.statPoints <= 0;
+    });
+    const grid = el('monster-grid');
+    if (grid.childElementCount === 0) {
+      for (const mo of rpg.monsters) {
+        const card = document.createElement('div');
+        card.className = 'monster-card';
+        card.innerHTML = `<div class="mo-ico"></div><div class="mo-name"></div><div class="mo-lvl muted"></div><div class="mo-stats muted small"></div><button class="btn btn-amber mo-btn">\u2694\ufe0f Fight</button>`;
+        card.querySelector('.mo-btn').dataset.monster = mo.id;
+        grid.appendChild(card);
+        monsterCards[mo.id] = card;
+      }
+    }
+    for (const mo of rpg.monsters) {
+      const card = monsterCards[mo.id];
+      card.classList.toggle('locked', !mo.canFight);
+      card.querySelector('.mo-ico').textContent = mo.icon;
+      card.querySelector('.mo-name').textContent = mo.name;
+      card.querySelector('.mo-lvl').textContent = `Lv ${mo.lvl} monster`;
+      card.querySelector('.mo-stats').textContent = `HP ${mo.hp} \u00b7 ATK ${mo.atk} \u00b7 \ud83e\ude99${mo.coins[0]}-${mo.coins[1]} +${mo.xp}xp \u00b7 \u26a1${mo.energy}`;
+      const btn = card.querySelector('.mo-btn');
+      btn.disabled = !mo.canFight || rpg.cooldownMs > 0;
+      btn.textContent = rpg.cooldownMs > 0
+        ? `\ud83d\udcaa Rest ${Math.ceil(rpg.cooldownMs / 1000)}s`
+        : !mo.canFight ? `Lv ${mo.lvl} + ${mo.energy}\u26a1` : '\u2694\ufe0f Fight';
+    }
+    el('battle-record').textContent = `Record: ${rpg.battle.wins}W \u2014 ${rpg.battle.losses}L \u00b7 Day ${rpg.daysPlayed} of your journey`;
+  }
+
+  const gu = rpgUnlock(d, 'gear');
+  el('gear-lock').classList.toggle('hidden', gu.unlocked);
+  el('gear-body').classList.toggle('hidden', !gu.unlocked);
+  if (!gu.unlocked) {
+    el('gear-lock').textContent = `${gu.icon || '\ud83d\udee1\ufe0f'} ${gu.name} opens in ${gu.daysLeft} more day${gu.daysLeft === 1 ? '' : 's'} (${rpg.daysPlayed}/14 days)`;
+  } else {
+    const slots = el('gear-slots');
+    if (slots.childElementCount === 0) {
+      for (const sl of rpg.gear.slots) {
+        const sdiv = document.createElement('div');
+        sdiv.className = 'gear-slot';
+        sdiv.innerHTML = `<div class="gs-ico"></div><div class="gs-kind muted small">${sl.name}</div><div class="gs-name"></div><div class="gs-stats small muted"></div>`;
+        slots.appendChild(sdiv);
+      }
+    }
+    const slotDivs = slots.querySelectorAll('.gear-slot');
+    const bonusTxt = (g) => {
+      const parts = [];
+      if (g.atk) parts.push(`\u2694\ufe0f+${g.atk}`);
+      if (g.def) parts.push(`\ud83d\udee1\ufe0f+${g.def}`);
+      if (g.spd) parts.push(`\ud83d\udca8+${g.spd}`);
+      return parts.join(' ');
+    };
+    const equippedIds = [];
+    rpg.gear.slots.forEach((sl, i) => {
+      const sdiv = slotDivs[i];
+      const equippedId = rpg.gear.equipped[sl.id];
+      const def = equippedId ? rpg.gearShop.find((g) => g.id === equippedId) || null : null;
+      if (equippedId) equippedIds.push(equippedId);
+      sdiv.querySelector('.gs-ico').textContent = def ? def.icon : '\u2795';
+      sdiv.querySelector('.gs-name').textContent = def ? def.name : 'Empty';
+      sdiv.querySelector('.gs-stats').textContent = def ? bonusTxt(def) : '';
+      sdiv.classList.toggle('filled', !!def);
+    });
+    el('gear-gacha-rates').textContent = `Rates: ${rpg.gearGacha.rates.map((g) => `${'\u2605'.repeat(g.stars)} ${g.name} ${g.rate < 1 ? g.rate : g.rate + '%'}`).join(' \u00b7 ')}`;
+    el('gear-gacha-stats').textContent = `Wishes: ${rpg.gearGacha.pulls} \u00b7 Legendaries: ${rpg.gearGacha.fiveStars} \u00b7 \ud83c\udfaf Mythics: ${rpg.gearGacha.mythics} \u2014 strongest weapons live here! \ud83c\udf40`;
+    const shop = el('gear-shop');
+    if (shop.childElementCount === 0) {
+      for (const g of rpg.gearShop) {
+        const card = document.createElement('div');
+        card.className = `gear-card gr-${g.rarity}`;
+        card.innerHTML = `<div class="gc-ico"></div><div class="gc-name"></div><div class="gc-stats small muted"></div><button class="btn btn-amber gc-btn"></button>`;
+        const btn = card.querySelector('.gc-btn');
+        btn.dataset.gearbuy = g.id;
+        btn.dataset.gearequip = g.id;
+        shop.appendChild(card);
+        gearShopCards[g.id] = card;
+      }
+    }
+    for (const g of rpg.gearShop) {
+      const card = gearShopCards[g.id];
+      card.querySelector('.gc-ico').textContent = g.icon;
+      card.querySelector('.gc-name').textContent = g.name;
+      card.querySelector('.gc-stats').textContent = bonusTxt(g) || '\u2014';
+      const btn = card.querySelector('.gc-btn');
+      btn.disabled = false;
+      if (equippedIds.includes(g.id)) {
+        btn.textContent = '\u2713 Unequip';
+      } else if (rpg.gear.owned.includes(g.id)) {
+        btn.textContent = '\ud83e\uddf3 Equip';
+      } else {
+        btn.textContent = `\ud83e\ude99 ${g.cost}`;
+        btn.disabled = d.coins < g.cost;
+      }
+    }
+  }
+
+  const pu = rpgUnlock(d, 'path');
+  el('path-lock').classList.toggle('hidden', pu.unlocked);
+  el('path-body').classList.toggle('hidden', !pu.unlocked);
+  if (!pu.unlocked) {
+    el('path-lock').textContent = `${pu.icon || '\ud83c\udf00'} ${pu.name} opens in ${pu.daysLeft} more day${pu.daysLeft === 1 ? '' : 's'} (${rpg.daysPlayed}/30 days)`;
+  } else {
+    const chosen = el('path-chosen');
+    const cardsEl = el('path-cards');
+    if (rpg.path) {
+      chosen.classList.remove('hidden');
+      chosen.textContent = rpg.path === 'work'
+        ? '\ud83d\udcbc Work Master \u2014 +50% coin rate for life. The idle tycoon!'
+        : '\u2694\ufe0f Battle Master \u2014 +15% battle ATK/DEF for life. The arena legend!';
+      cardsEl.innerHTML = '';
+    } else {
+      chosen.classList.add('hidden');
+      if (cardsEl.childElementCount === 0) {
+        cardsEl.innerHTML = `
+          <button class="path-card work" data-choosepath="work">
+            <div class="pc-ico">\ud83d\udcbc</div>
+            <div class="pc-name">Work Master</div>
+            <div class="pc-desc muted small">+50% coin rate for life. Dominate the idle grind, buy everything, max the gacha.</div>
+          </button>
+          <button class="path-card fight" data-choosepath="battle">
+            <div class="pc-ico">\u2694\ufe0f</div>
+            <div class="pc-name">Battle Master</div>
+            <div class="pc-desc muted small">+15% ATK &amp; DEF for life. Hunt monsters, hit hard, tank anything.</div>
+          </button>`;
+      }
+    }
+  }
+}
+
+function renderExplore(d) {
+  const grid = el('explore-grid');
+  if (!grid) return;
+  const spots = d.activities.filter((a) => a.outdoor);
+  if (grid.childElementCount === 0) {
+    for (const a of spots) {
+      const card = document.createElement('div');
+      card.className = 'explore-card';
+      card.innerHTML = `<div class="ex-ico"></div><div class="ex-name"></div><div class="ex-desc muted small"></div><div class="ex-meta muted small"></div><button class="btn btn-amber ex-btn">\ud83c\udf10 Explore</button>`;
+      card.querySelector('.ex-btn').dataset.explore = a.id;
+      grid.appendChild(card);
+      exploreCards[a.id] = card;
+    }
+  }
+  for (const a of spots) {
+    const card = exploreCards[a.id];
+    if (!card) continue;
+    card.classList.toggle('active', a.active);
+    card.classList.toggle('locked', a.cooldownRemainingMs > 0 && !a.active);
+    card.querySelector('.ex-ico').textContent = a.icon;
+    card.querySelector('.ex-name').textContent = a.name;
+    card.querySelector('.ex-desc').textContent = a.desc;
+    card.querySelector('.ex-meta').textContent = `${a.duration}s \u00b7 \u26a1${a.energy} \u00b7 \ud83e\ude99${a.coins[0]}-${a.coins[1]} \u00b7 +${a.xp}xp \u00b7 cd ${a.cooldown}s`;
+    const btn = card.querySelector('.ex-btn');
+    btn.disabled = a.active || d.dead;
+    btn.textContent = a.active ? `\u23f3 Out exploring... ${Math.max(0, Math.ceil((a.endsAt - Date.now()) / 1000))}s` : a.cooldownRemainingMs > 0 ? `\u23f3 ${Math.ceil(a.cooldownRemainingMs / 1000)}s` : '\ud83c\udf10 Explore';
+  }
+}
+
+el('battle-points-row').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-stat]');
+  if (!btn || btn.disabled) return;
+  const res = await api.action('allocateStat', { statId: btn.dataset.stat });
+  showToast((res && res.message) || '. ..', 1800);
+});
+
+el('monster-grid').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-monster]');
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+  const res = await api.action('battleMonster', { monsterId: btn.dataset.monster });
+  if (res && res.ok && res.win) {
+    for (let i = 0; i < 8; i += 1) spawnFx('coin', STAGE_CX + (Math.random() * 140 - 70), 110 + Math.random() * 40, { vy: -0.5, size: 18 });
+  } else if (res && res.ok) {
+    spawnFx('z', STAGE_CX, 160, { vy: -0.3, size: 16 });
+  }
+  showToast((res && res.message) || '. ..', 2800);
+});
+
+el('gear-shop').addEventListener('click', async (e) => {
+  const buyBtn = e.target.closest('button[data-gearbuy]');
+  const eqBtn = e.target.closest('button[data-gearequip]');
+  if (buyBtn && !eqBtn) {
+    const res = await api.action('buyGear', { gearId: buyBtn.dataset.gearbuy });
+    showToast((res && res.message) || '. ..', 2400);
+  } else if (eqBtn) {
+    const res = await api.action('equipGear', { gearId: eqBtn.dataset.gearequip });
+    showToast((res && res.message) || '. ..', 2400);
+  }
+});
+
+el('gear-slots').addEventListener('click', async (e) => {
+  const sdiv = e.target.closest('.gear-slot');
+  if (!sdiv) return;
+  const idx = Array.from(sdiv.parentElement.children).indexOf(sdiv);
+  const rpg = latest && latest.derived && latest.derived.rpg;
+  if (!rpg) return;
+  const slotId = ['weapon', 'armor', 'charm'][idx];
+  const equipped = rpg.gear.equipped[slotId];
+  if (!equipped) return;
+  const res = await api.action('equipGear', { gearId: equipped });
+  showToast((res && res.message) || '. ..', 2000);
+});
+
+el('path-cards').addEventListener('click', async (e) => {
+  const card = e.target.closest('button[data-choosepath]');
+  if (!card || card.disabled) return;
+  if (!window.confirm('Ito na talaga? The Destiny choice is PERMANENT for this buddy.')) return;
+  const res = await api.action('choosePath', { pathId: card.dataset.choosepath });
+  showToast((res && res.message) || '. ..', 3600);
+});
+
+el('explore-grid').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-explore]');
+  if (!btn || btn.disabled) return;
+  const res = await api.action('startActivity', { activityId: btn.dataset.explore });
+  showToast((res && res.message) || '. ..', 2400);
+});
+
+async function pullGearWish(times) {
+  if (gearGachaBusy) return;
+  gearGachaBusy = true;
+  const frame = el('gear-gacha-frame');
+  const resultEl = el('gear-gacha-result');
+  frame.classList.add('spinning');
+  const res = await api.action('pullGearGacha', { times });
+  frame.classList.remove('spinning');
+  gearGachaBusy = false;
+  if (!res || !res.ok) {
+    sfxOnce('error');
+    showToast((res && res.message) || '. ..', 2200);
+    return;
+  }
+  const best = res.best || {};
+  sfxOnce(best.rarity === 'mythic' ? 'levelup' : 'coin');
+  if (best.stars >= 4) spawnConfetti(frame, best.stars);
+  resultEl.className = `gacha-result r-${best.rarity}`;
+  resultEl.innerHTML = `<div class="gacha-stars">${'\u2b50'.repeat(best.stars)}</div><div class="gacha-rarity">${best.rarity.toUpperCase()}</div><div class="gacha-reward">${best.gearUnlocked ? `\ud83d\udee1\ufe0f NEW GEAR: ${best.gearUnlocked}<br>` : ''}+\ud83e\ude99${best.coins}</div>`;
+  resultEl.classList.remove('hidden');
+  setTimeout(() => resultEl.classList.add('hidden'), 3400);
+}
+
+el('btn-gear-gacha-1').addEventListener('click', () => pullGearWish(1));
+el('btn-gear-gacha-10').addEventListener('click', () => pullGearWish(10));
