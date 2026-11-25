@@ -979,9 +979,7 @@ function applyLevelUps(state) {
   if (targetIdx !== curIdx) {
     const target = STAGES[targetIdx];
     if (state.pet.stage === 'egg' && !state.pet.species) {
-      const roster = (spritesApi.PET_ROSTER || []).filter((pt) => !pt.shopOnly);
-      const pick = roster[Math.floor(Math.random() * roster.length)];
-      state.pet.species = pick ? pick.id : 'kala';
+      state.pet.species = rollHatchSpecies();
     }
     state.stageEvents = state.stageEvents || [];
     if (state.pet.stage === 'egg') {
@@ -995,6 +993,19 @@ function applyLevelUps(state) {
     state.pet.stage = target.id;
     state.effects.happyUntil = Math.max(state.effects.happyUntil, Date.now() + 8000);
   }
+}
+
+const HATCH_RARITY_WEIGHTS = { pusa: 0.35, agila: 0.35, uwak: 0.35, ahas: 0.35 };
+function rollHatchSpecies() {
+  const roster = (spritesApi.PET_ROSTER || []).filter((pt) => !pt.shopOnly);
+  if (!roster.length) return 'kala';
+  const total = roster.reduce((sum, pt) => sum + (HATCH_RARITY_WEIGHTS[pt.id] || 1), 0);
+  let roll = Math.random() * total;
+  for (const pt of roster) {
+    roll -= (HATCH_RARITY_WEIGHTS[pt.id] || 1);
+    if (roll <= 0) return pt.id;
+  }
+  return roster[roster.length - 1].id;
 }
 
 function deadGate(state) {

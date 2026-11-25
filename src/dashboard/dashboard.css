@@ -1670,9 +1670,9 @@ header.topbar { padding-right: 262px; }
 
 .jb-ad img { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
 
-.jb-ad-left,
-.jb-ad-right {
-  position: fixed;
+aside.jb-ad.jb-ad-left,
+aside.jb-ad.jb-ad-right {
+  position: fixed !important;
   top: 76px;
   width: 176px;
   height: 420px;
@@ -1681,8 +1681,10 @@ header.topbar { padding-right: 262px; }
   filter: drop-shadow(0 6px 14px rgba(10, 12, 20, 0.45));
 }
 
-.jb-ad-left { left: 12px; }
-.jb-ad-right { right: 12px; }
+aside.jb-ad.jb-ad-left { left: 12px; }
+aside.jb-ad.jb-ad-right { right: 12px; }
+
+.jb-ad.eco-bulletin-banner { padding: 0; overflow: hidden; background: none; }
 
 .jb-ad-bottom {
   width: 360px;
@@ -1692,10 +1694,22 @@ header.topbar { padding-right: 262px; }
   filter: drop-shadow(0 4px 10px rgba(10, 12, 20, 0.4));
 }
 
-/* Side ads need ~1588px viewport (1200 layout + 2 gutters) — hide otherwise */
-@media (max-width: 1580px) {
-  .jb-ad-left,
-  .jb-ad-right { display: none; }
+/* Side ads shrink to the paw-wallpaper gutters, hide when there is no room */
+@media (min-width: 1367px) and (max-width: 1580px) {
+  aside.jb-ad.jb-ad-left,
+  aside.jb-ad.jb-ad-right {
+    width: calc((100vw - 1200px) / 2 - 24px);
+    min-width: 56px;
+    height: auto;
+    aspect-ratio: 176 / 420;
+  }
+  aside.jb-ad.jb-ad-left img,
+  aside.jb-ad.jb-ad-right img { width: 100%; height: auto; aspect-ratio: 176 / 420; }
+}
+
+@media (max-width: 1366px) {
+  aside.jb-ad.jb-ad-left,
+  aside.jb-ad.jb-ad-right { display: none; }
 }
 
 @media (max-width: 860px) {
@@ -1737,3 +1751,27 @@ h2 img.eco-pixel { width: 20px; height: 20px; vertical-align: -4px; margin-right
 .eco-wishing-pod { width: 64px; height: 64px; margin: 4px auto 0; display: block; }
 
 body.eco-polished .jb-ad.eco-bulletin-banner { pointer-events: none; }
+
+
+/* Eco pack HUD extras */
+.hud-exp-bar {
+  display: block;
+  width: 74px;
+  height: 9px;
+  margin-top: 3px;
+  background: #232839;
+  border: 2px solid #3a4262;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.hud-exp-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: repeating-linear-gradient(-45deg, #5F8D62 0 6px, #88B04B 6px 12px);
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.exp-pill .hud-sub { display: none; }
+.exp-pill b { font-size: 10px; line-height: 1; }
+
+.buddy-tile img { width: 32px; height: 32px; object-fit: contain; }

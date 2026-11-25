@@ -107,7 +107,11 @@ function maybeShowNameModal() {
   const modal = el('name-modal');
   if (!modal || namedAlready() || !latest) return;
   const s = latest.state;
-  if (s && s.pet && s.pet.name === 'Buddy' && s.pet.stage === 'egg') modal.classList.remove('hidden');
+  if (s && s.pet && s.pet.name === 'Buddy' && s.pet.stage === 'egg') {
+    modal.classList.remove('hidden');
+    const input = el('name-input');
+    if (input) setTimeout(() => { try { input.focus(); } catch (err) { /* ignore */ } }, 60);
+  }
 }
 
 let perkKeyShown = null;
@@ -270,6 +274,7 @@ function render(snapshot) {
 
   el('pet-name').textContent = s.pet.name;
   el('level').textContent = s.pet.level;
+  updateBrandFace(s);
 
   el('coins').textContent = Math.floor(s.coins);
   el('coin-rate').textContent = s.flags.working ? `+${d.coinRate.toFixed(1)}/s` : 'not working';
@@ -580,15 +585,25 @@ function renderBuddyPicker(s) {
       tile.title = p.description || p.species;
       if (s.pet.species === p.id) tile.classList.add('selected');
       else if (s.pet.stage === 'egg') tile.classList.add('mystery');
-      const cv = document.createElement('canvas');
-      cv.width = 32;
-      cv.height = 32;
-      try {
-        const bank = sprites.ensurePetSprites(p.id);
-        const cctx = cv.getContext('2d');
-        cctx.imageSmoothingEnabled = false;
-        cctx.drawImage(bank.IDLE[0], 0, 0, 32, 32);
-      } catch (err) { /* preview only */ }
+      const animInfo = STAGE_PNG_ANIMS[p.id];
+      let vis;
+      if (animInfo) {
+        vis = document.createElement('img');
+        vis.className = 'pixelated';
+        vis.draggable = false;
+        vis.alt = p.name;
+        vis.src = `../../assets/sprites/${animInfo.dir}/frames/${animInfo.name}_frame_01.png`;
+      } else {
+        vis = document.createElement('canvas');
+        vis.width = 32;
+        vis.height = 32;
+        try {
+          const bank = sprites.ensurePetSprites(p.id);
+          const cctx = vis.getContext('2d');
+          cctx.imageSmoothingEnabled = false;
+          cctx.drawImage(bank.IDLE[0], 0, 0, 32, 32);
+        } catch (err) { /* preview only */ }
+      }
       const name = document.createElement('span');
       name.className = 'b-name';
       name.textContent = p.name;
@@ -608,9 +623,32 @@ function renderBuddyPicker(s) {
   }
 }
 
+const BRAND_FACE_PAW = '../../assets/sprites/ui/hud_icons/icons_1x_native/icon_paw.png';
+function updateBrandFace(s) {
+  const face = el('brand-face');
+  if (!face) return;
+  const pid = s.pet && s.pet.species;
+  const animInfo = pid ? STAGE_PNG_ANIMS[pid] : null;
+  const src = !pid || s.pet.stage === 'egg'
+    ? BRAND_FACE_PAW
+    : animInfo
+      ? `../../assets/sprites/${animInfo.dir}/frames/${animInfo.name}_frame_01.png`
+      : `../../assets/sprites/${pid}_idle_0.png`;
+  if (face.dataset.src !== src) {
+    face.dataset.src = src;
+    face.src = src;
+  }
+}
+
 function setMeter(prefix, value) {
   el(`${prefix}-fill`).style.width = pct(value);
   el(`${prefix}-val`).textContent = `${Math.round(value)}%`;
+  if (prefix === 'xp') {
+    const hudFill = el('hud-exp-fill');
+    const hudPct = el('hud-exp-pct');
+    if (hudFill) hudFill.style.width = pct(value);
+    if (hudPct) hudPct.textContent = `${Math.round(value)}%`;
+  }
 }
 
 function renderShop(s, d) {
@@ -1563,6 +1601,21 @@ function spriteFootFrac(img) {
   return frac;
 }
 
+const COSMETIC_PNG = new Set([
+  'cos_witch_hat', 'cos_salakot', 'cos_sakura_crown', 'cos_gold_crown', 'cos_ushanka', 'cos_shades',
+  'cos_red_scarf', 'cos_bell_collar', 'cos_bowtie', 'cos_angel_wings', 'cos_lantern', 'cos_parol_aura',
+]);
+const GEAR_PNG = {
+  wood_sword: 'eq_bamboo_staff', bamboo_katana: 'eq_bamboo_staff', kris: 'eq_kampilan_sword',
+  sun_lance: 'eq_kampilan_sword', storm_lance: 'eq_kampilan_sword', phoenix_blade: 'eq_kampilan_sword',
+  void_saber: 'eq_kampilan_sword', wind_bow: 'eq_bamboo_staff',
+  straw_hat: 'eq_rattan_shield', barong_vest: 'eq_rattan_shield', samurai_plate: 'eq_rattan_shield',
+  dragon_mail: 'eq_rattan_shield', cosmic_aegis: 'eq_rattan_shield', sunforged_plate: 'eq_rattan_shield',
+  tide_scale: 'eq_rattan_shield', shadow_cloak: 'eq_rattan_shield',
+  dream_charm: 'eq_agimat_amulet', moon_ring: 'eq_promise_ring', star_brooch: 'eq_agimat_amulet',
+  starfall_charm: 'eq_agimat_amulet',
+};
+
 function equippedOverlays(d2) {
   if (!latest || !latest.state) return [];
   const st2 = latest.state;
@@ -1585,17 +1638,24 @@ function equippedOverlays(d2) {
   };
   const eq = (st2.items && st2.items.equipped) || {};
   const ge = (r && r.gear && r.gear.equipped) || {};
-  return [
-    { icon: iconOf(eq.Head), dx: 0, dy: 1.06 },
-    { icon: iconOf(eq.Neck), dx: 10, dy: 0.72 },
-    { icon: iconOf(eq.Back), dx: -0.4, dy: 0.62, scale: true },
-    { icon: iconOf(eq.Armor), dx: -0.2, dy: 0.42, scale: true },
-    { icon: iconOf(eq.Relic), dx: -0.46, dy: 0.85 },
-    { icon: iconOf(eq.Weapon), dx: 0.42, dy: 0.5 },
-    { icon: gearIconOf(ge.weapon), dx: 0.5, dy: 0.68 },
-    { icon: gearIconOf(ge.armor), dx: -0.3, dy: 0.56, scale: true },
-    { icon: gearIconOf(ge.charm), dx: -0.52, dy: 0.7 },
-  ].filter((o) => o.icon);
+  const out = [];
+  const listOf = (iconFn, id, slot) => {
+    if (!id || !iconFn(id)) return;
+    let pngId = null;
+    if (COSMETIC_PNG.has(id)) pngId = id;
+    else if (GEAR_PNG[id]) pngId = GEAR_PNG[id];
+    out.push({ slot, emo: iconFn(id), pngId });
+  };
+  listOf(iconOf, eq.Head, 'Head');
+  listOf(iconOf, eq.Neck, 'Neck');
+  listOf(iconOf, eq.Back, 'Back');
+  listOf(iconOf, eq.Armor, 'Armor');
+  listOf(iconOf, eq.Relic, 'Relic');
+  listOf(iconOf, eq.Weapon, 'Weapon');
+  listOf(gearIconOf, ge.weapon, 'Weapon');
+  listOf(gearIconOf, ge.armor, 'Armor');
+  listOf(gearIconOf, ge.charm, 'Relic');
+  return out.filter((o) => o.pngId || o.emo);
 }
 
 function drawEquippedOnPet(now) {
@@ -1606,15 +1666,45 @@ function drawEquippedOnPet(now) {
   const gy = petWalk.y;
   const sz = petDraw && petDraw.size ? petDraw.size : 64;
   const bob = Math.round(Math.sin(now / 260) * 4) / 2;
+  const anchors = {
+    Head: { fx: 0, fy: 1.04, w: 0.5 },
+    Neck: { fx: 0.14, fy: 0.72, w: 0.4 },
+    Back: { fx: -0.58, fy: 0.6, w: 0.56 },
+    Weapon: { fx: 0.52, fy: 0.54, w: 0.5 },
+    Armor: { fx: -0.34, fy: 0.44, w: 0.5 },
+    Relic: { fx: -0.5, fy: 0.8, w: 0.4 },
+  };
   stageCtx.save();
-  stageCtx.font = '17px sans-serif';
-  stageCtx.textAlign = 'center';
   for (const o of overlays) {
-    const x = o.scale ? cx + dir * sz * o.dx : cx + dir * o.dx;
-    const y = gy - sz * o.dy + bob;
-    stageCtx.fillText(o.icon, x, y);
+    const a = anchors[o.slot] || anchors.Relic;
+    const iw = Math.max(14, Math.round(sz * a.w));
+    const x = cx + dir * sz * a.fx;
+    const y = gy - sz * a.fy + bob;
+    if (o.pngId) {
+      const img = overlayImg(`../../assets/sprites/items/${o.pngId.startsWith('cos_') ? 'cosmetics' : 'equipment'}/${o.pngId}.png`);
+      if (img) {
+        stageCtx.imageSmoothingEnabled = false;
+        stageCtx.drawImage(img, x - iw / 2, y - iw / 2, iw, iw);
+        continue;
+      }
+    }
+    stageCtx.font = '17px sans-serif';
+    stageCtx.textAlign = 'center';
+    stageCtx.fillText(o.emo, x, y);
   }
   stageCtx.restore();
+}
+
+const overlayImgCache = {};
+function overlayImg(path) {
+  if (!(path in overlayImgCache)) {
+    const img = new Image();
+    img.onerror = () => { img.bad = true; };
+    img.src = path;
+    overlayImgCache[path] = img;
+  }
+  const im = overlayImgCache[path];
+  return im && !im.bad && im.complete && im.naturalWidth > 0 ? im : null;
 }
 
 let battleFx = null;
@@ -2279,14 +2369,21 @@ if (nameModal && nameInput) {
     nameModal.classList.add('hidden');
     try { if (typeof localStorage !== 'undefined') localStorage.setItem('juanbuddy-named', '1'); } catch (err) { /* ignore */ }
   };
-  on('btn-name-save','click', async () => {
+  const submitName = async () => {
     const name = (nameInput.value || '').trim().slice(0, 16);
     if (!name) { showToast('Nickname is too short! 🥺'); return; }
     const res = await api.action('rename', { name });
     closeNameModal();
     if (sfx) sfx.play('happy');
     showToast((res && res.message) || '. ..');
+  };
+  on('btn-name-save','click', submitName);
+  nameInput.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') submitName();
   });
+  nameInput.addEventListener('keyup', (e) => e.stopPropagation());
+  nameInput.addEventListener('keypress', (e) => e.stopPropagation());
   on('btn-name-skip','click', () => {
     closeNameModal();
     showToast('Your buddy keeps the name Buddy — rename it later by clicking its name! 💛');

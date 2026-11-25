@@ -33,7 +33,7 @@
   <header class="topbar eco-hud-header">
     <div class="topbar-row">
       <div class="brand">
-        <div class="brand-badge"><img class="hud-img pixelated" src="../../assets/sprites/ui/hud_icons/icons_1x_native/icon_paw.png" draggable="false"></div>
+        <div class="brand-badge"><img id="brand-face" class="hud-img pixelated" src="../../assets/sprites/ui/hud_icons/icons_1x_native/icon_paw.png" draggable="false"></div>
         <div>
           <div class="brand-row">
             <h1 id="pet-name" title="Click to rename">Buddy</h1>
@@ -54,6 +54,13 @@
           <div class="hud-txt">
             <b id="hud-clock">--:--</b>
             <span class="hud-sub" id="hud-tz">local</span>
+          </div>
+        </div>
+        <div class="hud-pill exp-pill" title="EXP progress to next level">
+          <img class="hud-img pixelated" src="../../assets/sprites/ui/hud_icons/icons_1x_native/icon_exp_star.png" draggable="false">
+          <div class="hud-txt">
+            <b id="hud-exp-pct">0%</b>
+            <span class="hud-exp-bar"><i id="hud-exp-fill"></i></span>
           </div>
         </div>
       </div>
