@@ -35,19 +35,6 @@ console.log('dashboard ui ids');
   assert(missing.length === 0, `dashboard.js references missing ids: ${missing.join(', ') || 'none'}`);
 }
 
-console.log('pet ui ids');
-{
-  const js = fs.readFileSync(path.join(root, 'src', 'pet', 'pet.js'), 'utf8');
-  const html = fs.readFileSync(path.join(root, 'src', 'pet', 'index.html'), 'utf8');
-  const ids = new Set();
-  for (const m of js.matchAll(/getElementById\((['"`])([^'"`]+)\1\)/g)) {
-    if (/^[a-z0-9-]+$/.test(m[2])) ids.add(m[2]);
-  }
-  const present = htmlIds(html);
-  const missing = [...ids].filter((id) => !present.has(id));
-  assert(missing.length === 0, `pet.js references missing ids: ${missing.join(', ') || 'none'}`);
-}
-
 console.log('mobile ui ids');
 {
   const js = fs.readFileSync(path.join(root, 'mobile', 'app.js'), 'utf8');
@@ -69,17 +56,22 @@ console.log('sprite asset coverage');
   const dir = path.join(root, 'assets', 'sprites');
   const files = fs.existsSync(dir) ? new Set(fs.readdirSync(dir)) : new Set();
   const states = ['idle', 'walk', 'happy', 'eat', 'sleep'];
-  let pngCount = 0;
+  let singles = 0;
   for (const id of rosterIds) {
     for (const st of states) {
-      if (files.has(`${id}_${st}.png`)) pngCount += 1;
+      if (files.has(`${id}_${st}.png`)) singles += 1;
     }
   }
-  assert(pngCount >= 45, `expected 45+ PNG sprites, found ${pngCount}`);
+  let frameCount = 0;
   for (const file of files) {
-    if (file.endsWith('.png')) assert(/^[a-z]+_[a-z]+\.png$/.test(file), `bad sprite filename: ${file}`);
+    if (!file.endsWith('.png')) continue;
+    const m = file.match(/^([a-z]+)_([a-z]+)(_([0-3]))?\.png$/);
+    assert(m, `bad sprite filename: ${file}`);
+    if (m && m[4]) frameCount += 1;
   }
-  assert(rosterIds.length >= 14, 'roster has at least 14 pets');
+  assert(singles + frameCount >= 100, `expected 100+ PNG sprites, found singles=${singles} frames=${frameCount}`);
+  const petIds = [...sprites.matchAll(/id: '([a-z_]+)', name: '[^']+', country: '[^']+', region: '[^']+', flag:/g)].map((m) => m[1]);
+  assert(petIds.length >= 14, 'roster has at least 14 pets');
 }
 
 console.log('food icon asset coverage');

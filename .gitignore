@@ -7,3 +7,4 @@ dist/
 !mobile/icons/*.png
 !android/app/src/main/res/**/*.png
 !android/app/src/main/res/**/*.xml
+!assets/sheets-src/*.png

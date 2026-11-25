@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src 'self' data: file:" />
   <link rel="stylesheet" href="dashboard.css" />
 </head>
 <body>
@@ -18,63 +18,83 @@
     </div>
   </header>
 
-  <section class="card">
-    <div class="coin-row">
-      <span class="coin">🪙 <b id="coins">0</b></span>
-      <span id="coin-rate" class="muted">+0.0/s</span>
+  <section class="pet-stage" id="pet-stage">
+    <canvas id="dash-pet" width="240" height="240"></canvas>
+    <div id="stage-hint" class="stage-hint">👆 Tap pet to greet</div>
+  </section>
+
+  <nav class="tab-bar" id="tab-bar">
+    <button data-tab="home" class="studio-tab on">🏠 Home</button>
+    <button data-tab="shop" class="studio-tab">🛠️ Shop</button>
+    <button data-tab="food" class="studio-tab">🍜 Delicacies</button>
+    <button data-tab="activities" class="studio-tab">🎯 Activities</button>
+    <button data-tab="pets" class="studio-tab">🐾 Pets</button>
+  </nav>
+
+  <main id="tab-panels">
+    <div class="tab-panel panel-home">
+      <section class="card">
+        <div class="coin-row">
+          <span class="coin">🪙 <b id="coins">0</b></span>
+          <span id="coin-rate" class="muted">+0.0/s</span>
+        </div>
+        <div class="meter">
+          <label>🍖 Hunger</label>
+          <div class="bar"><div id="hunger-fill" class="fill hunger"></div></div>
+          <span id="hunger-val" class="val">0%</span>
+        </div>
+        <div class="meter">
+          <label>⚡ Energy</label>
+          <div class="bar"><div id="energy-fill" class="fill energy"></div></div>
+          <span id="energy-val" class="val">0%</span>
+        </div>
+        <div class="meter">
+          <label>💖 Happiness</label>
+          <div class="bar"><div id="happy-fill" class="fill happy"></div></div>
+          <span id="happy-val" class="val">0%</span>
+        </div>
+      </section>
+
+      <section class="actions">
+        <div class="main-actions">
+          <button id="btn-play" class="btn wide">🎾 Play (−8 ⚡)</button>
+          <button id="btn-work" class="btn wide accent">💼 Work: Off</button>
+          <button id="btn-sleep" class="btn wide">😴 Sleep: Off</button>
+          <button id="btn-cheer" class="btn wide">✨ Cheer Me Up (+coins)</button>
+        </div>
+      </section>
     </div>
-    <div class="meter">
-      <label>🍖 Hunger</label>
-      <div class="bar"><div id="hunger-fill" class="fill hunger"></div></div>
-      <span id="hunger-val" class="val">0%</span>
+
+    <div class="tab-panel hidden panel-shop">
+      <section class="card">
+        <h2>🛠️ Shop</h2>
+        <div id="shop" class="shop-grid"></div>
+      </section>
     </div>
-    <div class="meter">
-      <label>⚡ Energy</label>
-      <div class="bar"><div id="energy-fill" class="fill energy"></div></div>
-      <span id="energy-val" class="val">0%</span>
+
+    <div class="tab-panel hidden panel-food">
+      <section class="card">
+        <h2>🍜 Delicacies <small class="muted">— feed your buddy world foods</small></h2>
+        <div id="food-filters" class="filter-row"></div>
+        <input id="food-search" class="search-box" type="text" placeholder="Search foods... (e.g. pad thai, samosa)" />
+        <div id="food-grid" class="food-grid"></div>
+      </section>
     </div>
-    <div class="meter">
-      <label>💖 Happiness</label>
-      <div class="bar"><div id="happy-fill" class="fill happy"></div></div>
-      <span id="happy-val" class="val">0%</span>
+
+    <div class="tab-panel hidden panel-activities">
+      <section class="card">
+        <h2>🎯 Activities <small class="muted">— earn extra coins &amp; XP</small></h2>
+        <div id="activities" class="activity-list"></div>
+      </section>
     </div>
-  </section>
 
-  <section class="card">
-    <h2>🛠 Shop</h2>
-    <div id="shop" class="shop-grid"></div>
-  </section>
-
-  <section class="card">
-    <h2>🍜 Delicacies <small class="muted">— feed your buddy world foods</small></h2>
-    <div id="food-filters" class="filter-row"></div>
-    <input id="food-search" class="search-box" type="text" placeholder="Search foods... (e.g. pad thai, samosa)" />
-    <div id="food-grid" class="food-grid"></div>
-  </section>
-
-  <section class="actions">
-    <div class="main-actions">
-      <button id="btn-play" class="btn wide">🎾 Play (−8 ⚡)</button>
-      <button id="btn-work" class="btn wide accent">💼 Work: Off</button>
-      <button id="btn-sleep" class="btn wide">😴 Sleep: Off</button>
-      <button id="btn-cheer" class="btn wide">✨ Cheer Me Up (+coins)</button>
+    <div class="tab-panel hidden panel-pets">
+      <section class="card">
+        <h2>🐾 Choose Your Buddy</h2>
+        <div id="buddy-grid" class="buddy-grid"></div>
+      </section>
     </div>
-  </section>
-
-  <section class="card">
-    <h2>🛠 Shop</h2>
-    <div id="shop" class="shop-grid"></div>
-  </section>
-
-  <section class="card">
-    <h2>🎯 Activities <small class="muted">— earn extra coins & XP</small></h2>
-    <div id="activities" class="activity-list"></div>
-  </section>
-
-  <section class="card">
-    <h2>🧸 Choose Your Buddy</h2>
-    <div id="buddy-grid" class="buddy-grid"></div>
-  </section>
+  </main>
 
   <footer>
     <label class="toggle">

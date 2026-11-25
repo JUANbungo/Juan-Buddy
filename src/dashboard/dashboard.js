@@ -346,3 +346,115 @@ api.getState().then((snap) => {
   if (snap) el('open-login').checked = !!snap.openAtLogin;
   render(snap);
 });
+
+const petStageCanvas = document.getElementById('dash-pet');
+const stageCtx = petStageCanvas.getContext('2d');
+
+const STAGE_STATE_FILE = { IDLE: 'idle', WALK: 'walk', HAPPY: 'happy', EAT: 'eat', SLEEP: 'sleep' };
+const stageFrames = {};
+
+function stageFramesFor(id, state) {
+  const key = `${id}_${state}`;
+  if (!(key in stageFrames)) {
+    const sf = STAGE_STATE_FILE[state];
+    const imgs = [];
+    for (let f = 0; f < 4; f += 1) {
+      const img = new Image();
+      img.onerror = () => { img.bad = true; };
+      img.src = `../assets/sprites/${id}_${sf}_${f}.png`;
+      imgs.push(img);
+    }
+    stageFrames[key] = imgs;
+  }
+  return stageFrames[key].filter((i) => !i.bad && i.complete && i.naturalWidth > 0);
+}
+
+const stageSingle = {};
+
+function stageSingleFor(id, state) {
+  const key = `${id}_${STAGE_STATE_FILE[state]}`;
+  if (!(key in stageSingle)) {
+    const img = new Image();
+    img.onerror = () => { stageSingle[key] = null; };
+    img.src = `../assets/sprites/${key}.png`;
+    stageSingle[key] = img;
+  }
+  const img = stageSingle[key];
+  return img && img.complete && img.naturalWidth > 0 ? img : null;
+}
+
+function stageStateFor(now) {
+  if (!latest) return 'IDLE';
+  const s = latest.state;
+  if (s.flags.sleeping) return 'SLEEP';
+  if (s.effects && s.effects.eatUntil > now) return 'EAT';
+  if (s.effects && s.effects.happyUntil > now) return 'HAPPY';
+  return s.activity || s.flags.working ? 'WALK' : 'IDLE';
+}
+
+function drawStagePet(now) {
+  const cx = 120;
+  const groundY = 224;
+  stageCtx.clearRect(0, 0, petStageCanvas.width, petStageCanvas.height);
+  stageCtx.save();
+  stageCtx.globalAlpha = 0.22;
+  stageCtx.fillStyle = '#000';
+  stageCtx.beginPath();
+  stageCtx.ellipse(cx, groundY, 52, 9, 0, 0, Math.PI * 2);
+  stageCtx.fill();
+  stageCtx.restore();
+
+  if (!latest) return;
+  const speciesId = latest.state.pet.species || 'kala';
+  const state = stageStateFor(now);
+  const bobbing = state === 'HAPPY' || state === 'WALK';
+  const yOff = bobbing ? Math.round(Math.sin(now / 260) * 4) : 0;
+
+  stageCtx.save();
+  stageCtx.imageSmoothingEnabled = false;
+
+  const pngs = stageFramesFor(speciesId, state);
+  const single = stageSingleFor(speciesId, state);
+  if (pngs.length > 0) {
+    const img = pngs[Math.floor(now / 170) % pngs.length];
+    stageCtx.drawImage(img, cx - 112, groundY - 224 + yOff, 224, 224);
+  } else if (single) {
+    stageCtx.drawImage(single, cx - 112, groundY - 224 + yOff, 224, 224);
+  } else {
+    let bank = null;
+    try {
+      bank = sprites.ensurePetSprites(speciesId);
+    } catch (err) {
+      bank = null;
+    }
+    if (bank && bank[state]) {
+      const frame = bank[state][Math.floor(now / 170) % bank[state].length];
+      stageCtx.drawImage(frame, cx - 112, groundY - 224 + yOff, 224, 224);
+    }
+  }
+  stageCtx.restore();
+}
+
+
+let lastStagePat = 0;
+petStageCanvas.addEventListener('click', async () => {
+  const now = performance.now();
+  if (now - lastStagePat < 900) return;
+  lastStagePat = now;
+  const res = await api.action('pat');
+  showToast((res && res.message) || 'hehe~', 1500);
+});
+
+document.querySelectorAll('#tab-bar .studio-tab').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#tab-bar .studio-tab').forEach((b) => b.classList.toggle('on', b === btn));
+    document.querySelectorAll('.tab-panel').forEach((p) => p.classList.add('hidden'));
+    document.querySelector(`.panel-${btn.dataset.tab}`).classList.remove('hidden');
+  });
+});
+document.querySelector('.panel-home').classList.remove('hidden');
+
+(function stageLoop() {
+  drawStagePet(performance.now());
+  requestAnimationFrame(stageLoop);
+})();

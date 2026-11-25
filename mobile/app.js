@@ -8,17 +8,34 @@ const SAVE_KEY = 'juanbuddy-mobile-save';
 const STATE_FILE = { IDLE: 'idle', WALK: 'walk', HAPPY: 'happy', EAT: 'eat', SLEEP: 'sleep' };
 const spriteImages = {};
 
-function spriteImageFor(speciesId, anim) {
+const spriteSingles = {};
+
+function spriteFramesFor(speciesId, anim) {
   for (const st of ['IDLE', 'WALK', 'HAPPY', 'EAT', 'SLEEP']) {
     const key = `${speciesId}_${st}`;
     if (!(key in spriteImages)) {
-      const img = new Image();
-      spriteImages[key] = img;
-      img.onerror = () => { spriteImages[key] = null; };
-      img.src = `sprites/${speciesId}_${STATE_FILE[st]}.png`;
+      const imgs = [];
+      for (let f = 0; f < 4; f += 1) {
+        const img = new Image();
+        img.onerror = () => { img.bad = true; };
+        img.src = `sprites/${speciesId}_${STATE_FILE[st]}_${f}.png`;
+        imgs.push(img);
+      }
+      spriteImages[key] = imgs;
     }
   }
-  const img = spriteImages[`${speciesId}_${anim}`];
+  return (spriteImages[`${speciesId}_${anim}`] || []).filter((i) => !i.bad && i.complete && i.naturalWidth > 0);
+}
+
+function spriteSingleFor(speciesId, anim) {
+  const key = `${speciesId}_${STATE_FILE[anim]}`;
+  if (!(key in spriteSingles)) {
+    const img = new Image();
+    img.onerror = () => { spriteSingles[key] = null; };
+    img.src = `sprites/${key}.png`;
+    spriteSingles[key] = img;
+  }
+  const img = spriteSingles[key];
   return img && img.complete && img.naturalWidth > 0 ? img : null;
 }
 
@@ -193,9 +210,15 @@ function drawPet(now) {
   const yOff = anim === 'HAPPY' || anim === 'WALK' ? Math.round(Math.sin(now / 260) * 4) : 0;
   petCtx.imageSmoothingEnabled = false;
 
-  const pngSprite = spriteImageFor(speciesId, anim);
-  if (pngSprite) {
-    petCtx.drawImage(pngSprite, 8, 214 - 224 + yOff, 224, 224);
+  const pngs = spriteFramesFor(speciesId, anim);
+  if (pngs.length > 0) {
+    const img = pngs[Math.floor(now / 170) % pngs.length];
+    petCtx.drawImage(img, 8, 214 - 224 + yOff, 224, 224);
+    return;
+  }
+  const single = spriteSingleFor(speciesId, anim);
+  if (single) {
+    petCtx.drawImage(single, 8, 214 - 224 + yOff, 224, 224);
     return;
   }
 

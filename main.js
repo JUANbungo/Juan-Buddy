@@ -8,7 +8,6 @@ const motivation = require('./src/pet/motivation');
 
 const isMac = process.platform === 'darwin';
 let tray = null;
-let petWindow = null;
 let dashboardWindow = null;
 let tickTimer = null;
 let dirty = false;
@@ -143,36 +142,6 @@ function resetState() {
   return { ok: true, message: 'Progress reset.' };
 }
 
-function createPetWindow() {
-  if (petWindow && !petWindow.isDestroyed()) {
-    petWindow.show();
-    return;
-  }
-  const { screen } = require('electron');
-  const display = screen.getPrimaryDisplay();
-  const workArea = display.workArea;
-  petWindow = new BrowserWindow({
-    width: 240,
-    height: 280,
-    x: workArea.x + workArea.width - 300,
-    y: workArea.y + workArea.height - 320,
-    frame: false,
-    transparent: true,
-    resizable: false,
-    alwaysOnTop: true,
-    skipTaskbar: true,
-    hasShadow: false,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  });
-  petWindow.setAlwaysOnTop(true, 'screen-saver');
-  petWindow.loadFile(path.join(__dirname, 'src', 'pet', 'index.html'));
-  petWindow.on('closed', () => { petWindow = null; });
-}
-
 function createDashboardWindow() {
   if (dashboardWindow && !dashboardWindow.isDestroyed()) {
     dashboardWindow.show();
@@ -208,11 +177,6 @@ function createTray() {
   tray = new Tray(trayIcon());
   const menu = Menu.buildFromTemplate([
     { label: 'Open Dashboard', click: createDashboardWindow },
-    { label: 'Show / Hide Buddy', click: () => {
-      if (!petWindow || petWindow.isDestroyed()) createPetWindow();
-      else if (petWindow.isVisible()) petWindow.hide();
-      else petWindow.show();
-    } },
     { type: 'separator' },
     { label: 'Open at login', type: 'checkbox', checked: app.getLoginItemSettings().openAtLogin,
       click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked }) },
@@ -263,7 +227,6 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on('second-instance', () => {
-    createPetWindow();
     dashboardWindow ? dashboardWindow.focus() : createDashboardWindow();
   });
 
@@ -275,8 +238,6 @@ if (!app.requestSingleInstanceLock()) {
       const event = await triggerMotivation('work_break');
       return event;
     });
-    ipcMain.on('pet:openDashboard', createDashboardWindow);
-    ipcMain.on('pet:hide', () => { if (petWindow) petWindow.hide(); });
 
     const { ICON_PNG_BASE64 } = require('./assets/icons');
     if (process.platform === 'darwin' && app.dock) {
@@ -284,11 +245,11 @@ if (!app.requestSingleInstanceLock()) {
     }
 
     createTray();
-    createPetWindow();
+    createDashboardWindow();
     startTicking();
 
     app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) createPetWindow();
+      if (BrowserWindow.getAllWindows().length === 0) createDashboardWindow();
     });
   });
 }
