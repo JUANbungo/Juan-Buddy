@@ -36,7 +36,9 @@
       "assets/bgm/mp3/*.mp3",
       "assets/icon.png",
       "assets/tray.png",
-      "scripts/generate-icons.js"
+      "scripts/generate-icons.js",
+      "assets/branding/**/*",
+      "assets/wallpapers/**/*"
     ],
     "win": {
       "icon": "assets/icon.png",

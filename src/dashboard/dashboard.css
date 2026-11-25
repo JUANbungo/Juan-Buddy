@@ -1460,3 +1460,36 @@ body.rain-active .playground-wrap::after {
   pointer-events: none;
   background: linear-gradient(rgba(70, 100, 160, 0.05), rgba(70, 100, 160, 0.10));
 }
+
+/* ==== Paw wallpaper background + brand logo (per-accent theme) ==== */
+body {
+  background: var(--bg) url('../../assets/wallpapers/juan_buddy_paw_06_peach.png') repeat;
+  background-size: 303px 508px;
+}
+body.theme-mint { background-image: url('../../assets/wallpapers/juan_buddy_paw_04_mint_green.png'); }
+body.theme-sky { background-image: url('../../assets/wallpapers/juan_buddy_paw_02_sky_blue.png'); }
+body.theme-berry { background-image: url('../../assets/wallpapers/juan_buddy_paw_03_sakura_pink.png'); }
+body.theme-violet { background-image: url('../../assets/wallpapers/juan_buddy_paw_05_lavender.png'); }
+body.theme-sunset { background-image: url('../../assets/wallpapers/juan_buddy_paw_09_sunshine_yellow.png'); }
+body.theme-classic { background-image: url('../../assets/wallpapers/juan_buddy_paw_06_peach.png'); }
+
+header.topbar { padding-right: 182px; }
+.brand-logo {
+  position: absolute;
+  top: 5px;
+  right: 16px;
+  height: 58px;
+  width: auto;
+  max-width: 160px;
+  image-rendering: pixelated;
+  pointer-events: none;
+  z-index: 5;
+  animation: logoFloat 3.2s ease-in-out infinite;
+}
+@keyframes logoFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-logo { animation: none; }
+}
