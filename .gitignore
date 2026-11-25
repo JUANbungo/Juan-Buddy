@@ -12,4 +12,5 @@ dist/
 !android/app/src/main/res/**/*.xml
 !assets/sheets-src/*.png
 !assets/branding/*.png
+!assets/scenes/*.png
 !assets/wallpapers/*.png

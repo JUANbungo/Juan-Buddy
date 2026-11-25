@@ -38,7 +38,8 @@
       "assets/tray.png",
       "scripts/generate-icons.js",
       "assets/branding/**/*",
-      "assets/wallpapers/**/*"
+      "assets/wallpapers/**/*",
+      "assets/scenes/**/*"
     ],
     "win": {
       "icon": "assets/icon.png",

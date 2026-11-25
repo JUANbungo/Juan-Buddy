@@ -198,6 +198,60 @@
 
   function getVolume() { return volume; }
 
+  function noise(dur, opts) {
+    const ac = ensureCtx();
+    if (!ac) return;
+    const t0 = ac.currentTime + (opts && opts.delay ? opts.delay : 0);
+    const len = Math.max(1, Math.floor(ac.sampleRate * dur));
+    const buf = ac.createBuffer(1, len, ac.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i += 1) data[i] = Math.random() * 2 - 1;
+    const src2 = ac.createBufferSource();
+    src2.buffer = buf;
+    const f = ac.createBiquadFilter();
+    f.type = (opts && opts.filter) || 'lowpass';
+    f.frequency.value = (opts && opts.filterFreq) || 1000;
+    const g = ac.createGain();
+    const vol2 = (opts && opts.vol) || 0.15;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol2, t0 + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src2.connect(f); f.connect(g); g.connect(sfxMaster || ac.destination);
+    src2.start(t0);
+    src2.stop(t0 + dur + 0.05);
+  }
+
+  function barkBursts(count, dur, freqs) {
+    for (let i = 0; i < count; i += 1) {
+      tone(freqs[0], dur, { type: 'sawtooth', vol: 0.16, slideTo: freqs[1], delay: i * 0.16 });
+      noise(dur, { filter: 'bandpass', filterFreq: 700, vol: 0.07, delay: i * 0.16 });
+    }
+  }
+
+  const PET_VOICES = {
+    kala() { tone(110, 0.75, { type: 'sawtooth', vol: 0.16, slideTo: 70 }); noise(0.7, { filter: 'lowpass', filterFreq: 220, vol: 0.07 }); },
+    bantay() { barkBursts(2, 0.11, [320, 150]); },
+    gino() { barkBursts(2, 0.09, [430, 220]); },
+    tala() { tone(320, 0.9, { type: 'sine', vol: 0.15, slideTo: 520 }); tone(500, 0.6, { type: 'sine', vol: 0.13, delay: 0.75, slideTo: 300 }); },
+    chai() { tone(200, 0.55, { type: 'square', vol: 0.13, slideTo: 480 }); noise(0.5, { filter: 'bandpass', filterFreq: 900, vol: 0.05, delay: 0.1 }); },
+    linh() { tone(480, 0.2, { type: 'triangle', vol: 0.13, slideTo: 780 }); tone(760, 0.34, { type: 'triangle', vol: 0.12, delay: 0.22, slideTo: 340 }); },
+    bara() { noise(0.65, { filter: 'highpass', filterFreq: 3800, vol: 0.13 }); },
+    rimau() { tone(90, 0.6, { type: 'sawtooth', vol: 0.17, slideTo: 55 }); noise(0.55, { filter: 'lowpass', filterFreq: 300, vol: 0.1 }); },
+    misha() { tone(65, 0.8, { type: 'sawtooth', vol: 0.18, slideTo: 45 }); noise(0.75, { filter: 'lowpass', filterFreq: 240, vol: 0.11, delay: 0.15 }); },
+    merli() { noise(0.4, { filter: 'lowpass', filterFreq: 900, vol: 0.09 }); tone(760, 0.16, { type: 'triangle', vol: 0.1, delay: 0.18, slideTo: 1150 }); },
+    raja() { tone(150, 0.7, { type: 'sawtooth', vol: 0.2, slideTo: 70 }); noise(0.5, { filter: 'lowpass', filterFreq: 500, vol: 0.12, delay: 0.05 }); },
+    mochi() { barkBursts(1, 0.07, [900, 480]); },
+    bao() { tone(390, 0.16, { type: 'square', vol: 0.11, slideTo: 300 }); tone(390, 0.16, { type: 'square', vol: 0.11, delay: 0.2, slideTo: 300 }); tone(330, 0.2, { type: 'square', vol: 0.1, delay: 0.42, slideTo: 280 }); },
+  };
+
+  function petVoice(species) {
+    if (!enabled) return;
+    try {
+      const fn = PET_VOICES[species] || PET_VOICES.bantay;
+      fn();
+    } catch (err) { /* audio unavailable */ }
+  }
+
   let rain = null;
   let rainTimer = null;
 
@@ -274,5 +328,5 @@
 
   function getRain() { return rain ? rain.mode : 'off'; }
 
-  return { play, playGacha, isEnabled, setEnabled, setVolume, getVolume, setRain, getRain };
+  return { play, playGacha, isEnabled, setEnabled, setVolume, getVolume, setRain, getRain, petVoice, PET_VOICES };
 });

@@ -1197,7 +1197,44 @@ const PARK_SKIES = {
   beach: ['#2563eb', '#fde68a'],
 };
 
+const SCENE_FILES = {
+  park: 'sakura_city_park',
+  baywalk: 'manila_baywalk',
+  market: 'bangkok_floating_market',
+  temple: 'kyoto_zen_garden',
+  terraces: 'banaue_rice_terraces',
+  beach: 'boracay_beach',
+};
+const stageScenes = {};
+function sceneImageFor(mode) {
+  if (!SCENE_FILES[mode]) return null;
+  if (stageScenes[mode]) return stageScenes[mode];
+  let img = null;
+  try {
+    img = new Image();
+    img.onerror = () => { img.bad = true; };
+    img.src = `../../assets/scenes/${SCENE_FILES[mode]}.png`;
+  } catch (err) { img = null; }
+  stageScenes[mode] = img;
+  return img;
+}
+
 function drawPark(now, phaseId, mode) {
+  const scene = sceneImageFor(mode);
+  if (scene && !scene.bad && scene.complete && scene.naturalWidth > 0) {
+    const sw2 = scene.naturalWidth;
+    const sh2 = scene.naturalHeight;
+    const scale = Math.max(STAGE_W / sw2, STAGE_H / sh2);
+    const dw = sw2 * scale;
+    const dh = sh2 * scale;
+    stageCtx.drawImage(scene, (STAGE_W - dw) / 2, (STAGE_H - dh) / 2, dw, dh);
+    const fade = stageCtx.createLinearGradient(0, 250, 0, STAGE_H);
+    fade.addColorStop(0, 'rgba(10, 12, 20, 0)');
+    fade.addColorStop(1, 'rgba(10, 12, 20, 0.30)');
+    stageCtx.fillStyle = fade;
+    stageCtx.fillRect(0, 250, STAGE_W, STAGE_H - 250);
+    return;
+  }
   const skies = PARK_SKIES[mode] || PARK_SKIES.park;
   const night = phaseId === 'night';
   const sky = stageCtx.createLinearGradient(0, 0, 0, 284);
@@ -1643,6 +1680,10 @@ petStageCanvas.addEventListener('click', async (e) => {
       stageFx.push({ kind: 'heart', x: petDraw.cx + (Math.random() * 26 - 13), y: STAGE_GROUND - petDraw.size * 0.3, vy: -0.9, life: 1, size: 14 + Math.random() * 10, wobble: Math.random() * 6 });
     }
     sfxOnce('pat');
+    try {
+      const sid2 = latest && latest.state && latest.state.pet ? latest.state.pet.species : null;
+      if (sfx && sfx.petVoice) sfx.petVoice(sid2 || 'kala');
+    } catch (err) { /* voice unavailable */ }
     const res = await api.action('pat');
     showToast((res && res.message) || 'hehe~', 1500);
     return;
