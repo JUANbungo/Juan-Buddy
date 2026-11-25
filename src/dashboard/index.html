@@ -83,6 +83,7 @@
         <button data-tab="activities" class="studio-tab">🎯 Activities</button>
         <button data-tab="shop" class="studio-tab">🛠️ Shop</button>
         <button data-tab="pets" class="studio-tab">🐾 Pets</button>
+        <button data-tab="gacha" class="studio-tab">🎰 Gacha</button>
         <button data-tab="life" class="studio-tab">✨ Life</button>
       </nav>
 
@@ -133,6 +134,22 @@
           </section>
         </div>
 
+        <div class="tab-panel hidden panel-gacha">
+          <section class="card">
+            <h2>🎰 Wish Machine <small class="muted">— gamble your coins, chase the 0.0001%</small></h2>
+            <div id="gacha-frame" class="gacha-frame">
+              <div id="gacha-orb" class="gacha-orb">🎰</div>
+              <div id="gacha-result" class="gacha-result hidden"></div>
+            </div>
+            <div class="gacha-actions">
+              <button id="btn-gacha-1" class="btn btn-amber">🔮 Summon ×1 — 💰100</button>
+              <button id="btn-gacha-10" class="btn btn-violet">✨ Summon ×10 — 💰900</button>
+            </div>
+            <div id="gacha-rates" class="gacha-rates muted small"></div>
+            <div id="gacha-stats" class="muted small"></div>
+          </section>
+        </div>
+
         <div class="tab-panel hidden panel-pets">
           <section class="card">
             <h2>🐾 Choose Your Buddy</h2>
@@ -148,6 +165,7 @@
       <input type="checkbox" id="open-login" />
       Open at login
     </label>
+    <button id="btn-sfx" class="link"><span id="sfx-label">🔊 Sound: On</span></button>
     <button id="btn-reset" class="link danger">Reset progress</button>
   </footer>
 
@@ -163,6 +181,7 @@
 
   <div id="toast" class="toast hidden"></div>
   <script src="../pet/sprites.js"></script>
+  <script src="../pet/sfx.js"></script>
   <script src="dashboard.js"></script>
 </body>
 </html>

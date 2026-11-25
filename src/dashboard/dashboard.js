@@ -2,6 +2,31 @@
 
 const api = window.BuddyAPI;
 const sprites = window.JBSprites;
+const sfx = window.JBSfx;
+const sfxLast = {};
+
+function sfxOnce(name) {
+  if (!sfx) return;
+  const now = Date.now();
+  if (sfxLast[name] && now - sfxLast[name] < 1200) return;
+  sfxLast[name] = now;
+  sfx.play(name);
+}
+
+function playActionSound(action, res) {
+  if (!sfx) return;
+  if (!res || res.ok === false) {
+    sfxOnce('error');
+    return;
+  }
+  const map = {
+    feed: 'feed', play: 'happy', pat: 'pat', buyUpgrade: 'buy', buySkin: 'buy',
+    setSkin: 'happy', claimDaily: 'daily', newGame: 'hatch', startActivity: 'click',
+    toggleWork: 'click', toggleSleep: 'click', exportSave: 'click', importSave: 'click',
+    rename: 'click', setSpecies: 'happy',
+  };
+  sfxOnce(map[action] || 'click');
+}
 const UPGRADE_META = {
   bed: { icon: '🛏', title: 'Cozy Bed', desc: 'Energy drains 12% slower per level' },
   toys: { icon: '🧸', title: 'Toy Box', desc: 'Playing gives +25% happiness per level' },
@@ -60,12 +85,23 @@ function pct(v) {
 
 async function act(action, payload) {
   const res = await api.action(action, payload);
+  playActionSound(action, res);
   showToast(res && res.message);
+  return res;
 }
 
 function render(snapshot) {
   latest = snapshot;
   const { state: s, derived: d, toast } = snapshot;
+
+  if (toast && sfx) {
+    const msg = String(toast);
+    if (msg.includes('Achievement')) sfxOnce('achv');
+    else if (msg.includes('hatched')) sfxOnce('hatch');
+    else if (msg.includes('evolved')) sfxOnce('evolve');
+    else if (msg.includes('passed away')) sfxOnce('death');
+    else if (msg.includes('Daily bonus')) sfxOnce('daily');
+  }
 
   el('pet-name').textContent = s.pet.name;
   el('level').textContent = s.pet.level;
@@ -946,6 +982,11 @@ function renderExtras(d) {
   el('btn-daily').textContent = d.daily.claimedToday ? '✅ Claimed — come back tomorrow!' : `🎁 Claim Daily (+${d.daily.nextReward})`;
   el('btn-daily').disabled = d.daily.claimedToday;
   el('daily-info').textContent = `Streak: ${d.daily.streak} day${d.daily.streak === 1 ? '' : 's'} (best ${d.daily.best})`;
+
+  if (d.gacha && d.gacha.rates) {
+    el('gacha-rates').textContent = `Rates: ${d.gacha.rates.map((g) => `${'★'.repeat(g.stars)} ${g.name} ${g.rate < 1 ? g.rate : g.rate + '%'}`).join(' · ')}`;
+    el('gacha-stats').textContent = `Pulls: ${d.gacha.pulls} · Legendaries: ${d.gacha.fiveStars} · 🎯 Mythics: ${d.gacha.mythics} — good luck! 🍀`;
+  }
   const sg = el('skins-grid');
   sg.innerHTML = '';
   for (const sk of d.skins) {
@@ -958,10 +999,11 @@ function renderExtras(d) {
     nm.textContent = sk.name;
     const btn = document.createElement('button');
     btn.className = 'btn f-feed';
-    btn.textContent = sk.equipped ? '✓ Equipped' : sk.owned ? 'Equip' : `🪙 ${sk.cost}`;
-    btn.disabled = sk.equipped;
+    btn.textContent = sk.equipped ? '✓ Equipped' : sk.owned ? 'Equip' : sk.gachaOnly ? '🎰 Gacha only' : `🪙 ${sk.cost}`;
+    btn.disabled = sk.equipped || (!!sk.gachaOnly && !sk.owned);
     btn.addEventListener('click', async () => {
       const res = await api.action(sk.owned ? 'setSkin' : 'buySkin', { skinId: sk.id });
+      playActionSound(sk.owned ? 'setSkin' : 'buySkin', res);
       showToast(res && res.message);
     });
     card.appendChild(sw);
@@ -972,6 +1014,92 @@ function renderExtras(d) {
 }
 
 el('btn-daily').addEventListener('click', () => act('claimDaily'));
+
+let gachaBusy = false;
+
+function spawnConfetti(container, stars) {
+  const count = stars >= 5 ? 60 : stars >= 4 ? 34 : 18;
+  const cols = ['#fbbf24', '#fb7185', '#a78bfa', '#38bdf8', '#4ade80', '#f472b6'];
+  for (let i = 0; i < count; i += 1) {
+    const p = document.createElement('div');
+    p.className = 'confetti-bit';
+    p.style.left = `${Math.random() * 100}%`;
+    p.style.background = cols[i % cols.length];
+    p.style.animationDelay = `${Math.random() * 0.5}s`;
+    p.style.animationDuration = `${1 + Math.random() * 1.2}s`;
+    if (i % 3 === 0) p.style.borderRadius = '50%';
+    container.appendChild(p);
+  }
+  setTimeout(() => container.querySelectorAll('.confetti-bit').forEach((c) => c.remove()), 2600);
+}
+
+async function pullGacha(times) {
+  if (gachaBusy) return;
+  gachaBusy = true;
+  const res = await api.action('pullGacha', { times });
+  const orb = el('gacha-orb');
+  const frame = el('gacha-frame');
+  const resultEl = el('gacha-result');
+  if (!res || res.ok === false) {
+    if (sfx) sfx.play('error');
+    showToast((res && res.message) || 'Summon failed.');
+    gachaBusy = false;
+    return;
+  }
+  if (sfx) sfx.play('click');
+  orb.classList.add('spinning');
+  frame.classList.add('pulling');
+  resultEl.classList.add('hidden');
+  const wait = times === 10 ? 1500 : 1000;
+  await new Promise((r) => setTimeout(r, wait));
+  orb.classList.remove('spinning');
+  frame.classList.remove('pulling');
+  const best = res.best || { rarity: 'common', stars: 1, name: 'Common', coins: 0 };
+  if (sfx) sfx.playGacha(best.rarity);
+  resultEl.className = `gacha-result r-${best.rarity}`;
+  resultEl.innerHTML = '';
+  const starsLine = document.createElement('div');
+  starsLine.className = 'gacha-stars';
+  starsLine.textContent = '★'.repeat(best.stars);
+  const nameLine = document.createElement('div');
+  nameLine.className = 'gacha-rarity';
+  nameLine.textContent = `${best.name} Pull!`;
+  const coinLine = document.createElement('div');
+  coinLine.className = 'gacha-reward';
+  const totalCoins = (res.results || []).reduce((sum, r) => sum + (r.coins || 0), 0);
+  coinLine.textContent = times === 10 ? `${best.name} best of 10 — +${totalCoins} coins total` : `+${best.coins} coins`;
+  resultEl.appendChild(starsLine);
+  resultEl.appendChild(nameLine);
+  resultEl.appendChild(coinLine);
+  for (const r of res.results || []) {
+    if (r.skinUnlocked) {
+      const skinLine = document.createElement('div');
+      skinLine.className = 'gacha-skin';
+      skinLine.textContent = `🎁 Unlocked ${r.skinUnlocked} skin!`;
+      resultEl.appendChild(skinLine);
+    }
+  }
+  if (best.stars >= 3) spawnConfetti(frame, best.stars);
+  if (best.rarity === 'mythic') showToast('💫✨ LEGENDARY MYTHIC PULL!!! Share this moment forever ✨💫', 6000);
+  gachaBusy = false;
+}
+
+el('btn-gacha-1').addEventListener('click', () => pullGacha(1));
+el('btn-gacha-10').addEventListener('click', () => pullGacha(10));
+
+const sfxBtn = el('btn-sfx');
+if (sfxBtn) {
+  const paintSfx = () => {
+    el('sfx-label').textContent = sfx && sfx.isEnabled() ? '🔊 Sound: On' : '🔇 Sound: Off';
+  };
+  paintSfx();
+  sfxBtn.addEventListener('click', () => {
+    if (!sfx) return;
+    sfx.setEnabled(!sfx.isEnabled());
+    paintSfx();
+    if (sfx.isEnabled()) sfx.play('coin');
+  });
+}
 
 el('btn-export').addEventListener('click', async () => {
   const res = await api.action('exportSave');

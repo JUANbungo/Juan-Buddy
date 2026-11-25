@@ -12,6 +12,7 @@ fs.mkdirSync(path.join(mobile, 'icons'), { recursive: true });
 fs.copyFileSync(path.join(root, 'src', 'pet', 'sprites.js'), path.join(mobile, 'sprites.js'));
 fs.copyFileSync(path.join(root, 'src', 'engine', 'engine.js'), path.join(mobile, 'engine.js'));
 fs.copyFileSync(path.join(root, 'src', 'pet', 'motivation.js'), path.join(mobile, 'motivation.js'));
+fs.copyFileSync(path.join(root, 'src', 'pet', 'sfx.js'), path.join(mobile, 'sfx.js'));
 
 fs.mkdirSync(path.join(mobile, 'sprites'), { recursive: true });
 fs.cpSync(path.join(root, 'assets', 'sprites'), path.join(mobile, 'sprites'), { recursive: true });

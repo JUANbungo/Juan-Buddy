@@ -2,6 +2,7 @@
 
 const engine = window.JBEngine;
 const sprites = window.JBSprites;
+const sfx = window.JBSfx;
 
 const SAVE_KEY = 'juanbuddy-mobile-save';
 
@@ -105,6 +106,13 @@ function run(action, payload) {
       break;
     default: break;
   }
+  if (sfx) {
+    if (!result.ok) sfx.play('error');
+    else {
+      const soundMap = { feed: 'feed', play: 'happy', pat: 'pat', toggleWork: 'click', toggleSleep: 'click', startActivity: 'click', claimDaily: 'daily', newGame: 'hatch', cheer: 'happy' };
+      sfx.play(soundMap[action] || 'click');
+    }
+  }
   showToast(result.message);
   render(engine.derivedStats(state));
   return result;
@@ -170,6 +178,41 @@ if (mNewGameBtn) mNewGameBtn.addEventListener('click', () => {
 
 const mDailyBtn = $('m-daily');
 if (mDailyBtn) mDailyBtn.addEventListener('click', () => run('claimDaily'));
+
+let mGachaBusy = false;
+
+async function mPullGacha(times) {
+  if (mGachaBusy) return;
+  mGachaBusy = true;
+  const orb = $('m-gacha-orb');
+  const frame = $('m-gacha-frame');
+  const res = await run('pullGacha', { times });
+  if (!res || res.ok === false) { mGachaBusy = false; return; }
+  if (sfx) sfx.play('click');
+  if (orb) orb.classList.add('spinning');
+  if (frame) frame.classList.add('pulling');
+  await new Promise((r) => setTimeout(r, times === 10 ? 1500 : 1000));
+  if (orb) orb.classList.remove('spinning');
+  if (frame) frame.classList.remove('pulling');
+  if (res.best && sfx) sfx.playGacha(res.best.rarity);
+  if (frame && res.best && res.best.stars >= 3) {
+    const cols = ['#fbbf24', '#fb7185', '#a78bfa', '#38bdf8', '#4ade80'];
+    for (let i = 0; i < 26; i += 1) {
+      const bit = document.createElement('div');
+      bit.className = 'confetti-bit';
+      bit.style.left = `${Math.random() * 100}%`;
+      bit.style.background = cols[i % cols.length];
+      bit.style.animationDelay = `${Math.random() * 0.4}s`;
+      if (frame) frame.appendChild(bit);
+    }
+    setTimeout(() => { frame.querySelectorAll('.confetti-bit').forEach((c) => c.remove()); }, 2400);
+  }
+  if (res.best && res.best.rarity === 'mythic') showToast('\u{1F4AB}\u2728 MYTHIC PULL!!! 0.0001% JACKPOT!! \u2728\u{1F4AB}', 6000);
+  mGachaBusy = false;
+}
+
+$('m-gacha-1').addEventListener('click', () => mPullGacha(1));
+$('m-gacha-10').addEventListener('click', () => mPullGacha(10));
 
 $('m-food-search').addEventListener('input', () => renderFoods());
 
@@ -537,6 +580,11 @@ function render(d) {
   if ($('m-daily') && d.daily) {
     $('m-daily').textContent = d.daily.claimedToday ? '\u2705 Daily claimed — back tomorrow!' : `\ud83c\udf81 Claim Daily (+${d.daily.nextReward})`;
     $('m-daily').disabled = d.daily.claimedToday;
+  }
+
+  if ($('m-gacha-rates') && d.gacha && d.gacha.rates) {
+    $('m-gacha-rates').textContent = `Rates: ${d.gacha.rates.map((g) => `${'\u2605'.repeat(g.stars)} ${g.name} ${g.rate < 1 ? g.rate : g.rate + '%'}`).join(' \u00b7 ')}`;
+    $('m-gacha-stats').textContent = `Pulls: ${d.gacha.pulls} \u00b7 Legendary: ${d.gacha.fiveStars} \u00b7 Mythic: ${d.gacha.mythics} \u2014 good luck!`;
   }
 
   const overlay = $('m-death-overlay');

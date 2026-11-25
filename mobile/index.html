@@ -57,6 +57,16 @@
     <section id="tab-buddies" class="hidden">
       <div id="m-buddies" class="buddy-grid"></div>
     </section>
+
+    <section id="tab-gacha" class="hidden">
+      <div id="m-gacha-frame" class="m-gacha-frame">
+        <div id="m-gacha-orb" class="m-gacha-orb">🎰</div>
+      </div>
+      <button id="m-gacha-1" class="btn">🔮 Summon ×1 — 💰100</button>
+      <button id="m-gacha-10" class="btn">✨ Summon ×10 — 💰900</button>
+      <div id="m-gacha-rates" class="muted hint"></div>
+      <div id="m-gacha-stats" class="muted hint"></div>
+    </section>
   </main>
 
   <nav>
@@ -64,6 +74,7 @@
     <button data-tab="foods" class="tab">🍜 Foods</button>
     <button data-tab="activities" class="tab">🎯 Quests</button>
     <button data-tab="buddies" class="tab">🧸 Buddies</button>
+    <button data-tab="gacha" class="tab">🎰</button>
   </nav>
 
   <div id="m-death-overlay" class="m-death-overlay hidden">
@@ -81,6 +92,7 @@
   <div id="m-toast" class="toast hidden"></div>
 
   <script src="motivation.js"></script>
+  <script src="sfx.js"></script>
   <script src="sprites.js"></script>
   <script src="engine.js"></script>
   <script src="app.js"></script>

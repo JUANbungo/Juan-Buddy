@@ -203,5 +203,67 @@ check('skin purchase and equip', () => {
   assert(golden && golden.equipped, 'equipped flag should be set');
 });
 
+check('gacha rates sum to exactly 100 with the 0.0001% mythic', () => {
+  const sum = engine.GACHA.rates.reduce((a, g) => a + g.rate, 0);
+  assert(Math.abs(sum - 100) < 1e-9, `rates sum=${sum}`);
+  const mythic = engine.GACHA.rates.find((g) => g.id === 'mythic');
+  assert(mythic && mythic.rate === 0.0001, `mythic rate=${mythic && mythic.rate}`);
+});
+
+check('gacha single pull spends coins and returns a result', () => {
+  const s = engine.defaultState();
+  s.coins = 500;
+  const res = engine.pullGacha(s, 1);
+  assert(res.ok === true, `pull failed: ${res.message}`);
+  assert(res.results.length === 1 && res.best, 'should return one result');
+  assert(s.gacha.pulls === 1, 'pull count not tracked');
+  assert(s.coins >= 0 && s.coins !== 500 - 100 + 0, 'coins changed');
+});
+
+check('gacha x10 costs 900 and rolls 10 times', () => {
+  const s = engine.defaultState();
+  s.coins = 5000;
+  const res = engine.pullGacha(s, 10);
+  assert(res.ok === true, `pull10 failed: ${res.message}`);
+  assert(res.results.length === 10, `results=${res.results.length}`);
+  assert(s.gacha.pulls === 10, 'pull count should be 10');
+});
+
+check('gacha refuses without enough coins', () => {
+  const s = engine.defaultState();
+  s.coins = 50;
+  const res = engine.pullGacha(s, 1);
+  assert(res.ok === false, 'should refuse');
+  assert(res.results === undefined, 'no results when refused');
+});
+
+check('forced mythic roll unlocks cosmic skin + Chosen One achievement', () => {
+  const origRandom = Math.random;
+  Math.random = () => 0.0000005;
+  try {
+    const s = engine.defaultState();
+    s.coins = 5000;
+    const res = engine.pullGacha(s, 1);
+    assert(res.best.rarity === 'mythic', `best=${res.best && res.best.rarity}`);
+    assert(s.skinsOwned.includes('cosmic'), 'cosmic skin should unlock');
+    assert(s.achievements.includes('gacha_mythic'), 'Chosen One achievement should unlock');
+    assert(s.gacha.mythics === 1, 'mythics count');
+    assert(res.message.includes('MYTHIC'), 'message should announce mythic');
+  } finally {
+    Math.random = origRandom;
+  }
+});
+
+check('cosmic skin cannot be bought, only pulled', () => {
+  const s = engine.defaultState();
+  s.coins = 99999;
+  const res = engine.buySkin(s, 'cosmic');
+  assert(res.ok === false, 'buying cosmic should fail');
+  assert(!s.skinsOwned.includes('cosmic'), 'cosmic should not be owned');
+  const d = engine.derivedStats(s);
+  const cosmic = d.skins.find((sk) => sk.id === 'cosmic');
+  assert(cosmic && cosmic.gachaOnly && !cosmic.owned, 'cosmic derived as gachaOnly');
+});
+
 console.log(`  ${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

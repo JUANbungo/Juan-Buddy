@@ -39,6 +39,13 @@ Built with Electron. No build step, no framework — plain HTML/CSS/JS.
 - **🏆 12 achievements** — from first feed to raising an adult, tracked in the Life tab.
 - **🎨 Pet skins** — Classic, Golden, Sakura and Midnight tints you can buy with coins and equip
   anytime.
+- **🎰 Gacha Wish Machine** — spend coins to summon: ★ Common (55%), ★★ Rare (30%), ★★★ Epic (14%),
+  ★★★★ Legendary (0.9999%, unlocks the Golden Shine skin)… and the **★★★★★ Mythic — 0.0001%**,
+  the rarest pull in the game: a jackpot coin shower plus the exclusive **Cosmic Mythic skin**
+  that cannot be bought anywhere else. Spin animation, rarity-colored reveals and confetti included.
+- **🔊 Sound effects** — synthesized retro SFX for everything: clicks, coin chimes, nom-nom
+  feeding, pats, hatching cracks, evolution fanfares, achievement bells, and a dramatic rising
+  shimmer when a high-rarity gacha pull lands. Toggle with one click in the footer.
 - **🔐 Save codes** — export your whole game as a `JB2.…` code (copied to clipboard) and import
   it anywhere — great for backups or moving between devices.
 - **💼 Idle economy** — send your buddy to **Work** to earn coins every second, even while the

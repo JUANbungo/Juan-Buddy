@@ -88,7 +88,70 @@ const SKINS = {
   golden: { id: 'golden', name: 'Golden Shine', cost: 300, tint: 'rgba(255, 200, 60, 0.34)' },
   sakura: { id: 'sakura', name: 'Sakura Glow', cost: 450, tint: 'rgba(255, 130, 180, 0.30)' },
   midnight: { id: 'midnight', name: 'Midnight Aura', cost: 600, tint: 'rgba(40, 60, 160, 0.38)' },
+  cosmic: { id: 'cosmic', name: 'Cosmic Mythic', cost: 0, gachaOnly: true, tint: 'rgba(167, 139, 250, 0.40)' },
 };
+
+const GACHA = {
+  cost: 100,
+  multiCost: 900,
+  multiCount: 10,
+  rates: [
+    { id: 'mythic', stars: 5, name: 'Mythic', rate: 0.0001, coins: [10000, 12000], skin: 'cosmic' },
+    { id: 'legendary', stars: 4, name: 'Legendary', rate: 0.9999, coins: [1200, 2000], skin: 'golden' },
+    { id: 'epic', stars: 3, name: 'Epic', rate: 14, coins: [280, 450] },
+    { id: 'rare', stars: 2, name: 'Rare', rate: 30, coins: [80, 160] },
+    { id: 'common', stars: 1, name: 'Common', rate: 55, coins: [15, 40] },
+  ],
+};
+
+function rollGachaRarity() {
+  const roll = Math.random() * 100;
+  let acc = 0;
+  const ordered = [...GACHA.rates].sort((a, b) => a.rate - b.rate);
+  for (const g of ordered) {
+    acc += g.rate;
+    if (roll < acc) return g;
+  }
+  return GACHA.rates[4];
+}
+
+function pullGacha(state, times) {
+  const gate = deadGate(state);
+  if (gate) return gate;
+  const count = times === GACHA.multiCount ? GACHA.multiCount : 1;
+  const cost = count === GACHA.multiCount ? GACHA.multiCost : GACHA.cost;
+  if (state.coins < cost) {
+    return { ok: false, message: `\ud83e\ude99 Not enough coins \u2014 a \u00d7${count} summon costs ${cost}. Work para sa coins!` };
+  }
+  state.coins -= cost;
+  if (!state.gacha) state.gacha = { pulls: 0, fiveStars: 0, mythics: 0 };
+  const out = [];
+  const results = [];
+  let best = null;
+  for (let i = 0; i < count; i += 1) {
+    const g = rollGachaRarity();
+    state.gacha.pulls += 1;
+    if (g.id === 'legendary') state.gacha.fiveStars += 1;
+    if (g.id === 'mythic') state.gacha.mythics += 1;
+    const coins = g.coins[0] + Math.floor(Math.random() * (g.coins[1] - g.coins[0] + 1));
+    state.coins += coins;
+    state.stats.coinsEarned += coins;
+    let skinUnlocked = null;
+    if (g.skin && !state.skinsOwned.includes(g.skin)) {
+      state.skinsOwned.push(g.skin);
+      skinUnlocked = SKINS[g.skin].name;
+    }
+    results.push({ rarity: g.id, stars: g.stars, name: g.name, coins, skinUnlocked });
+    if (!best || best.stars < g.stars) best = results[results.length - 1];
+  }
+  checkAchievements(state, out);
+  const starStr = '\u2b50'.repeat(best.stars);
+  let msg = `${starStr} ${best.name} pull! +${best.coins} coins`;
+  if (best.skinUnlocked) msg = `${starStr} ${best.name}!! \u2014 unlocked ${best.skinUnlocked} skin! +${best.coins} coins`;
+  if (best.rarity === 'mythic') msg = `\ud83c\udfaf \u2b50 MYTHIC!! 0.0001% JACKPOT!! \u2b50 \ud83c\udfaf Unlocked Cosmic Mythic skin + ${best.coins} coins!`;
+  out.push({ ok: true, message: msg });
+  return { ok: true, results, best, events: out, message: msg };
+}
 
 const ACHIEVEMENTS = [
   { id: 'first_feed', icon: '🍜', name: 'First Bite', desc: 'Feed your buddy', check: (s) => s.stats.feedCount >= 1 },
@@ -103,6 +166,9 @@ const ACHIEVEMENTS = [
   { id: 'adult', icon: '👑', name: 'Fully Evolved', desc: 'Reach Adult form', check: (s) => s.pet.stage === 'adult' },
   { id: 'streak_3', icon: '🔥', name: 'Loyal Friend', desc: '3-day login streak', check: (s) => (s.daily ? s.daily.streak : 0) >= 3 },
   { id: 'streak_7', icon: '💚', name: 'Best Buddy Forever', desc: '7-day login streak', check: (s) => (s.daily ? s.daily.streak : 0) >= 7 },
+  { id: 'gacha_1', icon: '🎰', name: 'First Wish', desc: 'Try your luck in the Gacha', check: (s) => !!(s.gacha && s.gacha.pulls >= 1) },
+  { id: 'gacha_100', icon: '🎰', name: 'Gacha Addict', desc: '100 summons', check: (s) => !!(s.gacha && s.gacha.pulls >= 100) },
+  { id: 'gacha_mythic', icon: '🎯', name: 'Chosen One', desc: 'Pull the 0.0001% Mythic', check: (s) => !!(s.gacha && s.gacha.mythics >= 1) },
 ];
 
 const WEATHER_POOL = ['clear', 'clear', 'cloudy', 'clear', 'rainy', 'cloudy', 'clear', 'stormy', 'cloudy', 'clear', 'snowy', 'clear'];
@@ -132,6 +198,7 @@ function defaultState() {
     stats: { feedCount: 0, playCount: 0, coinsEarned: 0, workSeconds: 0 },
     achievements: [],
     daily: { last: null, streak: 0, best: 0 },
+    gacha: { pulls: 0, fiveStars: 0, mythics: 0 },
     skin: 'classic',
     skinsOwned: ['classic'],
     neglect: 0,
@@ -142,7 +209,7 @@ function defaultState() {
 
 function ensureState(state) {
   const fresh = defaultState();
-  for (const key of ['stats', 'achievements', 'daily', 'skin', 'skinsOwned', 'neglect', 'dead']) {
+  for (const key of ['stats', 'achievements', 'daily', 'gacha', 'skin', 'skinsOwned', 'neglect', 'dead']) {
     if (state[key] === undefined) state[key] = fresh[key];
   }
   if (!state.pet) state.pet = fresh.pet;
@@ -550,6 +617,7 @@ function fireStageEvents(state, out) {
 function buySkin(state, skinId) {
   const skin = SKINS[skinId];
   if (!skin) return { ok: false, message: 'Unknown skin.' };
+  if (skin.gachaOnly) return { ok: false, message: '\ud83c\udfaf This skin is a gacha exclusive \u2014 try your luck!' };
   if (state.skinsOwned.includes(skinId)) return setSkin(state, skinId);
   if (state.coins < skin.cost) return { ok: false, message: `Not enough coins (need ${skin.cost}).` };
   state.coins -= skin.cost;
@@ -618,13 +686,15 @@ function importSave(state, code) {
 
 function newGame(state) {
   if (!state.dead) return { ok: false, message: 'Your buddy is still alive! (Reset progress in footer if you really want to start over.)' };
-  const kept = { achievements: state.achievements, daily: state.daily, skinsOwned: state.skinsOwned };
+  const kept = { achievements: state.achievements, daily: state.daily, skinsOwned: state.skinsOwned, gacha: state.gacha, skin: state.skin };
   const fresh = defaultState();
   Object.keys(state).forEach((key) => { delete state[key]; });
   Object.assign(state, fresh);
   state.achievements = kept.achievements;
   state.daily = kept.daily;
   state.skinsOwned = kept.skinsOwned;
+  state.gacha = kept.gacha;
+  state.skin = kept.skinsOwned.includes(kept.skin) ? kept.skin : 'classic';
   return { ok: true, message: '🌱 A new egg awaits! Take good care of your next buddy.' };
 }
 
@@ -674,6 +744,15 @@ function derivedStats(state) {
       owned: Array.isArray(state.skinsOwned) && state.skinsOwned.includes(sk.id),
       equipped: state.skin === sk.id,
     })),
+    gacha: {
+      pulls: state.gacha ? state.gacha.pulls : 0,
+      fiveStars: state.gacha ? state.gacha.fiveStars : 0,
+      mythics: state.gacha ? state.gacha.mythics : 0,
+      cost: GACHA.cost,
+      multiCost: GACHA.multiCost,
+      multiCount: GACHA.multiCount,
+      rates: GACHA.rates,
+    },
     danger: Math.max(0, Math.min(1, (state.neglect || 0) / DEATH_SECONDS)),
     dead: state.dead,
     stats: state.stats,
@@ -706,6 +785,7 @@ return {
   stageOf,
   stageForLevel,
   claimDaily,
+  pullGacha,
   buySkin,
   setSkin,
   saveCode,
@@ -713,6 +793,7 @@ return {
   importSave,
   newGame,
   SKINS,
+  GACHA,
   ACHIEVEMENTS,
   STAGES,
   DEATH_SECONDS,

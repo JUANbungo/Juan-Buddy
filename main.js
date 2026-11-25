@@ -73,6 +73,7 @@ function runAction(action, payload) {
       }
       break;
     case 'claimDaily': result = engine.claimDaily(state); break;
+    case 'pullGacha': result = engine.pullGacha(state, payload && payload.times); break;
     case 'buySkin': result = engine.buySkin(state, payload && payload.skinId); break;
     case 'setSkin': result = engine.setSkin(state, payload && payload.skinId); break;
     case 'exportSave':
