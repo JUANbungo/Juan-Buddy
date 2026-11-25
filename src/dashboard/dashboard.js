@@ -92,6 +92,19 @@ function render(snapshot) {
     : s.flags.working ? 'WORKING'
     : (d.statusText || 'IDLE').toUpperCase();
 
+  if (d.weather) el('weather-chip').textContent = `${d.weather.icon} ${d.weather.label}`;
+  if (d.phase) el('phase-chip').textContent = `${d.phase.icon} ${d.phase.label}`;
+  el('streak-chip').textContent = `\uD83D\uDD25 ${d.daily ? d.daily.streak : 0}`;
+
+  el('danger-banner').classList.toggle('hidden', !s.dead && !(d.danger > 0.25));
+  el('death-overlay').classList.toggle('hidden', !s.dead);
+  if (s.dead) {
+    el('death-title').textContent = `${s.pet.name} passed away...`;
+    el('death-cause').textContent = `Cause: ${s.dead.cause} — reached Lv ${s.dead.level}`;
+  }
+
+  renderExtras(d);
+
   el('btn-work').textContent = s.flags.working ? '💼 Working...' : '💼 Work: Off';
   el('btn-work').classList.toggle('on', s.flags.working);
   el('btn-sleep').textContent = s.flags.sleeping ? '😴 Sleeping...' : '😴 Sleep: Off';
@@ -402,49 +415,490 @@ function stageStateFor() {
   return s.activity || s.flags.working ? 'WALK' : 'IDLE';
 }
 
-function drawStagePet(now) {
-  const cx = 120;
-  const groundY = 224;
-  stageCtx.clearRect(0, 0, petStageCanvas.width, petStageCanvas.height);
+const STAGE_W = 480;
+const STAGE_H = 360;
+const STAGE_CX = 240;
+const STAGE_GROUND = 284;
+
+const skinCanvas = document.createElement('canvas');
+skinCanvas.width = STAGE_W;
+skinCanvas.height = STAGE_H;
+
+function drawWithSkin(drawFn, tint) {
+  if (!tint) {
+    drawFn(stageCtx);
+    return;
+  }
+  const sctx = skinCanvas.getContext('2d');
+  sctx.clearRect(0, 0, STAGE_W, STAGE_H);
+  sctx.imageSmoothingEnabled = false;
+  drawFn(sctx);
+  sctx.globalCompositeOperation = 'source-atop';
+  sctx.fillStyle = tint;
+  sctx.fillRect(0, 0, STAGE_W, STAGE_H);
+  sctx.globalCompositeOperation = 'source-over';
+  stageCtx.drawImage(skinCanvas, 0, 0);
+}
+
+function weatherOverlay(id) {
+  if (id === 'rainy') return 'rgba(60, 90, 150, 0.14)';
+  if (id === 'stormy') return 'rgba(30, 40, 70, 0.26)';
+  if (id === 'snowy') return 'rgba(200, 220, 255, 0.14)';
+  if (id === 'cloudy') return 'rgba(90, 100, 130, 0.10)';
+  return null;
+}
+
+function rainFlash(id, now) {
+  return id === 'stormy' && Math.floor(now / 2400) % 4 === 0 && (now % 2400) < 90;
+}
+
+function drawWeatherFx(id, now) {
+  if (id !== 'rainy' && id !== 'stormy' && id !== 'snowy') return;
   stageCtx.save();
-  stageCtx.globalAlpha = 0.22;
-  stageCtx.fillStyle = '#000';
-  stageCtx.beginPath();
-  stageCtx.ellipse(cx, groundY, 52, 9, 0, 0, Math.PI * 2);
-  stageCtx.fill();
-  stageCtx.restore();
-
-  if (!latest) return;
-  const speciesId = latest.state.pet.species || 'kala';
-  const state = stageStateFor();
-  const bobbing = state === 'HAPPY' || state === 'WALK';
-  const yOff = bobbing ? Math.round(Math.sin(now / 260) * 4) : 0;
-
-  stageCtx.save();
-  stageCtx.imageSmoothingEnabled = false;
-
-  const pngs = stageFramesFor(speciesId, state);
-  const single = stageSingleFor(speciesId, state);
-  if (pngs.length > 0) {
-    const img = pngs[Math.floor(now / 170) % pngs.length];
-    stageCtx.drawImage(img, cx - 112, groundY - 224 + yOff, 224, 224);
-  } else if (single) {
-    stageCtx.drawImage(single, cx - 112, groundY - 224 + yOff, 224, 224);
-  } else {
-    let bank = null;
-    try {
-      bank = sprites.ensurePetSprites(speciesId);
-    } catch (err) {
-      bank = null;
+  if (id === 'snowy') {
+    stageCtx.fillStyle = 'rgba(255,255,255,0.85)';
+    for (let i = 0; i < 16; i += 1) {
+      const y = ((now / 26 + i * 23) % (STAGE_H + 20)) - 10;
+      const x = (i * 53 + Math.sin(now / 700 + i) * 14) % STAGE_W;
+      stageCtx.fillRect(x, y, 3, 3);
     }
-    if (bank && bank[state]) {
-      const frame = bank[state][Math.floor(now / 170) % bank[state].length];
-      stageCtx.drawImage(frame, cx - 112, groundY - 224 + yOff, 224, 224);
+  } else {
+    stageCtx.strokeStyle = 'rgba(140, 180, 255, 0.5)';
+    for (let i = 0; i < 14; i += 1) {
+      const y = ((now / 5 + i * 31) % (STAGE_H + 20)) - 10;
+      const x = (i * 37 + Math.sin(now / 400 + i) * 7) % STAGE_W;
+      stageCtx.beginPath();
+      stageCtx.moveTo(x, y);
+      stageCtx.lineTo(x - 3, y + 11);
+      stageCtx.stroke();
     }
   }
   stageCtx.restore();
 }
 
+function drawGrave() {
+  const gx = STAGE_CX;
+  const base = STAGE_GROUND;
+  stageCtx.save();
+  stageCtx.globalAlpha = 0.22;
+  stageCtx.fillStyle = '#000';
+  stageCtx.beginPath();
+  stageCtx.ellipse(gx, base + 3, 42, 8, 0, 0, Math.PI * 2);
+  stageCtx.fill();
+  stageCtx.restore();
+  stageCtx.save();
+  stageCtx.fillStyle = '#8b93a8';
+  stageCtx.strokeStyle = '#4a5164';
+  stageCtx.lineWidth = 3;
+  stageCtx.beginPath();
+  stageCtx.moveTo(gx - 27, base);
+  stageCtx.lineTo(gx - 27, base - 76);
+  stageCtx.arc(gx, base - 76, 27, Math.PI, 0);
+  stageCtx.lineTo(gx + 27, base);
+  stageCtx.closePath();
+  stageCtx.fill();
+  stageCtx.stroke();
+  stageCtx.fillStyle = '#4a5164';
+  stageCtx.font = 'bold 20px sans-serif';
+  stageCtx.textAlign = 'center';
+  stageCtx.fillText('R.I.P', gx, base - 40);
+  stageCtx.font = '18px sans-serif';
+  stageCtx.fillText('\u{1F64A}\uFE0F', gx, base - 96);
+  stageCtx.restore();
+}
+
+function drawRoom(now, phaseId, weatherId) {
+  const fy = STAGE_GROUND;
+  const wallTop = {
+    day: '#f7f0dc', dawn: '#fbe4c8', dusk: '#d9a878', night: '#40496a',
+  }[phaseId] || '#f7f0dc';
+  const wallBot = {
+    day: '#e3d7b8', dawn: '#eecfa6', dusk: '#9c7452', night: '#2b3050',
+  }[phaseId] || '#e3d7b8';
+  const wallGrad = stageCtx.createLinearGradient(0, 0, 0, fy);
+  wallGrad.addColorStop(0, wallTop);
+  wallGrad.addColorStop(1, wallBot);
+  stageCtx.fillStyle = wallGrad;
+  stageCtx.fillRect(0, 0, STAGE_W, fy);
+  stageCtx.fillStyle = 'rgba(0,0,0,0.10)';
+  stageCtx.fillRect(0, fy - 12, STAGE_W, 12);
+
+  const wx = STAGE_CX - 54;
+  const wy = 40;
+  const ww = 108;
+  const wh = 80;
+  const skyGrad = stageCtx.createLinearGradient(0, wy, 0, wy + wh);
+  if (phaseId === 'night') {
+    skyGrad.addColorStop(0, '#0f172a');
+    skyGrad.addColorStop(1, '#312e81');
+  } else if (phaseId === 'dusk' || phaseId === 'dawn') {
+    skyGrad.addColorStop(0, '#f97316');
+    skyGrad.addColorStop(1, '#fde047');
+  } else {
+    skyGrad.addColorStop(0, '#60a5fa');
+    skyGrad.addColorStop(1, '#bae6fd');
+  }
+  stageCtx.fillStyle = skyGrad;
+  stageCtx.fillRect(wx, wy, ww, wh);
+  stageCtx.save();
+  stageCtx.beginPath();
+  stageCtx.rect(wx, wy, ww, wh);
+  stageCtx.clip();
+  if (phaseId === 'night') {
+    stageCtx.fillStyle = '#fef9c3';
+    stageCtx.beginPath();
+    stageCtx.arc(wx + ww - 26, wy + 22, 10, 0, Math.PI * 2);
+    stageCtx.fill();
+    stageCtx.fillStyle = 'rgba(255,255,255,0.9)';
+    for (let i = 0; i < 9; i += 1) {
+      const sx = wx + 10 + ((i * 37) % (ww - 16));
+      const sy = wy + 8 + ((i * 23) % (wh - 20));
+      stageCtx.globalAlpha = 0.5 + 0.5 * Math.abs(Math.sin(now / 900 + i));
+      stageCtx.fillRect(sx, sy, 2, 2);
+    }
+    stageCtx.globalAlpha = 1;
+  } else if (phaseId === 'dusk' || phaseId === 'dawn') {
+    stageCtx.fillStyle = '#fb923c';
+    stageCtx.beginPath();
+    stageCtx.arc(wx + ww / 2, wy + wh - 12, 15, 0, Math.PI * 2);
+    stageCtx.fill();
+    stageCtx.fillStyle = 'rgba(255,255,255,0.35)';
+    for (let i = 0; i < 2; i += 1) {
+      const cxx = wx + ((now / 40 + i * 60) % (ww + 40)) - 20;
+      stageCtx.fillRect(cxx, wy + 14 + i * 12, 24, 5);
+    }
+  } else {
+    stageCtx.fillStyle = 'rgba(255,255,255,0.85)';
+    for (let i = 0; i < 3; i += 1) {
+      const cxx = wx + ((now / 34 + i * 46) % (ww + 48)) - 24;
+      stageCtx.fillRect(cxx, wy + 12 + i * 11, 26, 6);
+      stageCtx.fillRect(cxx + 6, wy + 8 + i * 11, 14, 6);
+    }
+  }
+  stageCtx.restore();
+  stageCtx.strokeStyle = '#784421';
+  stageCtx.lineWidth = 6;
+  stageCtx.strokeRect(wx, wy, ww, wh);
+  stageCtx.lineWidth = 2;
+  stageCtx.beginPath();
+  stageCtx.moveTo(wx + ww / 2, wy);
+  stageCtx.lineTo(wx + ww / 2, wy + wh);
+  stageCtx.moveTo(wx, wy + wh / 2);
+  stageCtx.lineTo(wx + ww, wy + wh / 2);
+  stageCtx.stroke();
+  stageCtx.fillStyle = '#5d3317';
+  stageCtx.fillRect(wx - 6, wy + wh, ww + 12, 7);
+
+  stageCtx.strokeStyle = '#3b3226';
+  stageCtx.lineWidth = 2;
+  stageCtx.beginPath();
+  stageCtx.moveTo(0, 8);
+  stageCtx.quadraticCurveTo(STAGE_CX, 34, STAGE_W, 8);
+  stageCtx.stroke();
+  const lightCols = ['#f87171', '#fbbf24', '#4ade80', '#60a5fa', '#c084fc'];
+  for (let i = 0; i < 14; i += 1) {
+    const lx = 20 + i * 34;
+    const ly = 8 + 26 * (4 * (lx / STAGE_W) * (1 - lx / STAGE_W));
+    stageCtx.fillStyle = lightCols[i % 5];
+    stageCtx.beginPath();
+    stageCtx.arc(lx, ly + 3, 5, 0, Math.PI * 2);
+    stageCtx.fill();
+    stageCtx.globalAlpha = 0.3;
+    stageCtx.beginPath();
+    stageCtx.arc(lx, ly + 3, 8, 0, Math.PI * 2);
+    stageCtx.fill();
+    stageCtx.globalAlpha = 1;
+  }
+
+  const px = 150;
+  stageCtx.strokeStyle = '#6b5d43';
+  stageCtx.lineWidth = 2;
+  stageCtx.beginPath();
+  stageCtx.moveTo(px, 0);
+  stageCtx.lineTo(px, 30);
+  stageCtx.stroke();
+  stageCtx.save();
+  stageCtx.translate(px, 46);
+  stageCtx.fillStyle = '#facc15';
+  stageCtx.strokeStyle = '#b45309';
+  stageCtx.lineWidth = 2;
+  for (const rot of [Math.PI / 4, 0]) {
+    stageCtx.save();
+    stageCtx.rotate(rot);
+    stageCtx.beginPath();
+    stageCtx.rect(-11, -11, 22, 22);
+    stageCtx.fill();
+    stageCtx.stroke();
+    stageCtx.restore();
+  }
+  stageCtx.fillStyle = '#ef4444';
+  stageCtx.beginPath();
+  stageCtx.arc(0, 0, 4, 0, Math.PI * 2);
+  stageCtx.fill();
+  stageCtx.restore();
+
+  const bx = 396;
+  const by = 56;
+  stageCtx.fillStyle = '#5f3d1f';
+  stageCtx.fillRect(bx, by, 74, 96);
+  stageCtx.strokeStyle = '#8a5a33';
+  stageCtx.lineWidth = 5;
+  stageCtx.strokeRect(bx, by, 74, 96);
+  stageCtx.beginPath();
+  stageCtx.moveTo(bx, by + 48);
+  stageCtx.lineTo(bx + 74, by + 48);
+  stageCtx.stroke();
+  const bookCols = ['#ef4444', '#3b82f6', '#22c55e', '#eab308', '#a855f7', '#fb923c', '#14b8a6', '#f472b6'];
+  let bi = 0;
+  for (let shelf = 0; shelf < 2; shelf += 1) {
+    let sx = bx + 6;
+    while (sx < bx + 58) {
+      const bw = 7 + ((bi * 7) % 9);
+      stageCtx.fillStyle = bookCols[bi % bookCols.length];
+      stageCtx.fillRect(sx, by + 8 + shelf * 48 + 14 - ((bi * 5) % 5), bw, 26);
+      sx += bw + 2;
+      bi += 1;
+    }
+  }
+
+  const floorGrad = stageCtx.createLinearGradient(0, fy, 0, STAGE_H);
+  floorGrad.addColorStop(0, '#cfa06e');
+  floorGrad.addColorStop(1, '#a97d4e');
+  stageCtx.fillStyle = floorGrad;
+  stageCtx.fillRect(0, fy, STAGE_W, STAGE_H - fy);
+  stageCtx.fillStyle = '#8a5a33';
+  stageCtx.fillRect(0, fy, STAGE_W, 3);
+  stageCtx.strokeStyle = 'rgba(90,55,20,0.35)';
+  stageCtx.lineWidth = 2;
+  for (let ry = fy + 22; ry < STAGE_H; ry += 22) {
+    stageCtx.beginPath();
+    stageCtx.moveTo(0, ry);
+    stageCtx.lineTo(STAGE_W, ry);
+    stageCtx.stroke();
+  }
+  for (let ry = fy; ry < STAGE_H; ry += 22) {
+    const offset = (((ry - fy) / 22) % 2) * 60;
+    for (let sx2 = offset; sx2 < STAGE_W; sx2 += 120) {
+      stageCtx.beginPath();
+      stageCtx.moveTo(sx2, ry);
+      stageCtx.lineTo(sx2, Math.min(ry + 22, STAGE_H));
+      stageCtx.stroke();
+    }
+  }
+
+  stageCtx.fillStyle = '#4c1d95';
+  stageCtx.fillRect(30, 180, 78, 104);
+  stageCtx.fillStyle = '#6d28d9';
+  stageCtx.fillRect(34, 176, 70, 14);
+  stageCtx.fillStyle = '#0f172a';
+  stageCtx.fillRect(40, 196, 58, 40);
+  stageCtx.fillStyle = '#22d3ee';
+  stageCtx.fillRect(44, 200, 50, 30);
+  stageCtx.fillStyle = 'rgba(15,23,42,0.5)';
+  for (let sy = 202; sy < 228; sy += 5) stageCtx.fillRect(44, sy, 50, 2);
+  stageCtx.fillStyle = '#ef4444';
+  stageCtx.beginPath();
+  stageCtx.arc(52, 258, 5, 0, Math.PI * 2);
+  stageCtx.fill();
+  stageCtx.fillStyle = '#eab308';
+  stageCtx.beginPath();
+  stageCtx.arc(68, 258, 5, 0, Math.PI * 2);
+  stageCtx.fill();
+  stageCtx.fillStyle = '#312e81';
+  stageCtx.fillRect(30, 276, 78, 8);
+
+  stageCtx.fillStyle = '#c0563e';
+  stageCtx.beginPath();
+  stageCtx.moveTo(306, 262);
+  stageCtx.lineTo(334, 262);
+  stageCtx.lineTo(329, 286);
+  stageCtx.lineTo(311, 286);
+  stageCtx.closePath();
+  stageCtx.fill();
+  stageCtx.fillStyle = '#8b3a24';
+  stageCtx.fillRect(303, 258, 34, 7);
+  stageCtx.strokeStyle = '#268a4f';
+  stageCtx.lineWidth = 4;
+  stageCtx.lineCap = 'round';
+  const leafAngles = [-0.9, -0.45, 0, 0.45, 0.9];
+  for (let li = 0; li < leafAngles.length; li += 1) {
+    stageCtx.beginPath();
+    stageCtx.moveTo(320, 258);
+    stageCtx.quadraticCurveTo(320 + leafAngles[li] * 26, 236, 320 + leafAngles[li] * 34, 224 - (li % 2) * 8);
+    stageCtx.stroke();
+  }
+  stageCtx.lineCap = 'butt';
+
+  const matX = 130;
+  const matY = 318;
+  const matW = 220;
+  const matH = 36;
+  stageCtx.fillStyle = '#d9a544';
+  stageCtx.beginPath();
+  stageCtx.ellipse(matX + matW / 2, matY + matH / 2, matW / 2, matH / 2, 0, 0, Math.PI * 2);
+  stageCtx.fill();
+  stageCtx.strokeStyle = 'rgba(138,90,51,0.7)';
+  stageCtx.lineWidth = 2;
+  for (let mx = -matW / 2; mx < matW / 2; mx += 14) {
+    stageCtx.beginPath();
+    stageCtx.moveTo(matX + matW / 2 + mx, matY + 3);
+    stageCtx.lineTo(matX + matW / 2 + mx + 12, matY + matH - 3);
+    stageCtx.stroke();
+  }
+  for (let my = 0; my < matH; my += 9) {
+    stageCtx.beginPath();
+    stageCtx.moveTo(matX + 6, matY + my);
+    stageCtx.lineTo(matX + matW - 6, matY + my);
+    stageCtx.stroke();
+  }
+  stageCtx.strokeStyle = '#8a5a33';
+  stageCtx.lineWidth = 3;
+  stageCtx.beginPath();
+  stageCtx.ellipse(matX + matW / 2, matY + matH / 2, matW / 2 - 1, matH / 2 - 1, 0, 0, Math.PI * 2);
+  stageCtx.stroke();
+
+  stageCtx.fillStyle = '#be123c';
+  stageCtx.beginPath();
+  stageCtx.ellipse(415, 330, 48, 17, 0, 0, Math.PI * 2);
+  stageCtx.fill();
+  stageCtx.strokeStyle = '#881337';
+  stageCtx.lineWidth = 2;
+  stageCtx.stroke();
+  stageCtx.fillStyle = '#fda4af';
+  stageCtx.beginPath();
+  stageCtx.ellipse(415, 327, 33, 10, 0, 0, Math.PI * 2);
+  stageCtx.fill();
+
+  if (weatherId === 'cloudy') {
+    stageCtx.fillStyle = 'rgba(255,255,255,0.10)';
+    stageCtx.fillRect(0, 0, STAGE_W, STAGE_H);
+  }
+}
+
+function drawStagePet(now) {
+  const cx = STAGE_CX;
+  const groundY = STAGE_GROUND;
+  stageCtx.clearRect(0, 0, petStageCanvas.width, petStageCanvas.height);
+  const pre = latest && latest.derived;
+  drawRoom(now, pre && pre.phase ? pre.phase.id : 'day', pre && pre.weather ? pre.weather.id : 'clear');
+
+  stageCtx.save();
+  stageCtx.globalAlpha = 0.22;
+  stageCtx.fillStyle = '#000';
+  stageCtx.beginPath();
+  stageCtx.ellipse(cx, groundY + 4, 64, 10, 0, 0, Math.PI * 2);
+  stageCtx.fill();
+  stageCtx.restore();
+
+  if (!latest) return;
+  const d = latest.derived;
+
+  const phaseTint = d.phase && d.phase.tint;
+  const wTint = weatherOverlay(d.weather ? d.weather.id : 'clear');
+  const tintList = [phaseTint, wTint].filter(Boolean);
+  for (const t of tintList) {
+    stageCtx.save();
+    stageCtx.fillStyle = t;
+    stageCtx.fillRect(0, 0, petStageCanvas.width, petStageCanvas.height);
+    stageCtx.restore();
+  }
+  if (rainFlash(d.weather ? d.weather.id : 'clear', now)) {
+    stageCtx.save();
+    stageCtx.fillStyle = 'rgba(255, 255, 255, 0.16)';
+    stageCtx.fillRect(0, 0, petStageCanvas.width, petStageCanvas.height);
+    stageCtx.restore();
+  }
+  drawWeatherFx(d.weather ? d.weather.id : 'clear', now);
+
+  if (latest.state.dead) {
+    drawGrave();
+    return;
+  }
+
+  const isEgg = latest.state.pet.stage === 'egg';
+  const skinDef = d.skins ? d.skins.find((sk) => sk.equipped) : null;
+  const tint = skinDef ? skinDef.tint : null;
+
+  if (isEgg) {
+    const prog = Math.max(0.04, Math.min(1, (latest.state.pet.xp || 0) / 14));
+    stageCtx.save();
+    stageCtx.imageSmoothingEnabled = false;
+    drawWithSkin((g) => eggToCtx(g, now, prog), tint);
+    stageCtx.restore();
+    return;
+  }
+
+  const st = stageStateFor();
+  const stageScale = d.stage ? d.stage.scale : 1;
+  const boxSize = Math.round(264 * stageScale);
+  const bobbing = st === 'HAPPY' || st === 'WALK';
+  const yOff = bobbing ? Math.round(Math.sin(now / 260) * 4) : 0;
+
+  stageCtx.save();
+  stageCtx.imageSmoothingEnabled = false;
+
+  const drawPath = (g) => {
+    const pngs = stageFramesFor(latest.state.pet.species || 'kala', st);
+    const single = stageSingleFor(latest.state.pet.species || 'kala', st);
+    if (pngs.length > 0) {
+      const img = pngs[Math.floor(now / 170) % pngs.length];
+      g.drawImage(img, cx - boxSize / 2, groundY - boxSize + yOff, boxSize, boxSize);
+    } else if (single) {
+      g.drawImage(single, cx - boxSize / 2, groundY - boxSize + yOff, boxSize, boxSize);
+    } else {
+      let bank = null;
+      try {
+        bank = sprites.ensurePetSprites(latest.state.pet.species || 'kala');
+      } catch (err) {
+        bank = null;
+      }
+      if (bank && bank[st]) {
+        const frame = bank[st][Math.floor(now / 170) % bank[st].length];
+        g.drawImage(frame, cx - boxSize / 2, groundY - boxSize + yOff, boxSize, boxSize);
+      }
+    }
+  };
+
+  if (tint) drawWithSkin(drawPath, tint);
+  else drawPath(stageCtx);
+  stageCtx.restore();
+}
+
+function eggToCtx(g, now, prog) {
+  const shake = prog > 0.6 ? Math.sin(now / 55) * 4 * prog : 0;
+  const cy = 250;
+  g.save();
+  g.globalAlpha = 0.22;
+  g.fillStyle = '#000';
+  g.beginPath();
+  g.ellipse(STAGE_CX + shake, STAGE_GROUND + 3, 30, 7, 0, 0, Math.PI * 2);
+  g.fill();
+  g.restore();
+  g.save();
+  g.translate(STAGE_CX + shake, cy);
+  g.fillStyle = '#f5eede';
+  g.strokeStyle = '#6b5d43';
+  g.lineWidth = 3;
+  g.beginPath();
+  g.ellipse(0, 0, 26, 34, 0, 0, Math.PI * 2);
+  g.fill();
+  g.stroke();
+  g.fillStyle = '#ffd97a';
+  g.fillRect(-17, -8, 9, 9);
+  g.fillRect(5, 10, 8, 8);
+  g.fillRect(10, -20, 7, 7);
+  g.fillStyle = 'rgba(0,0,0,0.12)';
+  g.beginPath();
+  g.ellipse(-8, 15, 13, 6, 0, 0, Math.PI * 2);
+  g.fill();
+  g.restore();
+  g.save();
+  g.font = '11px sans-serif';
+  g.textAlign = 'center';
+  g.fillStyle = 'rgba(255, 255, 255, 0.85)';
+  g.fillText(prog > 0.8 ? 'crack... crack!' : `keep caring... ${Math.round(prog * 100)}%`, STAGE_CX + shake, 322);
+  g.restore();
+}
 
 let lastStagePat = 0;
 petStageCanvas.addEventListener('click', async () => {
@@ -467,3 +921,78 @@ document.querySelectorAll('#tab-bar .studio-tab').forEach((btn) => {
   drawStagePet(performance.now());
   requestAnimationFrame(stageLoop);
 })();
+
+const achCards = {};
+
+function renderExtras(d) {
+  if (!d.achievements) return;
+  const grid = el('achv-grid');
+  if (grid.childElementCount === 0) {
+    for (const a of d.achievements) {
+      const card = document.createElement('div');
+      card.className = 'achv';
+      card.innerHTML = `<div class="achv-ico"></div><div class="achv-name"></div><div class="achv-desc muted"></div>`;
+      grid.appendChild(card);
+      achCards[a.id] = card;
+    }
+  }
+  for (const a of d.achievements) {
+    const card = achCards[a.id];
+    card.classList.toggle('unlocked', a.unlocked);
+    card.querySelector('.achv-ico').textContent = a.unlocked ? a.icon : '🔒';
+    card.querySelector('.achv-name').textContent = a.name;
+    card.querySelector('.achv-desc').textContent = a.desc;
+  }
+  el('btn-daily').textContent = d.daily.claimedToday ? '✅ Claimed — come back tomorrow!' : `🎁 Claim Daily (+${d.daily.nextReward})`;
+  el('btn-daily').disabled = d.daily.claimedToday;
+  el('daily-info').textContent = `Streak: ${d.daily.streak} day${d.daily.streak === 1 ? '' : 's'} (best ${d.daily.best})`;
+  const sg = el('skins-grid');
+  sg.innerHTML = '';
+  for (const sk of d.skins) {
+    const card = document.createElement('div');
+    card.className = `skin-card${sk.equipped ? ' equipped' : ''}`;
+    const sw = document.createElement('div');
+    sw.className = `skin-swatch sw-${sk.id}`;
+    const nm = document.createElement('div');
+    nm.className = 'skin-name';
+    nm.textContent = sk.name;
+    const btn = document.createElement('button');
+    btn.className = 'btn f-feed';
+    btn.textContent = sk.equipped ? '✓ Equipped' : sk.owned ? 'Equip' : `🪙 ${sk.cost}`;
+    btn.disabled = sk.equipped;
+    btn.addEventListener('click', async () => {
+      const res = await api.action(sk.owned ? 'setSkin' : 'buySkin', { skinId: sk.id });
+      showToast(res && res.message);
+    });
+    card.appendChild(sw);
+    card.appendChild(nm);
+    card.appendChild(btn);
+    sg.appendChild(card);
+  }
+}
+
+el('btn-daily').addEventListener('click', () => act('claimDaily'));
+
+el('btn-export').addEventListener('click', async () => {
+  const res = await api.action('exportSave');
+  if (!res || !res.ok) return;
+  try {
+    await navigator.clipboard.writeText(res.code);
+    showToast('Save code copied to clipboard! Keep it safe 🔐', 3200);
+  } catch (err) {
+    window.prompt('Copy your save code:', res.code);
+  }
+});
+
+el('btn-import').addEventListener('click', async () => {
+  const code = window.prompt('Paste your Juan Buddy save code (starts with JB2.):');
+  if (!code) return;
+  const res = await api.action('importSave', { code: code.trim() });
+  showToast(res && res.message, 3200);
+});
+
+el('btn-new-game').addEventListener('click', async () => {
+  if (!window.confirm('Start over with a new egg? Your buddy will be gone forever, but your achievements stay.')) return;
+  const res = await api.action('newGame');
+  showToast(res && res.message, 4000);
+});

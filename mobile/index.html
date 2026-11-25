@@ -40,6 +40,7 @@
         <button id="m-sleep" class="btn">😴 Sleep</button>
       </div>
       <button id="m-cheer" class="btn wide">✨ Cheer Me Up (+coins)</button>
+      <button id="m-daily" class="btn wide">🎁 Claim Daily Bonus</button>
       <p class="muted hint">Tap your buddy to pat it 🤚</p>
     </section>
 
@@ -64,6 +65,18 @@
     <button data-tab="activities" class="tab">🎯 Quests</button>
     <button data-tab="buddies" class="tab">🧸 Buddies</button>
   </nav>
+
+  <div id="m-death-overlay" class="m-death-overlay hidden">
+    <div class="m-death-card">
+      <div class="m-death-emoji">🕊️</div>
+      <h2 id="m-death-name">Buddy</h2>
+      <p>has passed away...</p>
+      <p id="m-death-cause" class="m-death-cause"></p>
+      <p class="m-death-lesson">Take care of your buddy — feed, play, and let them rest. Like real life, neglect has consequences.</p>
+      <button id="m-new-game" class="btn">🌱 Start New Game</button>
+      <p class="m-death-note muted">Your achievements and daily streak stay with you.</p>
+    </div>
+  </div>
 
   <div id="m-toast" class="toast hidden"></div>
 

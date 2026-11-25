@@ -204,7 +204,7 @@ assert(s.coins >= cooledCoins, 'no reward before completion');
 assert(engine.startActivity(s, 'walk').ok === false, 'still busy until timer');
 
 s = engine.defaultState();
-assert(s.pet.species === 'kala', 'default species');
+assert(s.pet.stage === 'egg' && s.pet.species === null, 'default state starts as mystery egg');
 const da = engine.derivedStats(engine.defaultState());
 assert(da.activities.length === 5, 'five activities offered');
 assert(da.activities.every((a) => !a.active), 'no activity active by default');

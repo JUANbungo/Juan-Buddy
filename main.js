@@ -35,7 +35,7 @@ function loadState() {
   }
 }
 
-const state = loadState();
+const state = engine.ensureState(loadState());
 
 function saveState() {
   try {
@@ -72,6 +72,16 @@ function runAction(action, payload) {
         result = { ok: false, message: 'Unknown buddy.' };
       }
       break;
+    case 'claimDaily': result = engine.claimDaily(state); break;
+    case 'buySkin': result = engine.buySkin(state, payload && payload.skinId); break;
+    case 'setSkin': result = engine.setSkin(state, payload && payload.skinId); break;
+    case 'exportSave':
+      result = { ok: true, code: engine.saveCode(state), message: 'Save code copied!' };
+      break;
+    case 'importSave':
+      result = engine.importSave(state, payload && payload.code);
+      break;
+    case 'newGame': result = engine.newGame(state); break;
     case 'rename':
       if (payload && typeof payload.name === 'string' && payload.name.trim().length > 0) {
         state.pet.name = payload.name.trim().slice(0, 16);
@@ -149,10 +159,10 @@ function createDashboardWindow() {
     return;
   }
   dashboardWindow = new BrowserWindow({
-    width: 1120,
-    height: 800,
-    minWidth: 700,
-    minHeight: 560,
+    width: 1280,
+    height: 820,
+    minWidth: 760,
+    minHeight: 600,
     resizable: true,
     title: 'Juan Buddy',
     autoHideMenuBar: true,
@@ -212,7 +222,17 @@ function startTicking() {
     const now = Date.now();
     const dt = (now - last) / 1000;
     last = now;
-    engine.tick(state, dt, false);
+    const tickEvents = engine.tick(state, dt, false);
+    for (const ev of tickEvents) {
+      if (!ev || !ev.message) continue;
+      broadcastState(ev.message);
+      if (Notification.isSupported() && (ev.message.includes('passed away') || ev.message.includes('Achievement') || ev.message.includes('evolved') || ev.message.includes('hatched'))) {
+        const note = new Notification({ title: 'Juan Buddy', body: ev.message, silent: false });
+        note.on('click', createDashboardWindow);
+        note.show();
+      }
+      if (ev.message.includes('passed away')) saveState();
+    }
     dirty = true;
     broadcastState(null);
     maybeNotify();

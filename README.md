@@ -1,36 +1,56 @@
-# Juan Buddy 🐣
+# Juan Buddy 🥚
 
-A taskbar / tray **idle pet** for Windows, macOS, and Linux. Your little buddy lives in the corner
-of your screen, earns coins while you work, gets hungry, sleeps, and levels up — pop it open whenever
-you need a reason to smile mid-workday.
+**A 16-bit ASEAN idle pet RPG / life sim** for Windows, macOS, and Linux — hatch a mystery pet
+from an egg, raise it from baby to adult, feed it delicacies from all over Asia, and take good
+care of it… because if you neglect your buddy for too long, **it can really pass away** and you'll
+have to start over, just like real life.
+
+Start the game, get cozy in your buddy's pixel room (fairy lights, parol, banig mat and all),
+and come back now and then to feed, play, and pet. It's the friend that makes opening your PC
+a little happier.
 
 Built with Electron. No build step, no framework — plain HTML/CSS/JS.
 
 ## ✨ Features
 
-- **14 hand-crafted 16-bit pixel pets** from the Juan-Buddy Studio roster — Kala the carabao 🇵🇭, Bantay the aso, Tala, Chai 🇹🇭, Linh 🇻🇳, Bara 🇮🇩, Rimau 🇲🇾, Merli 🇸🇬, **Nila the peacock 🇮🇳 and Raja the Royal Elephant 🇮🇳**, Mochi 🇯🇵, Bao 🇨🇳, Misha 🇷🇺 and Gino 🇮🇹 — each with IDLE / WALK / HAPPY / EAT / SLEEP animations, drawn live with crisp outlines
-- **🍜 32 ASEAN & world delicacies** — Pad Thai, fresh bamboo stalks, Khao Lam, Mango Sticky Rice, Tom Yum, Halo-Halo, Pandesal, Ube Potion, Butter Chicken, Masala Dosa, Samosa, Gulab Jamun, Masala Chai (TEMP EXP boost +25%!) and more — with **region filter chips (🇵🇭 PH / 🇮🇳 India / 🌏 ASEAN / 🌍 World) and instant search**, so your pet's food is always one tap away. Each pet has a **cultural favorite** for a happiness + XP bonus (kala loves Halo-Halo, nila loves Butter Chicken 💛)
-- **Floating pet window** — pick any buddy in the dashboard, watch it react:
-  - Click it to give a pat (hearts!) · double-click or right-click to open the dashboard
-  - Drag it anywhere on your desktop
-- **🎯 Activities** — send your buddy on cooldown-based side quests for big coin & XP payouts: Tara Lakwatsa 🚶, Cook Adobo 🍳, Videoke Night 🎤, Study Session 📚 and Fishing Trip 🎣 (with a 15% lucky jackpot!)
-- **Idle economy** — send your buddy to **Work** to earn coins every second, even while the
-  dashboard is closed. Coins keep trickling while the app runs.
-- **Care loop** — Hunger, Energy and Happiness drain in real time. Feed snacks/meals/feasts,
-  play with your buddy, or let it sleep to recharge.
-- **Offline progress** — close the app, come back later: up to 8 hours of progress is applied on
-  launch (working earns at 50% rate offline).
-- **Level system** — feeding, playing and working grant XP; every level boosts coin rate by 10%.
-- **Shop & upgrades**
-  - 🛏 **Cozy Bed** (Lv 5) — energy drains 12% slower per level
-  - 🧸 **Toy Box** (Lv 5) — playing gives +25% happiness per level
-  - 📈 **Job Promotion** (Lv 10) — +60% coin rate per level
-  - 🍽 **Auto-Feeder** — automatically feeds a Snack below 20 hunger
-- **Tray integration** — lives in your system tray / menu bar with live status tooltip, quick
-  show/hide, and an "open at login" option.
-- **Notifications** — get pinged when your buddy is starving or exhausted (with cooldown so it
-  doesn't nag).
-- **Autosave** — progress saves to your OS user-data folder every 30 seconds and on quit.
+- **🥚 Start as an Egg → random hatch → evolve** — your game begins with a mystery egg. Care for
+  it and it cracks open into a **random buddy** from the roster, then grows through **4 stages**
+  (Egg → Baby → Teen → Adult) with bigger sprites as it levels up.
+- **💔 The permadeath twist** — go too long without feeding or resting your buddy while the app
+  is open and it can **die** (30 minutes of neglect). You'll get a grave, a lesson… and a fresh
+  egg. Your achievements and daily streak survive; your buddy doesn't. Real life, lite.
+- **14 hand-crafted 16-bit pixel pets** — Kala the carabao 🇵🇭, Bantay the aso, Tala the witchdog,
+  Chai 🇹🇭, Linh 🇻🇳, Bara 🇮🇩, Rimau 🇲🇾, Merli 🇸🇬, **Nila the peacock 🇮🇳 and Raja 🇮🇳**, Mochi 🇯🇵,
+  Bao 🇨🇳, Misha 🇷🇺, Gino 🇮🇹 — with IDLE / WALK / HAPPY / EAT / SLEEP animations and crisply
+  pixelated rendering in a cozy pixel-art home room.
+- **🗑️ The RPG dashboard** — two-column studio layout: pet playground with live room scene on the
+  left, tabbed panels (Food / Quests / Shop / Life / Buddies) on the right, sticky HUD with level,
+  XP bar and coin pills, chunky 3D buttons.
+- **🍔 32 ASEAN & world delicacies** — Pad Thai, fresh bamboo stalks, Khao Lam, Mango Sticky Rice,
+  Halo-Halo, Pandesal, Ube Potion, Butter Chicken, Masala Dosa, Samosa and more — with region
+  filter chips (🇵🇭 PH / 🇮🇳 India / 🌏 ASEAN / 🌍 World) and instant search. Each pet has a
+  **cultural favorite** for bonus happiness + XP.
+- **🎯 Activities** — cooldown-based side quests for big coin & XP payouts: Tara Lakwatsa 🚶,
+  Cook Adobo 🍳, Videoke Night 🎤, Study Session 📚, Fishing Trip 🎣 (with a 15% lucky jackpot!).
+- **☀️ Weather + day-night cycle** — the sky in your buddy's window follows the real clock (dawn /
+  day / dusk / night with sun, moon and twinkling stars) and the daily-rolled weather brings rain,
+  storms, snow and drifting clouds.
+- **🎁 Daily bonus streaks** — claim once a day for growing rewards (+45 at a 7-day streak).
+- **🏆 12 achievements** — from first feed to raising an adult, tracked in the Life tab.
+- **🎨 Pet skins** — Classic, Golden, Sakura and Midnight tints you can buy with coins and equip
+  anytime.
+- **🔐 Save codes** — export your whole game as a `JB2.…` code (copied to clipboard) and import
+  it anywhere — great for backups or moving between devices.
+- **💼 Idle economy** — send your buddy to **Work** to earn coins every second, even while the
+  dashboard is closed (offline progress up to 8 hours, working earns at 50% offline).
+- **❤️ Care loop** — Hunger, Energy and Happiness drain in real time. Feed, play, pat your buddy
+  or let it nap. Danger banners warn you before things get serious.
+- **🛒 Upgrades** — 🛏 Cozy Bed (slower energy drain), 🧸 Toy Box (+happiness), 📈 Job Promotion
+  (+coin rate), 🍽 Auto-Feeder (auto-snacks below 20 hunger).
+- **🔔 Notifications** — get pinged when your buddy is starving, exhausted, or reaches a
+  milestone (hatch, evolution, achievements, and yes… when it passes away).
+- **Tray integration** — lives in your system tray / menu bar with live status tooltip,
+  open-at-login option, and quick access.
 
 ## 🚀 Run it
 
@@ -39,7 +59,7 @@ npm install
 npm start
 ```
 
-- Windows: pet appears near the bottom-right, tray icon in the taskbar corner.
+- Windows: dashboard opens with your buddy's room front and center; tray icon in the taskbar corner.
 - macOS: tray icon in the menu bar.
 - Linux: requires a tray-enabled desktop environment (GNOME needs an AppIndicator extension).
 
@@ -66,8 +86,7 @@ Or build locally with `npm run mobile:sync && cd android && ./gradlew assembleDe
 **iPhone (PWA)** — Apple requires a paid developer account to install unsigned IPAs, so the phone
 version ships as an installable web app instead:
 
-1. Open the GitHub Pages URL (enabled automatically — repo **Settings → Pages** will show
-   `https://juanbungo.github.io/Juan-Buddy/`) in **Safari**
+1. Open the GitHub Pages URL in **Safari**: `https://juanbungo.github.io/Juan-Buddy/`
 2. Tap **Share → Add to Home Screen** — Juan Buddy runs fullscreen with offline support
    (service worker + localStorage save, up to 8 h catch-up progress), plus minimalist
    battery-friendly notifications when your buddy gets hungry or finishes a quest
@@ -97,28 +116,23 @@ npm test
 ```
 main.js                 Electron main process: tray, windows, IPC, save/load, ticking
 preload.js              Secure IPC bridge (contextIsolation on)
-src/engine/engine.js    Pure game logic — stats, actions, economy, upgrades, offline progress
-src/pet/                Floating transparent pet window (canvas renderer)
-src/dashboard/          Control panel: stats, actions, shop, settings
+src/engine/engine.js    Pure game logic — stats, actions, economy, stages, death, achievements
+src/dashboard/          The RPG studio: pet room, care controls, tabbed panels
+src/pet/sprites.js      Pet roster, delicacies, baked sprite fallbacks
 src/pet/motivation.js   AI motivational events (Mistral API + offline fallback quotes)
+assets/sprites/         16-bit pet frame PNGs + food icons
 mobile/                 Phone version: tabs Home / Foods / Quests / Buddies (Capacitor web app + PWA)
                         (sprites.js / engine.js baked here by scripts/prep-mobile.js)
-assets/icons.js         Tray/app icons as base64 data URLs (keeps the repo text-only)
-scripts/generate-icons.js  Regenerates PNG assets from the base64 module
+assets/icons.js         Tray/app icons as base64 data URLs
+scripts/slice-sheets.js Slices sprite-sheet PNGs into per-frame animations
 scripts/prep-mobile.js  Copies engine + sprites into mobile/ and bakes phone icons (npm run mobile:sync)
 capacitor.config.json   Capacitor config (webDir: mobile)
 android/                Native Android project for the APK build
-test/engine.test.js     Engine test suite (plain node, no deps)
+test/                   Engine, UI, feature and smoke test suites (plain node, no deps)
 ```
 
-## 🗺 Ideas for v2
+## 🧭 The lesson
 
-- Pet evolution by level (egg → baby → teen → adult forms)
-- Multiple pet skins / themes
-- Weather + day-night cycle tinting
-- Achievements and daily bonus streaks
-- Export / import save codes
-
-## License
-
-MIT
+Juan Buddy isn't just about collecting coins. Your buddy depends on you — feed it when it's
+hungry, let it sleep when it's tired, play with it when it's sad. If you ignore it for too long,
+it's gone for real. Take care of the things that take care of you. 🕊️

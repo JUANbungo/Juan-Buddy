@@ -45,7 +45,7 @@ function loadState() {
     if (!raw) return engine.defaultState();
     const saved = JSON.parse(raw);
     const d = engine.defaultState();
-    return {
+    return engine.ensureState({
       ...d, ...saved,
       pet: { ...d.pet, ...(saved.pet || {}) },
       meters: { ...d.meters, ...(saved.meters || {}) },
@@ -54,7 +54,7 @@ function loadState() {
       activity: saved.activity || null,
       activityCooldowns: saved.activityCooldowns || {},
       effects: { ...d.effects, ...(saved.effects || {}) },
-    };
+    });
   } catch (err) {
     return engine.defaultState();
   }
@@ -97,6 +97,11 @@ function run(action, payload) {
     case 'cheer':
       state.coins += Math.max(0, Math.round((payload && payload.coins) || 10));
       result = { ok: true, message: '' };
+      break;
+    case 'claimDaily': result = engine.claimDaily(state); break;
+    case 'newGame':
+      result = engine.newGame(state);
+      if (result.ok) save();
       break;
     default: break;
   }
@@ -157,6 +162,15 @@ setInterval(() => {
 $('m-work').addEventListener('click', () => run('toggleWork'));
 $('m-sleep').addEventListener('click', () => run('toggleSleep'));
 
+const mNewGameBtn = $('m-new-game');
+if (mNewGameBtn) mNewGameBtn.addEventListener('click', () => {
+  if (!window.confirm('Start over with a new egg? Your buddy will be gone forever, but your achievements stay.')) return;
+  run('newGame');
+});
+
+const mDailyBtn = $('m-daily');
+if (mDailyBtn) mDailyBtn.addEventListener('click', () => run('claimDaily'));
+
 $('m-food-search').addEventListener('input', () => renderFoods());
 
 const petStateFor = () => {
@@ -173,8 +187,75 @@ const particles = [];
 let lastPat = 0;
 let currentSpecies = null;
 
+function drawMobileEgg(now) {
+  const prog = Math.max(0.04, Math.min(1, (state.pet.xp || 0) / 14));
+  const shake = prog > 0.6 ? Math.sin(now / 55) * 3 * prog : 0;
+  petCtx.save();
+  petCtx.globalAlpha = 0.22;
+  petCtx.fillStyle = '#000';
+  petCtx.beginPath();
+  petCtx.ellipse(120 + shake, 218, 26, 7, 0, 0, Math.PI * 2);
+  petCtx.fill();
+  petCtx.restore();
+  petCtx.save();
+  petCtx.translate(120 + shake, 184);
+  petCtx.fillStyle = '#f5eede';
+  petCtx.strokeStyle = '#6b5d43';
+  petCtx.lineWidth = 3;
+  petCtx.beginPath();
+  petCtx.ellipse(0, 0, 26, 34, 0, 0, Math.PI * 2);
+  petCtx.fill();
+  petCtx.stroke();
+  petCtx.fillStyle = '#ffd97a';
+  petCtx.fillRect(-17, -8, 9, 9);
+  petCtx.fillRect(5, 10, 8, 8);
+  petCtx.fillRect(10, -20, 7, 7);
+  petCtx.restore();
+  petCtx.save();
+  petCtx.font = '11px sans-serif';
+  petCtx.textAlign = 'center';
+  petCtx.fillStyle = 'rgba(255,255,255,0.85)';
+  petCtx.fillText(prog > 0.8 ? 'crack... crack!' : `keep caring... ${Math.round(prog * 100)}%`, 120 + shake, 232);
+  petCtx.restore();
+}
+
+function drawMobileGrave() {
+  petCtx.save();
+  petCtx.globalAlpha = 0.22;
+  petCtx.fillStyle = '#000';
+  petCtx.beginPath();
+  petCtx.ellipse(120, 217, 36, 7, 0, 0, Math.PI * 2);
+  petCtx.fill();
+  petCtx.restore();
+  petCtx.fillStyle = '#8b93a8';
+  petCtx.strokeStyle = '#4a5164';
+  petCtx.lineWidth = 3;
+  petCtx.beginPath();
+  petCtx.moveTo(95, 214);
+  petCtx.lineTo(95, 146);
+  petCtx.arc(120, 146, 25, Math.PI, 0);
+  petCtx.lineTo(145, 214);
+  petCtx.closePath();
+  petCtx.fill();
+  petCtx.stroke();
+  petCtx.fillStyle = '#4a5164';
+  petCtx.font = 'bold 18px sans-serif';
+  petCtx.textAlign = 'center';
+  petCtx.fillText('R.I.P', 120, 182);
+}
+
 function drawPet(now) {
   petCtx.clearRect(0, 0, petCanvas.width, petCanvas.height);
+
+  if (state.dead) {
+    drawMobileGrave();
+    return;
+  }
+  if (state.pet.stage === 'egg') {
+    drawMobileEgg(now);
+    return;
+  }
+
   petCtx.save();
   petCtx.globalAlpha = 0.22;
   petCtx.fillStyle = '#000';
@@ -208,25 +289,28 @@ function drawPet(now) {
   if (!bank) return;
 
   const anim = petStateFor();
-  const yOff = anim === 'HAPPY' || anim === 'WALK' ? Math.round(Math.sin(now / 260) * 4) : 0;
+  const stageDef = engine.stageOf(state);
+  const boxSize = Math.round(224 * (stageDef ? stageDef.scale : 1));
+  const petLeft = 120 - boxSize / 2;
+  const petTop = 214 - boxSize + (anim === 'HAPPY' || anim === 'WALK' ? Math.round(Math.sin(now / 260) * 4) : 0);
   petCtx.imageSmoothingEnabled = false;
 
   const pngs = spriteFramesFor(speciesId, anim);
   if (pngs.length > 0) {
     const img = pngs[Math.floor(now / 170) % pngs.length];
-    petCtx.drawImage(img, 8, 214 - 224 + yOff, 224, 224);
+    petCtx.drawImage(img, petLeft, petTop, boxSize, boxSize);
     return;
   }
   const single = spriteSingleFor(speciesId, anim);
   if (single) {
-    petCtx.drawImage(single, 8, 214 - 224 + yOff, 224, 224);
+    petCtx.drawImage(single, petLeft, petTop, boxSize, boxSize);
     return;
   }
 
   const frame = Math.floor(now / 170) % sprites.FRAMES_PER_STATE;
   const sprite = bank[anim] && bank[anim][frame % bank[anim].length];
   if (!sprite) return;
-  petCtx.drawImage(sprite, 120 - 112, 214 - 224 + yOff, 224, 224);
+  petCtx.drawImage(sprite, petLeft, petTop, boxSize, boxSize);
 
   if (anim === 'SLEEP' && Math.random() < 0.02) particles.push({ kind: 'z', x: 150, y: 30, vy: -0.5, life: 1, size: 16, wobble: 0 });
   if ((state.flags.working || state.activity) && Math.random() < 0.012) {
@@ -449,6 +533,22 @@ function render(d) {
   renderFoods();
   renderActivities(d);
   renderBuddies();
+
+  if ($('m-daily') && d.daily) {
+    $('m-daily').textContent = d.daily.claimedToday ? '\u2705 Daily claimed — back tomorrow!' : `\ud83c\udf81 Claim Daily (+${d.daily.nextReward})`;
+    $('m-daily').disabled = d.daily.claimedToday;
+  }
+
+  const overlay = $('m-death-overlay');
+  if (overlay) {
+    if (s.dead) {
+      overlay.classList.remove('hidden');
+      $('m-death-cause').textContent = `Cause: ${s.dead.cause} — reached Lv ${s.dead.level}`;
+      $('m-death-name').textContent = s.pet.name;
+    } else {
+      overlay.classList.add('hidden');
+    }
+  }
 }
 
 for (const btn of document.querySelectorAll('nav .tab')) {

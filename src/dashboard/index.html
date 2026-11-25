@@ -43,10 +43,16 @@
             <span class="play-title">🏠 Juan Buddy Home</span>
             <span id="play-state" class="state-badge">IDLE</span>
           </div>
+          <div class="play-chips">
+            <span id="weather-chip" class="chip">☀️ Sunny</span>
+            <span id="phase-chip" class="chip">🌙 Night</span>
+            <span id="streak-chip" class="chip">🔥 0</span>
+          </div>
         </div>
         <div class="playground-wrap">
-          <canvas id="dash-pet" width="240" height="240"></canvas>
+          <canvas id="dash-pet" width="480" height="360"></canvas>
           <div class="stage-hint">Tap pet to greet · Tap floor to walk</div>
+          <div id="danger-banner" class="danger-banner hidden">⚠️ Your buddy needs care NOW — feed them or let them sleep!</div>
         </div>
         <div class="care-grid">
           <div class="care">
@@ -77,6 +83,7 @@
         <button data-tab="activities" class="studio-tab">🎯 Activities</button>
         <button data-tab="shop" class="studio-tab">🛠️ Shop</button>
         <button data-tab="pets" class="studio-tab">🐾 Pets</button>
+        <button data-tab="life" class="studio-tab">✨ Life</button>
       </nav>
 
       <main id="tab-panels">
@@ -103,6 +110,29 @@
           </section>
         </div>
 
+        <div class="tab-panel hidden panel-life">
+          <section class="card">
+            <h2>🎁 Daily Bonus</h2>
+            <div id="daily-info" class="muted">Streak: 0 days (best 0)</div>
+            <button id="btn-daily" class="btn btn-amber daily-btn">🎁 Claim Daily Bonus</button>
+          </section>
+          <section class="card">
+            <h2>🧴 Pet Skins</h2>
+            <div id="skins-grid" class="skins-grid"></div>
+          </section>
+          <section class="card">
+            <h2>🏆 Achievements</h2>
+            <div id="achv-grid" class="achv-grid"></div>
+          </section>
+          <section class="card">
+            <h2>💾 Save Code <small class="muted">— backup or move your buddy</small></h2>
+            <div class="save-actions">
+              <button id="btn-export" class="btn btn-indigo">📤 Export Save Code</button>
+              <button id="btn-import" class="btn btn-violet">📥 Import Save Code</button>
+            </div>
+          </section>
+        </div>
+
         <div class="tab-panel hidden panel-pets">
           <section class="card">
             <h2>🐾 Choose Your Buddy</h2>
@@ -120,6 +150,16 @@
     </label>
     <button id="btn-reset" class="link danger">Reset progress</button>
   </footer>
+
+  <div id="death-overlay" class="death-overlay hidden">
+    <div class="death-card">
+      <div class="death-emoji">🕊️</div>
+      <h2 id="death-title">Buddy passed away...</h2>
+      <p id="death-cause" class="muted">Cause: neglect</p>
+      <p class="death-lesson">Take care of the things you love — feed them, rest them, check in on them. Just like real life. 🌱</p>
+      <button id="btn-new-game" class="btn btn-amber">🌱 Start a New Game</button>
+    </div>
+  </div>
 
   <div id="toast" class="toast hidden"></div>
   <script src="../pet/sprites.js"></script>
