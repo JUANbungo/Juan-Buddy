@@ -4,6 +4,9 @@ dist/
 !assets/icons.js
 !assets/sprites/*.png
 !assets/sprites/food/*.png
+!assets/sprites/evolutions/**/*.png
+!assets/sprites/items/**/*.png
+!assets/sprites/ui/**/*.png
 !mobile/icons/*.png
 !android/app/src/main/res/**/*.png
 !android/app/src/main/res/**/*.xml
