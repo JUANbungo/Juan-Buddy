@@ -315,6 +315,8 @@ header h1:hover { color: #fff; }
 .fill.hunger { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
 .fill.happy { background: linear-gradient(90deg, #fb7185, #fda4af); }
 .fill.energy { background: linear-gradient(90deg, #38bdf8, #7dd3fc); }
+.fill.xp { background: linear-gradient(90deg, #34d399, #5eead4); }
+.care-xp { color: #5eead4; }
 
 .play-actions {
   display: flex;

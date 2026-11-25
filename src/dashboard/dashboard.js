@@ -276,6 +276,7 @@ function render(snapshot) {
   setMeter('hunger', s.meters.hunger);
   setMeter('energy', s.meters.energy);
   setMeter('happy', s.meters.happiness);
+  setMeter('xp', Math.min(100, (s.pet.xp / Math.max(1, d.nextLevelXp)) * 100));
 
   const stateBadge = el('play-state');
   const t = Date.now();
