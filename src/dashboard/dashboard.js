@@ -309,9 +309,7 @@ function render(snapshot) {
     evoTrack.shown = false;
   }
 
-  el('btn-work').textContent = s.flags.working ? '💼 Working...' : '💼 Work: Off';
   el('btn-work').classList.toggle('on', s.flags.working);
-  el('btn-sleep').textContent = s.flags.sleeping ? '😴 Sleeping...' : '😴 Sleep: Off';
   el('btn-sleep').classList.toggle('on', s.flags.sleeping);
 
   el('btn-play').disabled = s.flags.sleeping || s.meters.energy < 8;
@@ -1164,6 +1162,19 @@ function fromLevelBedColor(lvl) {
   return ['#7f1d1d', '#9d174d', '#6d28d9', '#1d4ed8', '#134e4a'][Math.min(4, Math.max(0, lvl - 1))];
 }
 
+const pooFrames = {};
+function pooFrameImg(i) {
+  if (pooFrames[i]) return pooFrames[i];
+  let img = null;
+  try {
+    img = new Image();
+    img.onerror = () => { img.bad = true; };
+    img.src = `../../assets/sprites/waste/poo_${i}.png`;
+  } catch (err) { img = null; }
+  pooFrames[i] = img;
+  return img;
+}
+
 function drawWaste(now, list) {
   if (!list || !list.length) return;
   stageCtx.save();
@@ -1172,8 +1183,16 @@ function drawWaste(now, list) {
   for (const w of list) {
     const wob = Math.sin(now / 400 + w.x) * 2;
     if (w.kind === 'poop') {
-      stageCtx.font = '17px sans-serif';
-      stageCtx.fillText('\u{1F4A9}', w.x + wob, w.y);
+      const f = Math.floor(now / 420 + w.x) % 4;
+      const pimg = pooFrameImg(f);
+      if (pimg && !pimg.bad && pimg.complete && pimg.naturalWidth > 0) {
+        const ih = Math.round(42);
+        const iw = Math.round(ih * pimg.naturalWidth / pimg.naturalHeight);
+        stageCtx.drawImage(pimg, w.x + wob - iw / 2, w.y - ih + 4, iw, ih);
+      } else {
+        stageCtx.font = '17px sans-serif';
+        stageCtx.fillText('\u{1F4A9}', w.x + wob, w.y);
+      }
     } else {
       stageCtx.fillStyle = 'rgba(96, 165, 250, 0.5)';
       stageCtx.beginPath();

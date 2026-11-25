@@ -1573,3 +1573,23 @@ header.topbar { padding-right: 262px; }
   header.topbar { padding-right: 16px; }
   .brand-logo { display: none; }
 }
+
+/* ==== Pixel-art action buttons (Play / Work / Sleep / Cheer) ==== */
+.btn-graphic {
+  background: transparent;
+  border: none;
+  padding: 0;
+  border-radius: 10px;
+  image-rendering: pixelated;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+  transition: transform 0.1s ease;
+  cursor: pointer;
+}
+.btn-graphic img { display: block; height: 46px; width: auto; }
+.btn-graphic:hover { transform: translateY(-2px); filter: brightness(1.08); }
+.btn-graphic:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35); }
+.btn-graphic.on { outline: 3px solid #ffd54a; outline-offset: 1px; }
+.btn-graphic:disabled { opacity: 0.45; cursor: not-allowed; transform: none; filter: grayscale(0.4); }
+@media (prefers-reduced-motion: reduce) {
+  .btn-graphic, .btn-graphic:hover { transition: none; transform: none; }
+}
