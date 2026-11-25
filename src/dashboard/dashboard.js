@@ -24,6 +24,16 @@ function applyGraphics(smooth) {
 const UI_THEMES = ['classic', 'mint', 'sky', 'berry', 'violet', 'sunset'];
 let currentTheme = 'classic';
 let rainMode = 'off';
+const WALLPAWS = ['auto', 'cream', 'sky_blue', 'sakura_pink', 'mint_green', 'lavender', 'peach', 'dark_coffee', 'aqua', 'sunshine_yellow', 'periwinkle'];
+let currentWallPaw = 'auto';
+
+function applyWallPaw(pick) {
+  currentWallPaw = WALLPAWS.includes(pick) ? pick : 'auto';
+  if (typeof document === 'undefined' || !document.body || !document.body.classList) return;
+  WALLPAWS.forEach((w2) => {
+    if (w2 !== 'auto') document.body.classList.toggle(`wallpaw-${w2}`, currentWallPaw === w2);
+  });
+}
 
 function applyTheme(theme) {
   currentTheme = UI_THEMES.includes(theme) ? theme : 'classic';
@@ -74,6 +84,10 @@ function paintSettingsControls(st) {
   const swatches = document.querySelectorAll('.theme-swatch');
   if (swatches && swatches.forEach) swatches.forEach((sw) => {
     sw.classList.toggle('on', sw.dataset && sw.dataset.theme === (st.theme || 'classic'));
+  });
+  const wpicks = document.querySelectorAll('.wallpaw-pick');
+  if (wpicks && wpicks.forEach) wpicks.forEach((wp) => {
+    wp.classList.toggle('on', wp.dataset && wp.dataset.wallpaw === (st.wallPaw || 'auto'));
   });
 }
 
@@ -224,6 +238,7 @@ function render(snapshot) {
     const wantSmooth = smoothOfSettings(d.settings);
     if (wantSmooth !== smoothGraphics) applyGraphics(wantSmooth);
     if (d.settings.theme && d.settings.theme !== currentTheme) applyTheme(d.settings.theme);
+    if (d.settings.wallPaw && d.settings.wallPaw !== currentWallPaw) applyWallPaw(d.settings.wallPaw);
   }
   const weatherId = d.weather ? d.weather.id : 'clear';
   const wantRain = weatherId === 'stormy' ? 'storm' : weatherId === 'rainy' ? 'rain' : 'off';
@@ -495,6 +510,9 @@ function renderBuddyPicker(s) {
 function setMeter(prefix, value) {
   el(`${prefix}-fill`).style.width = pct(value);
   el(`${prefix}-val`).textContent = `${Math.round(value)}%`;
+  const miniKey = prefix === 'hunger' ? 'mini-hunger' : prefix === 'happy' ? 'mini-happy' : 'mini-energy';
+  const mini = el(miniKey);
+  if (mini) mini.style.width = pct(value);
 }
 
 function renderShop(s, d) {
@@ -1301,6 +1319,38 @@ function drawPark(now, phaseId, mode) {
   }
 }
 
+const footFracCache = new Map();
+function spriteFootFrac(img) {
+  if (!img || !img.naturalWidth || !img.complete) return 1;
+  const key = img.src || img;
+  if (footFracCache.has(key)) return footFracCache.get(key);
+  let frac = 1;
+  try {
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    const cv = document.createElement('canvas');
+    cv.width = w;
+    cv.height = h;
+    const c2 = cv.getContext('2d');
+    c2.drawImage(img, 0, 0);
+    const px = c2.getImageData(0, 0, w, h).data;
+    for (let y = h - 1; y >= 0; y -= 1) {
+      const row = y * w * 4;
+      for (let x = 0; x < w; x += 1) {
+        if (px[row + x * 4 + 3] > 12) {
+          frac = (y + 1) / h;
+          y = -2;
+          break;
+        }
+      }
+    }
+  } catch (err) {
+    frac = 1;
+  }
+  footFracCache.set(key, frac);
+  return frac;
+}
+
 function drawStagePet(now) {
   const groundY = STAGE_GROUND;
   stageCtx.clearRect(0, 0, petStageCanvas.width, petStageCanvas.height);
@@ -1438,35 +1488,37 @@ function drawStagePet(now) {
       g.translate(petWalk.x, 0);
       if (petWalk.dir < 0) g.scale(-1, 1);
       const bx = -boxSize / 2;
-      const by = petWalk.y - boxSize + yOff;
       const speciesId = s.pet.species || 'kala';
       const evoSingle = s.pet.evolved ? evoSingleFor(speciesId, st) : null;
       const evoFrame = s.pet.evolved && !evoSingle ? evoSheetFrameFor(speciesId, st) : null;
+      let img = null;
+      let sub = null;
       if (evoSingle) {
-        g.drawImage(evoSingle, bx, by, boxSize, boxSize);
+        img = evoSingle;
       } else if (evoFrame) {
-        g.drawImage(evoFrame.img, evoFrame.idx * evoFrame.frameW, 0, evoFrame.frameW, evoFrame.frameH, bx, by, boxSize, boxSize);
-      }
-      const pngs = stageFramesFor(speciesId, st);
-      const single = stageSingleFor(speciesId, st);
-      if (evoSingle || evoFrame) {
-        // evolved art fully drawn above
-      } else if (pngs.length > 0) {
-        const img = pngs[Math.floor(now / 170) % pngs.length];
-        g.drawImage(img, bx, by, boxSize, boxSize);
-      } else if (single) {
-        g.drawImage(single, bx, by, boxSize, boxSize);
+        img = evoFrame.img;
+        sub = { sx: evoFrame.idx * evoFrame.frameW, sy: 0, sw: evoFrame.frameW, sh: evoFrame.frameH };
       } else {
-        let bank = null;
-        try {
-          bank = sprites.ensurePetSprites(s.pet.species || 'kala');
-        } catch (err) {
-          bank = null;
+        const pngs = stageFramesFor(speciesId, st);
+        const single = stageSingleFor(speciesId, st);
+        if (pngs.length > 0) {
+          img = pngs[Math.floor(now / 170) % pngs.length];
+        } else if (single) {
+          img = single;
+        } else {
+          let bank = null;
+          try {
+            bank = sprites.ensurePetSprites(s.pet.species || 'kala');
+          } catch (err) {
+            bank = null;
+          }
+          if (bank && bank[st]) img = bank[st][Math.floor(now / 170) % bank[st].length];
         }
-        if (bank && bank[st]) {
-          const frame = bank[st][Math.floor(now / 170) % bank[st].length];
-          g.drawImage(frame, bx, by, boxSize, boxSize);
-        }
+      }
+      if (img) {
+        const by = petWalk.y - Math.round(boxSize * spriteFootFrac(img)) + yOff;
+        if (sub) g.drawImage(img, sub.sx, sub.sy, sub.sw, sub.sh, bx, by, boxSize, boxSize);
+        else g.drawImage(img, bx, by, boxSize, boxSize);
       }
       g.restore();
     };
@@ -1889,6 +1941,17 @@ if (themeSwatches) {
     const theme = sw.dataset.theme;
     applyTheme(theme);
     await api.action('setSettings', { theme });
+    if (sfx) sfx.play('coin');
+  });
+}
+const wallpawPicks = el('wallpaw-picks');
+if (wallpawPicks) {
+  wallpawPicks.addEventListener('click', async (e) => {
+    const wp = e.target && e.target.closest ? e.target.closest('button[data-wallpaw]') : null;
+    if (!wp) return;
+    const pick = wp.dataset.wallpaw;
+    applyWallPaw(pick);
+    await api.action('setSettings', { wallPaw: pick });
     if (sfx) sfx.play('coin');
   });
 }
