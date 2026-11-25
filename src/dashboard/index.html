@@ -47,7 +47,7 @@
         <div class="play-top">
           <div class="play-left">
             <span class="play-dot"></span>
-            <span class="play-title">🏠 Juan Buddy Home</span>
+            <span id="home-title" class="play-title">🏠 Home</span>
             <span id="play-state" class="state-badge">IDLE</span>
           </div>
           <div class="play-chips">
@@ -100,20 +100,6 @@
     </section>
 
     <aside class="col-panel">
-      <nav class="tab-bar" id="tab-bar">
-        <button data-tab="food" class="studio-tab on">🍜 Delicacies</button>
-        <button data-tab="activities" class="studio-tab">🎯 Activities</button>
-        <button data-tab="shop" class="studio-tab">🛠️ Shop</button>
-        <button data-tab="pets" class="studio-tab">🐾 Pets</button>
-        <button data-tab="battle" class="studio-tab">⚔️ Battle</button>
-        <button data-tab="gear" class="studio-tab">🛡️ Gear</button>
-        <button data-tab="bag" class="studio-tab">🎒 Bag</button>
-        <button data-tab="explore" class="studio-tab">🌏 Explore</button>
-        <button data-tab="path" class="studio-tab">🌀 Path</button>
-        <button data-tab="gacha" class="studio-tab">🎰 Gacha</button>
-        <button data-tab="life" class="studio-tab">✨ Life</button>
-        <button data-tab="settings" class="studio-tab">⚙️ Options</button>
-      </nav>
 
       <main id="tab-panels">
         <div class="tab-panel panel-food">
@@ -276,7 +262,21 @@
               <div class="settings-row">
                 <label class="settings-label" for="btn-gfx-toggle">🎨 Graphics</label>
                 <div class="settings-controls">
-                  <button id="btn-gfx-toggle" class="btn">Pixel-perfect</button>
+                  <select id="set-gfx" class="settings-select">
+                    <option value="pixel">Pixel-perfect (crisp)</option>
+                    <option value="smooth">Smooth (soft)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="settings-row">
+                <span class="settings-label">🌈 Accent color</span>
+                <div id="theme-swatches" class="theme-swatches">
+                  <button class="theme-swatch t-classic" data-theme="classic" title="Classic Amber"></button>
+                  <button class="theme-swatch t-mint" data-theme="mint" title="Mint"></button>
+                  <button class="theme-swatch t-sky" data-theme="sky" title="Sky"></button>
+                  <button class="theme-swatch t-berry" data-theme="berry" title="Berry"></button>
+                  <button class="theme-swatch t-violet" data-theme="violet" title="Violet"></button>
+                  <button class="theme-swatch t-sunset" data-theme="sunset" title="Sunset"></button>
                 </div>
               </div>
               <div class="settings-row">

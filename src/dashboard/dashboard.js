@@ -21,6 +21,15 @@ function applyGraphics(smooth) {
   }
 }
 
+const UI_THEMES = ['classic', 'mint', 'sky', 'berry', 'violet', 'sunset'];
+let currentTheme = 'classic';
+
+function applyTheme(theme) {
+  currentTheme = UI_THEMES.includes(theme) ? theme : 'classic';
+  if (typeof document === 'undefined' || !document.body || !document.body.classList) return;
+  UI_THEMES.forEach((t) => document.body.classList.toggle(`theme-${t}`, currentTheme === t));
+}
+
 function setBgmOverride(name, ms) {
   if (!bgm) return;
   bgmOverride = name;
@@ -53,13 +62,17 @@ function startBgmOnGesture() {
 function paintSettingsControls(st) {
   if (!st) return;
   const bgmToggle = el('btn-bgm-toggle');
-  const gfxToggle = el('btn-gfx-toggle');
+  const gfxSelect = el('set-gfx');
   const bgmRange = el('set-bgm');
   const sfxRange = el('set-sfx');
   if (bgmToggle) bgmToggle.textContent = st.bgmOn ? '🎵 Music: On' : '🔇 Music: Off';
-  if (gfxToggle) gfxToggle.textContent = st.pixelGraphics ? '🎨 Pixel-perfect' : '🌫️ Smooth';
+  if (gfxSelect && document.activeElement !== gfxSelect) gfxSelect.value = st.pixelGraphics === false ? 'smooth' : 'pixel';
   if (bgmRange && document.activeElement !== bgmRange) bgmRange.value = String(Math.round((st.bgmVol || 0.5) * 100));
   if (sfxRange && document.activeElement !== sfxRange) sfxRange.value = String(Math.round((st.sfxVol || 0.7) * 100));
+  const swatches = document.querySelectorAll('.theme-swatch');
+  if (swatches && swatches.forEach) swatches.forEach((sw) => {
+    sw.classList.toggle('on', sw.dataset && sw.dataset.theme === (st.theme || 'classic'));
+  });
 }
 
 function namedAlready() {
@@ -208,7 +221,10 @@ function render(snapshot) {
     paintSettingsControls(d.settings);
     const wantSmooth = smoothOfSettings(d.settings);
     if (wantSmooth !== smoothGraphics) applyGraphics(wantSmooth);
+    if (d.settings.theme && d.settings.theme !== currentTheme) applyTheme(d.settings.theme);
   }
+  const homeTitle = el('home-title');
+  if (homeTitle) homeTitle.textContent = `🏠 ${s.pet.name}'s Home`;
   maybeShowNameModal();
   maybeShowPerkModal(d);
 
@@ -1581,13 +1597,14 @@ petStageCanvas.addEventListener('click', async (e) => {
   if (sfx) sfx.play('click');
 });
 
-document.querySelectorAll('#tab-bar .studio-tab').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('#tab-bar .studio-tab').forEach((b) => b.classList.toggle('on', b === btn));
-    document.querySelectorAll('.tab-panel').forEach((p) => p.classList.add('hidden'));
-    document.querySelector(`.panel-${btn.dataset.tab}`).classList.remove('hidden');
+function activateTab(name) {
+  document.querySelectorAll('.tab-panel').forEach((p) => p.classList.add('hidden'));
+  const panel = document.querySelector(`.panel-${name}`);
+  if (panel && panel.classList) panel.classList.remove('hidden');
+  document.querySelectorAll('#stage-menu .stage-menu-item').forEach((b) => {
+    b.classList.toggle('on', b.dataset && b.dataset.menuTab === name);
   });
-});
+}
 
 const stageMenuBtn = el('stage-menu-btn');
 const stageMenu = el('stage-menu');
@@ -1598,8 +1615,7 @@ if (stageMenuBtn && stageMenu) {
   });
   stageMenu.querySelectorAll('.stage-menu-item').forEach((b) => {
     b.addEventListener('click', () => {
-      const tabBtn = document.querySelector(`#tab-bar .studio-tab[data-tab="${b.dataset.menuTab}"]`);
-      if (tabBtn && tabBtn.click) tabBtn.click();
+      if (b.dataset && b.dataset.menuTab) activateTab(b.dataset.menuTab);
       stageMenu.classList.add('hidden');
     });
   });
@@ -1827,7 +1843,8 @@ if (perkModal && perkChoices) {
 const bgmToggle = el('btn-bgm-toggle');
 const bgmRange = el('set-bgm');
 const sfxRange = el('set-sfx');
-const gfxToggle = el('btn-gfx-toggle');
+const gfxSelect = el('set-gfx');
+const themeSwatches = el('theme-swatches');
 if (bgmToggle && bgm && bgmRange) {
   bgmToggle.addEventListener('click', async () => {
     const st = latest && latest.settings ? latest.settings : {};
@@ -1849,14 +1866,22 @@ if (sfxRange && sfx) {
     sfx.setVolume(Number(sfxRange.value) / 100);
   });
 }
-if (gfxToggle) {
-  gfxToggle.addEventListener('click', async () => {
-    const st = latest && latest.settings ? latest.settings : {};
-    const pixel = !st.pixelGraphics;
+if (gfxSelect) {
+  gfxSelect.addEventListener('change', async () => {
+    const pixel = gfxSelect.value !== 'smooth';
     applyGraphics(!pixel);
     await api.action('setSettings', { pixelGraphics: pixel });
-    gfxToggle.textContent = pixel ? '🎨 Pixel-perfect' : '🌫️ Smooth';
     if (sfx) sfx.play('click');
+  });
+}
+if (themeSwatches) {
+  themeSwatches.addEventListener('click', async (e) => {
+    const sw = e.target && e.target.closest ? e.target.closest('button[data-theme]') : null;
+    if (!sw) return;
+    const theme = sw.dataset.theme;
+    applyTheme(theme);
+    await api.action('setSettings', { theme });
+    if (sfx) sfx.play('coin');
   });
 }
 

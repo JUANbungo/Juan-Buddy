@@ -1350,3 +1350,67 @@ input:focus-visible,
 }
 .perk-choice.epic .pk-badge { color: #fff8ea; background: #b8860b; border-color: #b8860b; }
 .perk-choice.epic .pk-name { color: #a16a00; }
+
+/* ==== Top-bar readability: dark ink text on the cream HUD PNG ==== */
+header h1 { color: #4a3b28; }
+header h1:hover { color: #a16a00; }
+header.topbar .brand-tagline,
+header.topbar .muted { color: #7a5c33; }
+.lvl { color: #2f7d52; }
+#xp-text { color: #7a5c33; }
+header .pill:not(.hud-pill) {
+  color: #5a4a33;
+  background: rgba(74, 59, 40, 0.08);
+  border-color: #cdb98f;
+}
+header .pill.active:not(.hud-pill) {
+  color: #1c5e3c;
+  background: rgba(47, 125, 82, 0.16);
+  border-color: #7fbf9b;
+}
+.status-pill { color: #5a4a33; }
+
+/* ==== Accent themes (Options > Accent color) ==== */
+body.theme-mint { --amber: #34d399; --amber-soft: #a7f3d0; }
+body.theme-sky { --amber: #38bdf8; --amber-soft: #bae6fd; }
+body.theme-berry { --amber: #fb7185; --amber-soft: #fecdd3; }
+body.theme-violet { --amber: #a78bfa; --amber-soft: #ddd6fe; }
+body.theme-sunset { --amber: #fb923c; --amber-soft: #fed7aa; }
+
+.theme-swatches { display: flex; gap: 8px; align-items: center; }
+.theme-swatch {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 999px;
+  border: 2px solid #fff8ea;
+  cursor: pointer;
+  box-shadow: 0 2px 0 rgba(74, 59, 40, 0.35);
+  transition: transform 0.1s ease;
+}
+.theme-swatch:hover { transform: scale(1.12); }
+.theme-swatch.t-classic { background: #f59e0b; }
+.theme-swatch.t-mint { background: #34d399; }
+.theme-swatch.t-sky { background: #38bdf8; }
+.theme-swatch.t-berry { background: #fb7185; }
+.theme-swatch.t-violet { background: #a78bfa; }
+.theme-swatch.t-sunset { background: #fb923c; }
+.theme-swatch.on { outline: 3px solid #4a3b28; outline-offset: 1px; }
+
+/* ==== Settings select (Graphics choice) ==== */
+.settings-select {
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #4a3b28;
+  background: #fff6e0;
+  border: 2px solid #d9c39a;
+  border-radius: 8px;
+  padding: 7px 10px;
+  cursor: pointer;
+  outline: none;
+}
+.settings-select:focus-visible { border-color: #c9962e; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25); }
+
+/* ==== Active stage-menu item highlight ==== */
+.stage-menu-item.on { background: #d8f0d2; filter: brightness(1.03); }

@@ -618,7 +618,7 @@ function defaultState() {
     items: { owned: [], equipped: { Head: null, Neck: null, Back: null, Weapon: null, Armor: null, Relic: null } },
     skin: 'classic',
     skinsOwned: ['classic'],
-    settings: { bgmOn: true, bgmVol: 0.5, sfxVol: 0.7, pixelGraphics: true },
+    settings: { bgmOn: true, bgmVol: 0.5, sfxVol: 0.7, pixelGraphics: true, theme: 'classic' },
     perks: { coins: 0, xp: 0, energy: 0, rest: 0 },
     pendingPerk: null,
     perksClaimed: 0,
@@ -640,6 +640,7 @@ function ensureState(state) {
   if (state.settings) {
     for (const k of ['bgmOn', 'pixelGraphics']) if (state.settings[k] === undefined) state.settings[k] = fresh.settings[k];
     for (const k of ['bgmVol', 'sfxVol']) if (typeof state.settings[k] !== 'number' || Number.isNaN(state.settings[k])) state.settings[k] = fresh.settings[k];
+    if (state.settings.theme === undefined) state.settings.theme = 'classic';
   }
   if (state.statPoints === undefined) state.statPoints = 0;
   if (state.path === undefined) state.path = null;
@@ -1318,11 +1319,12 @@ function derivedStats(state) {
 }
 
 function setSettings(state, payload) {
-  if (!state.settings) state.settings = { bgmOn: true, bgmVol: 0.5, sfxVol: 0.7, pixelGraphics: true };
+  if (!state.settings) state.settings = { bgmOn: true, bgmVol: 0.5, sfxVol: 0.7, pixelGraphics: true, theme: 'classic' };
   if (!payload || typeof payload !== 'object') return { ok: false, message: 'No settings given.' };
   const t = state.settings;
   if (payload.bgmOn !== undefined) t.bgmOn = !!payload.bgmOn;
   if (payload.pixelGraphics !== undefined) t.pixelGraphics = !!payload.pixelGraphics;
+  if (payload.theme !== undefined && ['classic', 'mint', 'sky', 'berry', 'violet', 'sunset'].includes(payload.theme)) t.theme = payload.theme;
   for (const k of ['bgmVol', 'sfxVol']) {
     if (payload[k] !== undefined) {
       let v = Number(payload[k]);
