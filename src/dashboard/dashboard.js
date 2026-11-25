@@ -83,6 +83,15 @@ function render(snapshot) {
   pill.textContent = d.buffLabel ? `${d.statusText} · ${d.buffLabel}` : d.statusText;
   pill.classList.toggle('active', s.flags.working || s.flags.sleeping);
 
+  const stateBadge = el('play-state');
+  const t = Date.now();
+  stateBadge.textContent = s.flags.sleeping ? 'SLEEPING'
+    : s.effects.eatUntil > t ? 'EATING'
+    : s.effects.happyUntil > t ? 'HAPPY'
+    : s.activity ? 'ON ACTIVITY'
+    : s.flags.working ? 'WORKING'
+    : (d.statusText || 'IDLE').toUpperCase();
+
   el('btn-work').textContent = s.flags.working ? '💼 Working...' : '💼 Work: Off';
   el('btn-work').classList.toggle('on', s.flags.working);
   el('btn-sleep').textContent = s.flags.sleeping ? '😴 Sleeping...' : '😴 Sleep: Off';
@@ -453,7 +462,6 @@ document.querySelectorAll('#tab-bar .studio-tab').forEach((btn) => {
     document.querySelector(`.panel-${btn.dataset.tab}`).classList.remove('hidden');
   });
 });
-document.querySelector('.panel-home').classList.remove('hidden');
 
 (function stageLoop() {
   drawStagePet(performance.now());

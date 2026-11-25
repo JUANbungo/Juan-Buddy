@@ -149,8 +149,10 @@ function createDashboardWindow() {
     return;
   }
   dashboardWindow = new BrowserWindow({
-    width: 440,
-    height: 860,
+    width: 1120,
+    height: 800,
+    minWidth: 700,
+    minHeight: 560,
     resizable: true,
     title: 'Juan Buddy',
     autoHideMenuBar: true,
