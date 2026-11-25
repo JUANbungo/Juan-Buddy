@@ -54,8 +54,7 @@
     "extraResources": [
       {
         "from": "pad/",
-        "to": "bonus-data/",
-        "failOnMissing": false
+        "to": "bonus-data/"
       }
     ]
   }
