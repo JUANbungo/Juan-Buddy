@@ -548,7 +548,7 @@ header h1:hover { color: #fff; }
   border-radius: 12px;
   padding: 9px 7px;
   text-align: center;
-  cursor: pointer;
+  cursor: default;
   transition: transform 0.1s ease, border-color 0.15s ease;
 }
 
@@ -558,6 +558,11 @@ header h1:hover { color: #fff; }
   border-color: var(--amber);
   background: rgba(245, 158, 11, 0.12);
   box-shadow: 0 0 0 1px var(--amber);
+}
+
+.buddy-tile.mystery {
+  opacity: 0.45;
+  filter: grayscale(0.9);
 }
 
 .b-tile-ico { font-size: 22px; }
@@ -1003,7 +1008,7 @@ header .title-row.secondary { margin-top: 5px; }
 .pixelated { image-rendering: pixelated; }
 
 header.topbar {
-  background-image: url('../assets/sprites/ui/hud/hud_top_bar.png');
+  background-image: url('../../assets/sprites/ui/hud/hud_top_bar.png');
   background-size: 100% 100%;
   background-repeat: no-repeat;
   image-rendering: pixelated;
@@ -1011,7 +1016,7 @@ header.topbar {
 
 .tab-panel > .card {
   border: 8px solid transparent;
-  border-image-source: url('../assets/sprites/ui/panels/cozy_panel_frame.png');
+  border-image-source: url('../../assets/sprites/ui/panels/cozy_panel_frame.png');
   border-image-slice: 12 fill;
   border-image-repeat: stretch;
   image-rendering: pixelated;
@@ -1024,7 +1029,7 @@ header.topbar {
 
 .btn {
   border: 4px solid transparent;
-  border-image-source: url('../assets/sprites/ui/buttons/btn_mint.png');
+  border-image-source: url('../../assets/sprites/ui/buttons/btn_mint.png');
   border-image-slice: 8 fill;
   border-image-repeat: stretch;
   image-rendering: pixelated;
@@ -1036,9 +1041,9 @@ header.topbar {
 .btn:active { transform: translateY(1px); }
 
 .btn.btn-danger,
-.btn-danger { border-image-source: url('../assets/sprites/ui/buttons/btn_berry.png'); }
-.btn.btn-gold { border-image-source: url('../assets/sprites/ui/buttons/btn_peach.png'); }
-.btn.btn-primary { border-image-source: url('../assets/sprites/ui/buttons/btn_sky.png'); }
+.btn-danger { border-image-source: url('../../assets/sprites/ui/buttons/btn_berry.png'); }
+.btn.btn-gold { border-image-source: url('../../assets/sprites/ui/buttons/btn_peach.png'); }
+.btn.btn-primary { border-image-source: url('../../assets/sprites/ui/buttons/btn_sky.png'); }
 
 /* ===== Cozy Bag grid ===== */
 .bag-grid {
@@ -1117,3 +1122,82 @@ header.topbar {
   from { transform: scale(0.4) rotate(-6deg); opacity: 0; }
   to { transform: scale(1) rotate(0); opacity: 1; }
 }
+
+/* ==== In-game stage menu (☰ Menu dropdown over the playground) ==== */
+.stage-menu-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #4a3b28;
+  background: #ffe9b8;
+  border: 4px solid transparent;
+  border-image-source: url('../../assets/sprites/ui/buttons/btn_peach.png');
+  border-image-slice: 8 fill;
+  border-image-repeat: stretch;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  image-rendering: pixelated;
+  box-shadow: 0 3px 0 #a8895a;
+  transition: transform 0.08s ease;
+}
+.stage-menu-btn:hover { transform: translateY(-1px); }
+.stage-menu-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #a8895a; }
+
+.stage-menu {
+  position: absolute;
+  top: 48px;
+  right: 10px;
+  z-index: 70;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  gap: 6px;
+  padding: 10px;
+  background: #fff8ea;
+  border: 8px solid transparent;
+  border-image-source: url('../../assets/sprites/ui/panels/cozy_panel_frame.png');
+  border-image-slice: 12 fill;
+  border-image-repeat: stretch;
+  border-radius: 10px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+  image-rendering: pixelated;
+  max-width: calc(100% - 20px);
+}
+.stage-menu.hidden { display: none; }
+
+.stage-menu-item {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  color: #4a3b28;
+  background: #ffe9b8;
+  border: 3px solid transparent;
+  border-image-source: url('../../assets/sprites/ui/buttons/btn_mint.png');
+  border-image-slice: 8 fill;
+  border-image-repeat: stretch;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 2px 0 #a8895a;
+  transition: transform 0.08s ease, background 0.12s ease;
+}
+.stage-menu-item:hover {
+  border-image-source: url('../../assets/sprites/ui/buttons/btn_peach.png');
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+.stage-menu-item:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 #a8895a;
+}
+.stage-menu-item span { pointer-events: none; }

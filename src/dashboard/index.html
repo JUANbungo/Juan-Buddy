@@ -51,6 +51,20 @@
         </div>
         <div class="playground-wrap">
           <canvas id="dash-pet" width="480" height="360"></canvas>
+          <button id="stage-menu-btn" class="stage-menu-btn" title="Open the feature menu">☰ <span>Menu</span></button>
+          <div id="stage-menu" class="stage-menu hidden">
+            <button class="stage-menu-item" data-menu-tab="food">🍜 Delicacies</button>
+            <button class="stage-menu-item" data-menu-tab="activities">🎯 Activities</button>
+            <button class="stage-menu-item" data-menu-tab="shop">🛠️ Shop</button>
+            <button class="stage-menu-item" data-menu-tab="battle">⚔️ Battle</button>
+            <button class="stage-menu-item" data-menu-tab="gear">🛡️ Gear</button>
+            <button class="stage-menu-item" data-menu-tab="bag">🎒 Bag</button>
+            <button class="stage-menu-item" data-menu-tab="explore">🌏 Explore</button>
+            <button class="stage-menu-item" data-menu-tab="path">🌀 Path</button>
+            <button class="stage-menu-item" data-menu-tab="gacha">🎰 Gacha</button>
+            <button class="stage-menu-item" data-menu-tab="pets">🐾 Buddies</button>
+            <button class="stage-menu-item" data-menu-tab="life">✨ Life</button>
+          </div>
           <div class="stage-hint">Tap pet = greet 💕 · Tap floor = walk 🚶 · Tap 💩💧 = clean it 🧹</div>
           <div id="danger-banner" class="danger-banner hidden">⚠️ Your buddy needs care NOW — feed them or let them sleep!</div>
         </div>
@@ -227,7 +241,8 @@
 
         <div class="tab-panel hidden panel-pets">
           <section class="card">
-            <h2>🐾 Choose Your Buddy</h2>
+            <h2>🐾 Buddy Guide <small class="muted">— hatching is RANDOM, your egg decides!</small></h2>
+            <p class="muted" style="margin: 4px 0 10px;">Take care of your egg and feed it XP — one of these 14 buddies will hatch randomly. No picking, pure luck!</p>
             <div id="buddy-grid" class="buddy-grid"></div>
           </section>
         </div>

@@ -41,7 +41,7 @@ const UPGRADE_MAX = { bed: 5, toys: 5, job: 10, feeder: 1 };
 let latest = null;
 let toastTimer = null;
 
-const FOOD_PNG_BASE = '../assets/sprites/food/';
+const FOOD_PNG_BASE = '../../assets/sprites/food/';
 const foodImages = {};
 
 function foodImage(id) {
@@ -323,6 +323,8 @@ function renderBuddyPicker(s) {
       tile.className = 'buddy-tile';
       tile.dataset.species = p.id;
       tile.title = p.description || p.species;
+      if (s.pet.species === p.id) tile.classList.add('selected');
+      else if (s.pet.stage === 'egg') tile.classList.add('mystery');
       const cv = document.createElement('canvas');
       cv.width = 32;
       cv.height = 32;
@@ -341,7 +343,6 @@ function renderBuddyPicker(s) {
       tile.appendChild(cv);
       tile.appendChild(name);
       tile.appendChild(flag);
-      tile.addEventListener('click', () => act('setSpecies', { speciesId: p.id }));
       grid.appendChild(tile);
     }
     buddyTilesBuilt = true;
@@ -449,7 +450,7 @@ function stageFramesFor(id, state) {
     for (let f = 0; f < 4; f += 1) {
       const img = new Image();
       img.onerror = () => { img.bad = true; };
-      img.src = `../assets/sprites/${id}_${sf}_${f}.png`;
+      img.src = `../../assets/sprites/${id}_${sf}_${f}.png`;
       imgs.push(img);
     }
     stageFrames[key] = imgs;
@@ -461,14 +462,14 @@ const stageSingle = {};
 
 const eggSprite = new Image();
 eggSprite.onerror = () => { eggSprite.bad = true; };
-eggSprite.src = '../assets/sprites/egg.png';
+eggSprite.src = '../../assets/sprites/egg.png';
 
 function stageSingleFor(id, state) {
   const key = `${id}_${STAGE_STATE_FILE[state]}`;
   if (!(key in stageSingle)) {
     const img = new Image();
     img.onerror = () => { stageSingle[key] = null; };
-    img.src = `../assets/sprites/${key}.png`;
+    img.src = `../../assets/sprites/${key}.png`;
     stageSingle[key] = img;
   }
   const img = stageSingle[key];
@@ -482,7 +483,7 @@ function evoSingleFor(id, state) {
   if (!(key in evoSingle)) {
     const img = new Image();
     img.onerror = () => { evoSingle[key] = null; };
-    img.src = `../assets/sprites/evolutions/single/${key}.png`;
+    img.src = `../../assets/sprites/evolutions/single/${key}.png`;
     evoSingle[key] = img;
   }
   const img = evoSingle[key];
@@ -497,7 +498,7 @@ function evoSheetFrameFor(id, state) {
   if (!(key in evoSheets)) {
     const img = new Image();
     img.onerror = () => { evoSheets[key] = null; };
-    img.src = `../assets/sprites/evolutions/sheets/${key}.png`;
+    img.src = `../../assets/sprites/evolutions/sheets/${key}.png`;
     evoSheets[key] = img;
   }
   const img = evoSheets[key];
@@ -1473,6 +1474,28 @@ document.querySelectorAll('#tab-bar .studio-tab').forEach((btn) => {
   });
 });
 
+const stageMenuBtn = el('stage-menu-btn');
+const stageMenu = el('stage-menu');
+if (stageMenuBtn && stageMenu) {
+  stageMenuBtn.addEventListener('click', () => {
+    stageMenu.classList.toggle('hidden');
+    if (sfx) sfx.play('click');
+  });
+  stageMenu.querySelectorAll('.stage-menu-item').forEach((b) => {
+    b.addEventListener('click', () => {
+      const tabBtn = document.querySelector(`#tab-bar .studio-tab[data-tab="${b.dataset.menuTab}"]`);
+      if (tabBtn && tabBtn.click) tabBtn.click();
+      stageMenu.classList.add('hidden');
+    });
+  });
+  document.addEventListener('click', (e) => {
+    if (stageMenu.classList.contains('hidden')) return;
+    if (e.target !== stageMenuBtn && !stageMenuBtn.contains(e.target) && !stageMenu.contains(e.target)) {
+      stageMenu.classList.add('hidden');
+    }
+  });
+}
+
 (function stageLoop() {
   drawStagePet(performance.now());
   requestAnimationFrame(stageLoop);
@@ -1928,7 +1951,7 @@ function itemIconNode(itemId, fallbackEmoji) {
     fb.textContent = fallbackEmoji;
     if (img.parentNode) img.parentNode.replaceChild(fb, img);
   };
-  img.src = `../assets/sprites/items/${folder}/${itemId}.png`;
+  img.src = `../../assets/sprites/items/${folder}/${itemId}.png`;
   return img;
 }
 
