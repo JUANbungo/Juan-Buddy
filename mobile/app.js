@@ -710,3 +710,34 @@ render(engine.derivedStats(state));
 if ('serviceWorker' in navigator && window.isSecureContext) {
   navigator.serviceWorker.register('sw.js').catch(() => { /* offline caching optional */ });
 }
+
+// ==== Background music (built-in chiptune MIDI synth) ====
+const bgm = window.JBBgm;
+if (bgm) {
+  const bgmToggle = document.getElementById('m-bgm-toggle');
+  const bgmVol = document.getElementById('m-bgm-vol');
+  let bgmBattleUntil = 0;
+  const paintBgm = () => {
+    if (bgmToggle) bgmToggle.textContent = bgm.getEnabled() ? '🎵 Music: On' : '🔇 Music: Off';
+  };
+  paintBgm();
+  if (bgmToggle) bgmToggle.addEventListener('click', () => {
+    bgm.setEnabled(!bgm.getEnabled());
+    paintBgm();
+  });
+  if (bgmVol) bgmVol.addEventListener('input', () => bgm.setVolume(Number(bgmVol.value) / 100));
+  let bgmStarted = false;
+  document.addEventListener('pointerdown', () => {
+    if (bgmStarted) return;
+    bgmStarted = true;
+    bgm.play(bgm.ambientForHour());
+    setInterval(() => {
+      if (Date.now() >= bgmBattleUntil) bgm.play(bgm.ambientForHour());
+    }, 10000);
+  });
+  window.__jbBgmBattle = () => {
+    bgmBattleUntil = Date.now() + 40000;
+    bgm.play('battle');
+  };
+}
+

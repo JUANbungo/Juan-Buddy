@@ -3,7 +3,77 @@
 const api = window.BuddyAPI;
 const sprites = window.JBSprites;
 const sfx = window.JBSfx;
+const bgm = window.JBBgm;
 const sfxLast = {};
+let smoothGraphics = false;
+let bgmOverride = null;
+let bgmOverrideUntil = 0;
+let bgmStarted = false;
+
+function smoothOfSettings(st) {
+  return !!(st && st.pixelGraphics === false);
+}
+
+function applyGraphics(smooth) {
+  smoothGraphics = !!smooth;
+  if (typeof document !== 'undefined' && document.body && document.body.classList) {
+    document.body.classList.toggle('smooth-gfx', smoothGraphics);
+  }
+}
+
+function setBgmOverride(name, ms) {
+  if (!bgm) return;
+  bgmOverride = name;
+  bgmOverrideUntil = Date.now() + ms;
+  bgm.play(name);
+}
+
+function ensureBgm() {
+  if (!bgm || !bgm.getEnabled()) return;
+  const st = latest && latest.settings ? latest.settings : null;
+  if (st && st.bgmOn === false) return;
+  if (bgmOverride && Date.now() < bgmOverrideUntil) {
+    if (bgm.nowPlaying() !== bgmOverride) bgm.play(bgmOverride);
+    return;
+  }
+  bgmOverride = null;
+  bgm.play(bgm.ambientForHour());
+}
+
+function startBgmOnGesture() {
+  if (bgmStarted) return;
+  bgmStarted = true;
+  ensureBgm();
+  setInterval(() => {
+    if (bgmOverride && Date.now() >= bgmOverrideUntil) bgmOverride = null;
+    ensureBgm();
+  }, 10000);
+}
+
+function paintSettingsControls(st) {
+  if (!st) return;
+  const bgmToggle = el('btn-bgm-toggle');
+  const gfxToggle = el('btn-gfx-toggle');
+  const bgmRange = el('set-bgm');
+  const sfxRange = el('set-sfx');
+  if (bgmToggle) bgmToggle.textContent = st.bgmOn ? '🎵 Music: On' : '🔇 Music: Off';
+  if (gfxToggle) gfxToggle.textContent = st.pixelGraphics ? '🎨 Pixel-perfect' : '🌫️ Smooth';
+  if (bgmRange && document.activeElement !== bgmRange) bgmRange.value = String(Math.round((st.bgmVol || 0.5) * 100));
+  if (sfxRange && document.activeElement !== sfxRange) sfxRange.value = String(Math.round((st.sfxVol || 0.7) * 100));
+}
+
+function namedAlready() {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem('juanbuddy-named') === '1';
+  } catch (err) { return false; }
+}
+
+function maybeShowNameModal() {
+  const modal = el('name-modal');
+  if (!modal || namedAlready() || !latest) return;
+  const s = latest.state;
+  if (s && s.pet && s.pet.name === 'Buddy' && s.pet.stage === 'egg') modal.classList.remove('hidden');
+}
 
 function sfxOnce(name) {
   if (!sfx) return;
@@ -97,6 +167,13 @@ function render(snapshot) {
   latest = snapshot;
   const { state: s, derived: d, toast } = snapshot;
 
+  if (d.settings) {
+    paintSettingsControls(d.settings);
+    const wantSmooth = smoothOfSettings(d.settings);
+    if (wantSmooth !== smoothGraphics) applyGraphics(wantSmooth);
+  }
+  maybeShowNameModal();
+
   if (toast && sfx) {
     const msg = String(toast);
     if (msg.includes('Achievement')) sfxOnce('achv');
@@ -186,7 +263,7 @@ function renderFoodFilters() {
     const defs = [
       ['all', '✨ All'],
       ['ph', '🇵🇭 PH Favorites'],
-      ['asean', '🌴 ASEAN'],
+      ['asean', '🌴 SE Asia'],
       ['india', '🇮🇳 India'],
       ['world', '🌏 World'],
     ];
@@ -533,7 +610,7 @@ function drawWithSkin(drawFn, tint) {
   }
   const sctx = skinCanvas.getContext('2d');
   sctx.clearRect(0, 0, STAGE_W, STAGE_H);
-  sctx.imageSmoothingEnabled = false;
+  sctx.imageSmoothingEnabled = smoothGraphics;
   drawFn(sctx);
   sctx.globalCompositeOperation = 'source-atop';
   sctx.fillStyle = tint;
@@ -1269,7 +1346,7 @@ function drawStagePet(now) {
     const prog = Math.max(0.04, Math.min(1, (s.pet.xp || 0) / 14));
     if (prog > 0.8 && Math.random() < 0.05) spawnFx('spark', STAGE_CX + (Math.random() * 40 - 20), 220, { vy: -0.3, size: 10 });
     stageCtx.save();
-    stageCtx.imageSmoothingEnabled = false;
+    stageCtx.imageSmoothingEnabled = smoothGraphics;
     const shake = prog > 0.6 ? Math.sin(now / 55) * 4 * prog : 0;
     const eggOk = !eggSprite.bad && eggSprite.complete && eggSprite.naturalWidth > 0;
     if (eggOk) {
@@ -1291,7 +1368,7 @@ function drawStagePet(now) {
     const yOff = bobbing ? Math.round(Math.sin(now / 260) * 4) : 0;
 
     stageCtx.save();
-    stageCtx.imageSmoothingEnabled = false;
+    stageCtx.imageSmoothingEnabled = smoothGraphics;
 
     const drawPath = (g) => {
       g.save();
@@ -1644,6 +1721,88 @@ if (sfxBtn) {
   });
 }
 
+// ==== Clock (user's timezone) ====
+let hudTz = 'local';
+try { hudTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'local'; } catch (err) { hudTz = 'local'; }
+const hudClock = el('hud-clock');
+const hudTzEl = el('hud-tz');
+const settingsTzEl = el('settings-tz');
+if (hudTzEl) {
+  hudTzEl.textContent = hudTz.length > 22 ? `${hudTz.slice(0, 20)}…` : hudTz;
+  hudTzEl.title = hudTz;
+}
+if (settingsTzEl) settingsTzEl.textContent = `🕒 ${hudTz}`;
+if (hudClock) {
+  const paintClock = () => {
+    try { hudClock.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+    catch (err) { hudClock.textContent = ''; }
+  };
+  paintClock();
+  setInterval(paintClock, 15000);
+}
+
+// ==== Name modal (16-char limit) ====
+const nameModal = el('name-modal');
+const nameInput = el('name-input');
+if (nameModal && nameInput) {
+  const closeNameModal = () => {
+    nameModal.classList.add('hidden');
+    try { if (typeof localStorage !== 'undefined') localStorage.setItem('juanbuddy-named', '1'); } catch (err) { /* ignore */ }
+  };
+  el('btn-name-save').addEventListener('click', async () => {
+    const name = (nameInput.value || '').trim().slice(0, 16);
+    if (!name) { showToast('Nickname is too short! 🥺'); return; }
+    const res = await api.action('rename', { name });
+    closeNameModal();
+    if (sfx) sfx.play('happy');
+    showToast((res && res.message) || '. ..');
+  });
+  el('btn-name-skip').addEventListener('click', () => {
+    closeNameModal();
+    showToast('Your buddy keeps the name Buddy — rename it later by clicking its name! 💛');
+  });
+}
+
+// ==== Settings panel wiring ====
+const bgmToggle = el('btn-bgm-toggle');
+const bgmRange = el('set-bgm');
+const sfxRange = el('set-sfx');
+const gfxToggle = el('btn-gfx-toggle');
+if (bgmToggle && bgm && bgmRange) {
+  bgmToggle.addEventListener('click', async () => {
+    const st = latest && latest.settings ? latest.settings : {};
+    const on = !st.bgmOn;
+    if (bgm) bgm.setEnabled(on);
+    await api.action('setSettings', { bgmOn: on });
+    bgmToggle.textContent = on ? '🎵 Music: On' : '🔇 Music: Off';
+    if (on) { bgmStarted = true; ensureBgm(); }
+    if (sfx) sfx.play('click');
+  });
+  bgmRange.addEventListener('input', () => {
+    const v = Number(bgmRange.value) / 100;
+    if (bgm) bgm.setVolume(v);
+    api.action('setSettings', { bgmVol: v });
+  });
+}
+if (sfxRange && sfx) {
+  sfxRange.addEventListener('input', () => {
+    sfx.setVolume(Number(sfxRange.value) / 100);
+  });
+}
+if (gfxToggle) {
+  gfxToggle.addEventListener('click', async () => {
+    const st = latest && latest.settings ? latest.settings : {};
+    const pixel = !st.pixelGraphics;
+    applyGraphics(!pixel);
+    await api.action('setSettings', { pixelGraphics: pixel });
+    gfxToggle.textContent = pixel ? '🎨 Pixel-perfect' : '🌫️ Smooth';
+    if (sfx) sfx.play('click');
+  });
+}
+
+document.addEventListener('pointerdown', startBgmOnGesture);
+document.addEventListener('keydown', startBgmOnGesture);
+
 el('btn-export').addEventListener('click', async () => {
   const res = await api.action('exportSave');
   if (!res || !res.ok) return;
@@ -1863,6 +2022,7 @@ el('monster-grid').addEventListener('click', async (e) => {
   if (!btn || btn.disabled) return;
   btn.disabled = true;
   const res = await api.action('battleMonster', { monsterId: btn.dataset.monster });
+  if (res && res.ok) setBgmOverride('battle', 40000);
   if (res && res.ok && res.win) {
     for (let i = 0; i < 8; i += 1) spawnFx('coin', STAGE_CX + (Math.random() * 140 - 70), 110 + Math.random() * 40, { vy: -0.5, size: 18 });
   } else if (res && res.ok) {

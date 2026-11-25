@@ -57,6 +57,7 @@ function renderBattle(d) {
         <button class="btn a-btn"></button>`;
       row.querySelector('.a-btn').addEventListener('click', () => {
         const res = run('battleMonster', { monsterId: mo.id });
+        if (window.__jbBgmBattle) try { window.__jbBgmBattle(); } catch (e) {}
         if (res && res.ok !== false && res.win) {
           for (let i = 0; i < 6; i += 1) {
             particles.push({ kind: 'coin', x: 120 + (Math.random() - 0.5) * 90, y: 70, vy: -0.5, life: 1, size: 18, wobble: 0 });

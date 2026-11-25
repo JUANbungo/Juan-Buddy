@@ -30,6 +30,13 @@
             <span class="hud-sub"><span id="coin-rate">+0.0/s</span></span>
           </div>
         </div>
+        <div class="hud-pill" title="Your local time">
+          <span class="hud-ico">🕒</span>
+          <div class="hud-txt">
+            <b id="hud-clock">--:--</b>
+            <span class="hud-sub" id="hud-tz">local</span>
+          </div>
+        </div>
       </div>
     </div>
   </header>
@@ -64,6 +71,7 @@
             <button class="stage-menu-item" data-menu-tab="gacha">🎰 Gacha</button>
             <button class="stage-menu-item" data-menu-tab="pets">🐾 Buddies</button>
             <button class="stage-menu-item" data-menu-tab="life">✨ Life</button>
+            <button class="stage-menu-item" data-menu-tab="settings">⚙️ Options</button>
           </div>
           <div class="stage-hint">Tap pet = greet 💕 · Tap floor = walk 🚶 · Tap 💩💧 = clean it 🧹</div>
           <div id="danger-banner" class="danger-banner hidden">⚠️ Your buddy needs care NOW — feed them or let them sleep!</div>
@@ -104,6 +112,7 @@
         <button data-tab="path" class="studio-tab">🌀 Path</button>
         <button data-tab="gacha" class="studio-tab">🎰 Gacha</button>
         <button data-tab="life" class="studio-tab">✨ Life</button>
+        <button data-tab="settings" class="studio-tab">⚙️ Options</button>
       </nav>
 
       <main id="tab-panels">
@@ -246,6 +255,42 @@
             <div id="buddy-grid" class="buddy-grid"></div>
           </section>
         </div>
+
+        <div class="tab-panel hidden panel-settings">
+          <section class="card">
+            <h2>⚙️ Options <small class="muted">— tune your game</small></h2>
+            <div class="settings-grid">
+              <div class="settings-row">
+                <label class="settings-label" for="set-bgm">🎵 Background Music</label>
+                <div class="settings-controls">
+                  <button id="btn-bgm-toggle" class="btn">Music: On</button>
+                  <input id="set-bgm" type="range" min="0" max="100" value="50" />
+                </div>
+              </div>
+              <div class="settings-row">
+                <label class="settings-label" for="set-sfx">🔔 Sound Effects</label>
+                <div class="settings-controls">
+                  <input id="set-sfx" type="range" min="0" max="100" value="70" />
+                </div>
+              </div>
+              <div class="settings-row">
+                <label class="settings-label" for="btn-gfx-toggle">🎨 Graphics</label>
+                <div class="settings-controls">
+                  <button id="btn-gfx-toggle" class="btn">Pixel-perfect</button>
+                </div>
+              </div>
+              <div class="settings-row">
+                <span class="settings-label">🕒 Your timezone</span>
+                <span id="settings-tz" class="muted"></span>
+              </div>
+            </div>
+          </section>
+          <section class="card">
+            <h2>💙 About Juan Buddy</h2>
+            <p class="about-line">A cozy 16-bit idle pet life sim — hatch a mystery egg, take care of your buddy, explore Asia, and build your legend.</p>
+            <p class="about-line credits"><strong>Crafted with ❤️ by John Albert Tancio Datu 🇵🇭</strong></p>
+          </section>
+        </div>
       </main>
     </aside>
   </main>
@@ -278,9 +323,20 @@
     </div>
   </div>
 
+  <div id="name-modal" class="evo-popup hidden">
+    <div class="evo-card name-card">
+      <div class="evo-banner">🥚 NAME YOUR BUDDY</div>
+      <p class="muted name-note">A random buddy will hatch from this egg. Give it a nickname (max 16 characters):</p>
+      <input id="name-input" class="name-input" maxlength="16" placeholder="e.g. Chokoy" autocomplete="off" />
+      <button id="btn-name-save" class="btn btn-amber">💚 Let's Go!</button>
+      <button id="btn-name-skip" class="link"><span class="muted">Keep the default name</span></button>
+    </div>
+  </div>
+
   <div id="toast" class="toast hidden"></div>
   <script src="../pet/sprites.js"></script>
   <script src="../pet/sfx.js"></script>
+  <script src="../pet/bgm.js"></script>
   <script src="dashboard.js"></script>
 </body>
 </html>

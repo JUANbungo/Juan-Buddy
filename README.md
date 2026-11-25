@@ -1,6 +1,6 @@
 # Juan Buddy 🥚
 
-**A 16-bit ASEAN idle pet RPG / life sim** for Windows, macOS, and Linux — hatch a mystery pet
+**A cozy 16-bit idle pet RPG / life sim** for Windows, macOS, and Linux — hatch a mystery pet
 from an egg, raise it from baby to adult, feed it delicacies from all over Asia, and take good
 care of it… because if you neglect your buddy for too long, **it can really pass away** and you'll
 have to start over, just like real life.
@@ -26,9 +26,9 @@ Built with Electron. No build step, no framework — plain HTML/CSS/JS.
 - **🗑️ The RPG dashboard** — two-column studio layout: pet playground with live room scene on the
   left, tabbed panels (Food / Quests / Shop / Life / Buddies) on the right, sticky HUD with level,
   XP bar and coin pills, chunky 3D buttons.
-- **🍔 32 ASEAN & world delicacies** — Pad Thai, fresh bamboo stalks, Khao Lam, Mango Sticky Rice,
+- **🍔 32 world delicacies** — Pad Thai, fresh bamboo stalks, Khao Lam, Mango Sticky Rice,
   Halo-Halo, Pandesal, Ube Potion, Butter Chicken, Masala Dosa, Samosa and more — with region
-  filter chips (🇵🇭 PH / 🇮🇳 India / 🌏 ASEAN / 🌍 World) and instant search. Each pet has a
+  filter chips (🇵🇭 PH / 🇮🇳 India / 🌏 SE Asia / 🌍 World) and instant search. Each pet has a
   **cultural favorite** for bonus happiness + XP.
 - **🎯 Activities** — cooldown-based side quests for big coin & XP payouts: Tara Lakwatsa 🚶,
   Cook Adobo 🍳, Videoke Night 🎤, Study Session 📚, Fishing Trip 🎣 (with a 15% lucky jackpot!).

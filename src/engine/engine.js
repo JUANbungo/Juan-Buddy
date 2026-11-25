@@ -616,6 +616,7 @@ function defaultState() {
     items: { owned: [], equipped: { Head: null, Neck: null, Back: null, Weapon: null, Armor: null, Relic: null } },
     skin: 'classic',
     skinsOwned: ['classic'],
+    settings: { bgmOn: true, bgmVol: 0.5, sfxVol: 0.7, pixelGraphics: true },
     neglect: 0,
     dead: null,
     lastSeen: Date.now(),
@@ -624,8 +625,12 @@ function defaultState() {
 
 function ensureState(state) {
   const fresh = defaultState();
-  for (const key of ['stats', 'achievements', 'daily', 'gacha', 'playdays', 'allocated', 'gear', 'gearOwned', 'gearGacha', 'battle', 'waste', 'skin', 'skinsOwned', 'neglect', 'dead']) {
+  for (const key of ['stats', 'achievements', 'daily', 'gacha', 'playdays', 'allocated', 'gear', 'gearOwned', 'gearGacha', 'battle', 'waste', 'skin', 'skinsOwned', 'neglect', 'dead', 'settings']) {
     if (state[key] === undefined) state[key] = fresh[key];
+  }
+  if (state.settings) {
+    for (const k of ['bgmOn', 'pixelGraphics']) if (state.settings[k] === undefined) state.settings[k] = fresh.settings[k];
+    for (const k of ['bgmVol', 'sfxVol']) if (typeof state.settings[k] !== 'number' || Number.isNaN(state.settings[k])) state.settings[k] = fresh.settings[k];
   }
   if (state.statPoints === undefined) state.statPoints = 0;
   if (state.path === undefined) state.path = null;
@@ -1218,7 +1223,26 @@ function derivedStats(state) {
     stats: state.stats,
     waste: (state.waste || []).map((w, i) => ({ ...w, index: i })),
     rpg: rpgStats(state),
+    settings: state.settings ? { ...state.settings } : { bgmOn: true, bgmVol: 0.5, sfxVol: 0.7, pixelGraphics: true },
   };
+}
+
+function setSettings(state, payload) {
+  if (!state.settings) state.settings = { bgmOn: true, bgmVol: 0.5, sfxVol: 0.7, pixelGraphics: true };
+  if (!payload || typeof payload !== 'object') return { ok: false, message: 'No settings given.' };
+  const t = state.settings;
+  if (payload.bgmOn !== undefined) t.bgmOn = !!payload.bgmOn;
+  if (payload.pixelGraphics !== undefined) t.pixelGraphics = !!payload.pixelGraphics;
+  for (const k of ['bgmVol', 'sfxVol']) {
+    if (payload[k] !== undefined) {
+      let v = Number(payload[k]);
+      if (!Number.isNaN(v)) {
+        if (v > 1) v = v / 100;
+        t[k] = Math.max(0, Math.min(1, v));
+      }
+    }
+  }
+  return { ok: true, message: 'Settings saved.', settings: { ...t } };
 }
 
 const WASTE_CAP = 5;
@@ -1360,6 +1384,7 @@ return {
   equipItem,
   useEvoStone,
   itemBonus,
+  setSettings,
   allocateStat,
   battleMonster,
   buyGear,

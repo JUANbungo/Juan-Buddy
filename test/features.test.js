@@ -503,5 +503,24 @@ check('bag tab: gated at day 3, cosmetics equippable by slot', () => {
   assert(ms && ms.day === 3 && ms.unlocked, 'items unlock exposed at day 3');
 });
 
+check('settings: defaults persist, setSettings clamps volumes and saves state', () => {
+  const s = engine.defaultState();
+  assert(s.settings.bgmOn === true && s.settings.pixelGraphics === true, 'settings defaults');
+  const r = engine.setSettings(s, { bgmOn: false, bgmVol: 5, sfxVol: 250 });
+  assert(r.ok === true, 'setSettings ok');
+  assert(s.settings.bgmOn === false, 'bgm toggled off');
+  assert(s.settings.bgmVol === 0.05, 'bgm clamped to 0.05');
+  assert(s.settings.sfxVol === 1, 'sfx clamped to 1');
+  const d = engine.derivedStats(s);
+  assert(d.settings && d.settings.bgmOn === false, 'settings in derived snapshot');
+});
+
+check('settings: ensureState backfills settings for old saves', () => {
+  const s = engine.defaultState();
+  delete s.settings;
+  engine.ensureState(s);
+  assert(s.settings && s.settings.bgmOn === true, 'settings backfilled');
+});
+
 console.log(`  ${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

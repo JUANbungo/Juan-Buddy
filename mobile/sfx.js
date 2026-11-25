@@ -6,9 +6,15 @@
   'use strict';
 
   let ctx = null;
+  let sfxMaster = null;
   let enabled = true;
+  let volume = 0.7;
   try {
-    if (typeof localStorage !== 'undefined') enabled = localStorage.getItem('juanbuddy-sfx') !== 'off';
+    if (typeof localStorage !== 'undefined') {
+      enabled = localStorage.getItem('juanbuddy-sfx') !== 'off';
+      const v = Number(localStorage.getItem('juanbuddy-sfx-vol'));
+      if (!Number.isNaN(v) && v >= 0 && v <= 1) volume = v;
+    }
   } catch (err) {
     enabled = true;
   }
@@ -34,6 +40,9 @@
       const AC = root.AudioContext || root.webkitAudioContext;
       if (!AC) return null;
       ctx = new AC();
+      sfxMaster = ctx.createGain();
+      sfxMaster.gain.value = volume;
+      sfxMaster.connect(ctx.destination);
     } catch (err) {
       ctx = null;
     }
@@ -55,7 +64,7 @@
     g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
     o.connect(g);
-    g.connect(ac.destination);
+    g.connect(sfxMaster || ac.destination);
     o.start(t0);
     o.stop(t0 + dur + 0.05);
   }
@@ -73,7 +82,7 @@
     g.gain.value = vol === undefined ? 0.05 : vol;
     src.buffer = buf;
     src.connect(g);
-    g.connect(ac.destination);
+    g.connect(sfxMaster || ac.destination);
     src.start(t0);
   }
 
@@ -179,5 +188,15 @@
     } catch (err) { /* audio unavailable */ }
   }
 
-  return { play, playGacha, isEnabled, setEnabled };
+  function setVolume(v) {
+    const val = Math.max(0, Math.min(1, Number(v)));
+    if (Number.isNaN(val)) return;
+    volume = val;
+    try { localStorage.setItem('juanbuddy-sfx-vol', String(volume)); } catch (err) { /* ignore */ }
+    if (sfxMaster && ctx) sfxMaster.gain.value = volume;
+  }
+
+  function getVolume() { return volume; }
+
+  return { play, playGacha, isEnabled, setEnabled, setVolume, getVolume };
 });

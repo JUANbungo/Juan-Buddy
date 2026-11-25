@@ -530,3 +530,16 @@ nav {
 }
 
 .pixelated { image-rendering: pixelated; }
+
+.m-vol {
+  width: 110px;
+  accent-color: #f59e0b;
+  cursor: pointer;
+}
+
+.btn:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid #f59e0b;
+  outline-offset: 2px;
+}

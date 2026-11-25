@@ -1201,3 +1201,108 @@ header.topbar {
   box-shadow: 0 1px 0 #a8895a;
 }
 .stage-menu-item span { pointer-events: none; }
+
+/* ==== Readability inside warm-cream panels (dark-on-dark fix) ==== */
+.tab-panel > .card .shop-item,
+.tab-panel > .card .filter-chip,
+.tab-panel > .card .food-card,
+.tab-panel > .card .activity-item,
+.tab-panel > .card .buddy-tile,
+.tab-panel > .card .skin-card,
+.tab-panel > .card .achv,
+.tab-panel > .card .monster-card,
+.tab-panel > .card .gear-card,
+.tab-panel > .card .explore-card,
+.tab-panel > .card .path-card,
+.tab-panel > .card .search-box {
+  background: #fff3d9;
+  border-color: #dcc79e;
+  color: #4a3b28;
+}
+.tab-panel > .card .filter-chip.on {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: #451a03;
+}
+.tab-panel > .card .activity-item.active { background: #efdfb4; border-color: #c9962e; }
+.tab-panel > .card .activity-item.locked { opacity: 0.55; }
+.tab-panel > .card .explore-card.active { border-color: #2f855a; box-shadow: 0 0 0 1px rgba(47, 133, 90, 0.45); }
+.tab-panel > .card .food-card.fav { border-color: #c9962e; }
+.tab-panel > .card .f-name { color: #4a3b28; }
+.tab-panel > .card .f-meta { color: #7a5c33; }
+.tab-panel > .card .f-fav-tag { color: #a16a00; }
+.tab-panel > .card .b-name { color: #4a3b28; }
+.tab-panel > .card .b-flag { color: #7a5c33; }
+.tab-panel > .card .muted { color: #7a5c33; }
+.tab-panel > .card .path-card.work .pc-name { color: #a16a00; }
+.tab-panel > .card .path-card.fight .pc-name { color: #b3362c; }
+.tab-panel > .card .search-box::placeholder { color: #a08b64; }
+
+/* ==== Options tab ==== */
+.settings-grid { display: grid; gap: 12px; margin-top: 4px; }
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: #fff3d9;
+  border: 1px solid #dcc79e;
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #4a3b28;
+}
+.settings-label { font-weight: 800; font-size: 12.5px; color: #4a3b28; }
+.settings-controls { display: inline-flex; align-items: center; gap: 10px; }
+.settings-controls input[type="range"] {
+  width: 130px;
+  accent-color: #c9962e;
+  cursor: pointer;
+}
+.settings-controls .btn { min-width: 132px; }
+.settings-row .muted { color: #7a5c33; }
+
+.about-line { font-size: 12.5px; color: #4a3b28; margin: 6px 0; }
+.about-line.credits { font-size: 14px; color: #6b4a2f; margin-top: 10px; }
+.credits strong { color: #a16a00; letter-spacing: 0.3px; }
+
+/* ==== Name-your-buddy modal ==== */
+.name-card { display: grid; gap: 10px; justify-items: center; }
+.name-note { max-width: 300px; text-align: center; color: #7a5c33; }
+.name-input {
+  width: 260px;
+  text-align: center;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  color: #4a3b28;
+  background: #fff6e0;
+  border: 2px solid #d9c39a;
+  border-radius: 10px;
+  padding: 10px 12px;
+  outline: none;
+}
+.name-input:focus { border-color: #c9962e; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25); }
+.tab-panel > .card .battle-stats {
+  background: rgba(201, 150, 46, 0.14);
+  border-color: rgba(161, 106, 0, 0.5);
+  color: #8a5a00;
+}
+.tab-panel > .card .gear-sub { color: #8a5a00; }
+.tab-panel > .card .path-chosen {
+  background: rgba(201, 150, 46, 0.14);
+  border-color: rgba(161, 106, 0, 0.5);
+  color: #8a5a00;
+}
+
+/* ==== Accessibility polish ==== */
+.btn:focus-visible,
+button:focus-visible,
+input:focus-visible,
+.tab-panel:focus-visible {
+  outline: 3px solid #f59e0b;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .evo-card, .gacha-orb, .stage-menu, .stage-menu-btn { animation: none !important; }
+}
