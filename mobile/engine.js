@@ -1010,7 +1010,7 @@ function tick(state, dtSeconds, offline) {
         return events;
       }
     } else if (state.neglect > 0) {
-      state.neglect = Math.max(0, state.neglect - dt * 0.7);
+      state.neglect = Math.max(0, state.neglect - dt * 2);
     }
   }
 

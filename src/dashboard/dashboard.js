@@ -343,7 +343,8 @@ function render(snapshot) {
   if (questCountEl) questCountEl.textContent = `${questsDone}/3`;
   if (questsPopOpen) renderQuestsPop();
 
-  el('danger-banner').classList.toggle('hidden', !s.dead && !(d.danger > 0.25));
+  const metersNow = s.meters || {};
+  el('danger-banner').classList.toggle('hidden', !s.dead && !(metersNow.hunger <= 15 || metersNow.energy <= 10));
   el('death-overlay').classList.toggle('hidden', !s.dead);
   if (s.dead) {
     el('death-title').textContent = `${s.pet.name} passed away...`;
@@ -3680,6 +3681,15 @@ on('bag-grid','click', (e) => {
   if (!it) return;
   if (!it.owned) act('buyItem', { itemId });
   else act('equipItem', { itemId });
+});
+
+on('pet-shop','click', (e) => {
+  const card = e.target.closest('.pet-shop-card');
+  if (!card || !card.dataset.shoppet) return;
+  const pt = latest && latest.derived && latest.derived.petShop
+    ? latest.derived.petShop.find((x) => x.id === card.dataset.shoppet) : null;
+  if (pt && pt.owned) return;
+  act('buyShopPet', { petId: card.dataset.shoppet });
 });
 
 

@@ -122,7 +122,6 @@
   animation: jbSprite4Frame 0.64s steps(4) infinite;
   z-index: 1;
 }
-
 .jb-sprite-fallback,
 .jb-enemy-card-sprite.jb-sprite-fallback {
   background: rgba(255, 244, 214, 0.3) !important;
@@ -140,8 +139,8 @@
 }
 
 @keyframes jbSprite4Frame {
-  from { background-position: 0% 0; }
-  to { background-position: -400% 0; }
+  from { background-position: 0 0; }
+  to { background-position: -384px 0; }
 }
 
 .jb-sprite-box.jb-sprite-8 {
@@ -150,8 +149,13 @@
 }
 
 @keyframes jbSprite8Frame {
-  from { background-position: 0% 0; }
-  to { background-position: -800% 0; }
+  from { background-position: 0 0; }
+  to { background-position: -768px 0; }
+}
+
+@keyframes jbSprite4FrameCard {
+  from { background-position: 0 0; }
+  to { background-position: -256px 0; }
 }
 
 .jb-hp-wrap {
@@ -255,7 +259,7 @@
   background-repeat: no-repeat;
   background-size: 400% 100%;
   image-rendering: pixelated;
-  animation: jbSprite4Frame 0.72s steps(4) infinite;
+  animation: jbSprite4FrameCard 0.72s steps(4) infinite;
 }
 .jb-enemy-name {
   font-weight: 800;
@@ -524,8 +528,8 @@
   animation: jbVfxSteps 0.67s steps(8, end) forwards;
 }
 @keyframes jbVfxSteps {
-  from { background-position: 0% 0; }
-  to { background-position: 100% 0; }
+  from { background-position: 0 0; }
+  to { background-position: calc(var(--vfx-frames, 8) * -192px) 0; }
 }
 
 /* ===== Floating combat text ===== */
