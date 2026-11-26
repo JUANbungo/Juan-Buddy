@@ -528,7 +528,7 @@ header h1:hover { color: #fff; }
   border-radius: 12px;
   padding: 9px 7px;
   text-align: center;
-  cursor: default;
+  cursor: pointer;
   transition: transform 0.1s ease, border-color 0.15s ease;
 }
 

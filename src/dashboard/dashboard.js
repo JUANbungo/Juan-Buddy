@@ -718,6 +718,7 @@ function renderBuddyPicker(s) {
       tile.appendChild(vis);
       tile.appendChild(name);
       tile.appendChild(flag);
+      tile.addEventListener('click', () => openBuddyPreview(p));
       grid.appendChild(tile);
     }
     buddyTilesBuilt = true;
@@ -725,6 +726,126 @@ function renderBuddyPicker(s) {
   for (const tile of grid.children) {
     tile.classList.toggle('selected', tile.dataset.species === s.pet.species);
   }
+}
+
+let buddyPreviewRaf = null;
+let buddyPreviewEl = null;
+
+function closeBuddyPreview() {
+  if (buddyPreviewRaf !== null) { cancelAnimationFrame(buddyPreviewRaf); buddyPreviewRaf = null; }
+  if (buddyPreviewEl) { buddyPreviewEl.remove(); buddyPreviewEl = null; }
+  document.removeEventListener('keydown', buddyPreviewEsc);
+}
+
+function buddyPreviewEsc(e) {
+  if (e.key === 'Escape') closeBuddyPreview();
+}
+
+function openBuddyPreview(p) {
+  closeBuddyPreview();
+  const BS = window.JBBattleSkills || null;
+  const isEvo = typeof p.id === 'string' && p.id.endsWith('_evo');
+  const kit = BS ? BS.petKit(p.id, isEvo) : null;
+  const battleBase = '../../assets/battle/';
+
+  const anims = (sprites.PET_SHEET_ANIMS[p.id] ? Object.keys(sprites.PET_SHEET_ANIMS[p.id]) : ['idle'])
+    .map((a) => ({ anim: a, label: a.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) }));
+
+  const kitHtml = kit ? `
+      <div class="jb-bp-kit">
+        ${[['Active Skill', kit.skill, 'skill'], ['Battle Talent', kit.talent, 'talent'], ['Collection Passive', kit.passive, 'passive']].map(([label, item, cls]) => `
+          <div class="jb-bp-item ${cls} ${kit.isEvo ? 'evo' : ''}" title="${item ? (item.desc || '').replace(/"/g, '&quot;') : ''}">
+            <img src="${battleBase}${item.iconUrl}" alt="${item.name}" draggable="false" />
+            <div class="jb-bp-item-txt">
+              <span class="jb-bp-label">${label}</span>
+              <span class="jb-bp-name">${item.name}${kit.isEvo ? ' \u2b50 Evo' : ''}</span>
+            </div>
+          </div>`).join('')}
+      </div>`
+    : '<p class="muted small" style="text-align:left;margin:6px 0 0;">No battle kit yet \u2014 this buddy fights with paws only! \ud83d\udc3e</p>';
+
+  const modal = document.createElement('div');
+  modal.id = 'buddy-preview';
+  modal.className = 'buddy-preview';
+  modal.innerHTML = `
+    <div class="buddy-preview-card">
+      <div class="bp-head">
+        <span class="bp-name">${p.name}</span>
+        <span class="bp-country">${p.flag || ''} ${p.country || ''}</span>
+        <button class="bp-close" title="Close" type="button">\u2715</button>
+      </div>
+      <div class="bp-stage-wrap">
+        <canvas class="bp-stage" width="192" height="192"></canvas>
+      </div>
+      <div class="bp-anim-btns">
+        ${anims.map((a, i) => `<button class="bp-anim-btn ${i === 0 ? 'on' : ''}" data-anim="${a.anim}" type="button">${a.label}</button>`).join('')}
+      </div>
+      <div class="bp-species muted small">${p.species || ''}${p.favoriteFood ? ` \u00b7 Favorite food: ${p.favoriteFood.replace(/_/g, ' ')}` : ''}</div>
+      <div class="bp-kit-left">${kitHtml}</div>
+    </div>`;
+  document.body.appendChild(modal);
+  buddyPreviewEl = modal;
+
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeBuddyPreview(); });
+  modal.querySelector('.bp-close').addEventListener('click', closeBuddyPreview);
+  document.addEventListener('keydown', buddyPreviewEsc);
+
+  const canvas = modal.querySelector('.bp-stage');
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  let curAnim = anims[0] ? anims[0].anim : 'idle';
+  let frames = null;
+  let fps = 8;
+  let frame = 0;
+  let acc = 0;
+  let last = 0;
+  let drewFallback = false;
+
+  function drawFallbackFrame() {
+    if (drewFallback) return;
+    try {
+      const bank = sprites.ensurePetSprites(p.id);
+      const src = bank[curAnim.toUpperCase()] || bank.IDLE;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(src[0], 0, 0, canvas.width, canvas.height);
+      drewFallback = true;
+    } catch (err) { /* preview only */ }
+  }
+
+  function loop(ts) {
+    if (!buddyPreviewEl || !buddyPreviewEl.isConnected) { buddyPreviewRaf = null; return; }
+    if (!frames) {
+      frames = sprites.petSheetFrames(p.id, curAnim);
+      if (frames) { fps = sprites.petSheetFps(p.id, curAnim); drewFallback = false; }
+      else drawFallbackFrame();
+    }
+    if (frames && frames.length) {
+      if (!last) last = ts;
+      acc += ts - last;
+      last = ts;
+      const step = 1000 / Math.max(1, fps);
+      while (acc >= step) { acc -= step; frame = (frame + 1) % frames.length; }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(frames[frame], 0, 0, canvas.width, canvas.height);
+    }
+    buddyPreviewRaf = requestAnimationFrame(loop);
+  }
+  buddyPreviewRaf = requestAnimationFrame(loop);
+
+  modal.querySelectorAll('.bp-anim-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      modal.querySelectorAll('.bp-anim-btn').forEach((b) => b.classList.remove('on'));
+      btn.classList.add('on');
+      curAnim = btn.dataset.anim;
+      frames = sprites.petSheetFrames(p.id, curAnim);
+      fps = sprites.petSheetFps(p.id, curAnim);
+      frame = 0;
+      acc = 0;
+      last = 0;
+      drewFallback = false;
+      if (!frames) drawFallbackFrame();
+    });
+  });
 }
 
 const COLLECTION_STAT_LABELS = {
