@@ -120,6 +120,23 @@
   background-size: 400% 100%;
   image-rendering: pixelated;
   animation: jbSprite4Frame 0.64s steps(4) infinite;
+  z-index: 1;
+}
+
+.jb-sprite-fallback,
+.jb-enemy-card-sprite.jb-sprite-fallback {
+  background: rgba(255, 244, 214, 0.3) !important;
+  background-size: contain !important;
+  animation: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38px;
+  line-height: 1;
+}
+
+.jb-sprite-fallback::after {
+  content: attr(data-emoji);
 }
 
 @keyframes jbSprite4Frame {

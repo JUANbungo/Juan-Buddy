@@ -27,6 +27,39 @@
    * While enabled is false the roll is skipped and it returns null ("Coming Soon").
    * To turn on: set monster.limitedDrop.enabled = true, then call this after each victory.
    */
+  /**
+   * Tries each sprite URL in order; applies the first that loads.
+   * Logs every failed URL; if all fail, shows the fallback emoji and logs loudly.
+   */
+  function probeSprite(el, urls, fallbackEmoji) {
+    let i = 0;
+    const list = urls.filter(Boolean);
+    const tryNext = () => {
+      if (i >= list.length) {
+        console.error("[BattleArena] sprite FAILED to load:", list.join(" | "));
+        if (fallbackEmoji) {
+          el.classList.add("jb-sprite-fallback");
+          el.dataset.emoji = fallbackEmoji;
+        }
+        return;
+      }
+      const url = list[i];
+      const img = new Image();
+      img.onload = () => {
+        el.classList.remove("jb-sprite-fallback");
+        delete el.dataset.emoji;
+        el.style.backgroundImage = `url('${url}')`;
+      };
+      img.onerror = () => {
+        console.error("[BattleArena] sprite 404:", url);
+        i += 1;
+        tryNext();
+      };
+      img.src = url;
+    };
+    tryNext();
+  }
+
   function rollLimitedDrop(monster) {
     const cfg = monster && monster.limitedDrop;
     if (!cfg || !cfg.enabled) return null;
@@ -385,6 +418,9 @@
         </div>
       `;
 
+      const pSpriteEl = this.stageMount.querySelector(".jb-fighter.player .jb-sprite-box");
+      if (pSpriteEl) probeSprite(pSpriteEl, [petSprite, player.spriteUrl], "\ud83d\udc3e");
+
       // Animate enemy walking onto the right battle pad, then switch to idle
       if (walkInEnemy) {
         requestAnimationFrame(() => {
@@ -426,6 +462,15 @@
 
       this.selectorMount.querySelectorAll(".jb-enemy-card").forEach((card) => {
         card.addEventListener("click", () => this.selectEnemy(card.dataset.monster));
+        const m = MONSTERS.find((mo) => mo.id === card.dataset.monster);
+        if (!m) return;
+        const spriteEl = card.querySelector(".jb-enemy-card-sprite");
+        if (spriteEl) {
+          probeSprite(spriteEl, [
+            `${this.assetBase}/monsters/${m.id}/idle_sheet.png`,
+            `${this.assetBase}/monsters/${m.id}/walk_sheet.png`,
+          ], m.icon || "\ud83d\udc3e");
+        }
       });
     }
 

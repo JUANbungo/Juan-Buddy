@@ -28,9 +28,11 @@ function check(name, fn) {
   }
 }
 
-check('v2 sheet data covers 37 pets incl. egg and 18 evos', () => {
+check('v2 sheet data covers 38 pets incl. egg, nila and 18 evos', () => {
   const ids = Object.keys(sprites.PET_SHEET_ANIMS);
-  assert.strictEqual(ids.length, 37, `expected 37, got ${ids.length}`);
+  assert.strictEqual(ids.length, 38, `expected 38, got ${ids.length}`);
+  assert.ok(sprites.PET_SHEET_ANIMS.egg);
+  assert.ok(sprites.PET_SHEET_ANIMS.nila, 'nila has v2 sheet data');
   assert.ok(sprites.PET_SHEET_ANIMS.egg);
   const evos = ids.filter((id) => id.endsWith('_evo'));
   assert.strictEqual(evos.length, 18, `expected 18 evos, got ${evos.length}`);
