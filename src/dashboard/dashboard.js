@@ -890,6 +890,7 @@ const WALK_Y_MIN = 286;
 const WALK_Y_MAX = 348;
 
 const petWalk = { x: STAGE_CX, y: 312, dir: 1, target: null, moving: false };
+let eggExciteUntil = 0;
 const stageFx = [];
 let lastStageNow = 0;
 let petDraw = { cx: STAGE_CX, size: 264, dir: 1 };
@@ -904,13 +905,11 @@ const STAGE_STATE_FILE = { IDLE: 'idle', WALK: 'walk', HAPPY: 'happy', EAT: 'eat
 const stageFrames = {};
 
 const STAGE_PNG_ANIMS = {};
-const PET_PREVIEW_PNG = {
-  pusa: '../../assets/sprites/pusa_idle_0.png',
-  agila: '../../assets/sprites/agila_idle_0.png',
-  uwak: '../../assets/sprites/uwak_idle_0.png',
-  ahas: '../../assets/sprites/ahas_idle_0.png',
-  dragon: '../../assets/sprites/dragon_idle_0.png',
-};
+const PET_PREVIEW_PNG = {};
+for (const pid of Object.keys(sprites.PET_SHEET_ANIMS || {})) {
+  if (pid === 'egg') continue;
+  PET_PREVIEW_PNG[pid] = sprites.petSheetGif(pid, 'idle');
+}
 
 function stageFramesFor(id, state) {
   const anim = STAGE_PNG_ANIMS[id];
@@ -1687,13 +1686,14 @@ function drawPark(now, phaseId, mode) {
 
 const footFracCache = new Map();
 function spriteFootFrac(img) {
-  if (!img || !img.naturalWidth || !img.complete) return 1;
+  if (!img) return 1;
+  const w = img.naturalWidth || img.width;
+  const h = img.naturalHeight || img.height;
+  if (!w || !h || img.complete === false) return 1;
   const key = img.src || img;
   if (footFracCache.has(key)) return footFracCache.get(key);
   let frac = 1;
   try {
-    const w = img.naturalWidth;
-    const h = img.naturalHeight;
     const cv = document.createElement('canvas');
     cv.width = w;
     cv.height = h;
@@ -1760,10 +1760,10 @@ const PET_ANCHORS = {
     Armor: { fx: -0.22, fy: 0.52, w: 0.44 },
     Relic: { fx: -0.56, fy: 0.74, w: 0.36 },
   },
-  pusa: { Head: { fx: 0.02, fy: 0.02, w: 0.46, snug: 0.07 } },
-  agila: { Head: { fx: 0.0, fy: 0.03, w: 0.44, snug: 0.08 } },
-  uwak: { Head: { fx: 0.0, fy: 0.02, w: 0.42, snug: 0.06 } },
-  ahas: { Head: { fx: 0.06, fy: 0.18, w: 0.4, snug: 0.05 } },
+  muning: { Head: { fx: 0.02, fy: 0.02, w: 0.46, snug: 0.07 } },
+  banog: { Head: { fx: 0.0, fy: 0.03, w: 0.44, snug: 0.08 } },
+  gagak: { Head: { fx: 0.0, fy: 0.02, w: 0.42, snug: 0.06 } },
+  ran: { Head: { fx: 0.06, fy: 0.18, w: 0.4, snug: 0.05 } },
   dragon: { Head: { fx: 0.0, fy: 0.03, w: 0.5, snug: 0.08 } },
   kala: { Head: { fx: 0.0, fy: 0.04, w: 0.48, snug: 0.06 } },
   bantay: { Head: { fx: 0.0, fy: 0.05, w: 0.46, snug: 0.06 } },
@@ -1781,11 +1781,13 @@ const PET_ANCHORS = {
 
 const contentBoxCache = new WeakMap();
 function contentBoxOf(img) {
-  if (!img || !img.naturalWidth) return { top: 0.06, bottom: 0.94 };
+  const w0 = img ? (img.naturalWidth || img.width) : 0;
+  const h0 = img ? (img.naturalHeight || img.height) : 0;
+  if (!img || !w0 || (!img.naturalWidth && !img.height)) return { top: 0.06, bottom: 0.94, left: 0.25, right: 0.75 };
   if (contentBoxCache.has(img)) return contentBoxCache.get(img);
-  let out = { top: 0.06, bottom: 0.94 };
+  let out = { top: 0.06, bottom: 0.94, left: 0.25, right: 0.75 };
   try {
-    const s = Math.min(64, img.naturalWidth);
+    const s = Math.min(64, w0, h0) || 64;
     const c = document.createElement('canvas');
     c.width = s;
     c.height = s;
@@ -1795,13 +1797,21 @@ function contentBoxOf(img) {
     const data = icmp.getImageData(0, 0, s, s).data;
     let top = null;
     let bottom = null;
-    for (let y = 0; y < s && top === null; y += 1) {
-      for (let x = 0; x < s; x += 1) if (data[(y * s + x) * 4 + 3] > 24) { top = y; break; }
+    let left = null;
+    let right = null;
+    for (let y = 0; y < s; y += 1) {
+      for (let x = 0; x < s; x += 1) {
+        if (data[(y * s + x) * 4 + 3] > 24) {
+          if (top === null) top = y;
+          bottom = y;
+          if (left === null || x < left) left = x;
+          if (right === null || x > right) right = x;
+        }
+      }
     }
-    for (let y = s - 1; y >= 0 && bottom === null; y -= 1) {
-      for (let x = 0; x < s; x += 1) if (data[(y * s + x) * 4 + 3] > 24) { bottom = y; break; }
+    if (top !== null && bottom !== null && left !== null) {
+      out = { top: top / s, bottom: (bottom + 1) / s, left: left / s, right: (right + 1) / s };
     }
-    if (top !== null && bottom !== null) out = { top: top / s, bottom: (bottom + 1) / s };
   } catch (err) { /* tainted or missing frame */ }
   contentBoxCache.set(img, out);
   return out;
@@ -2129,11 +2139,18 @@ function drawStagePet(now) {
   // keep petDrawInfo from the previous frame — the back-layer cosmetics pass
   // renders before this frame's sprite is measured (1-frame staleness is invisible)
 
+  let shadowCx = petWalk.x;
+  let shadowRx = 30 + 26 * depthF;
+  if (petDrawInfo && typeof petDrawInfo.contentL === 'number' && !(latest && latest.state && latest.state.pet && latest.state.pet.stage === 'egg')) {
+    const cc = (petDrawInfo.contentL + petDrawInfo.contentR) / 2;
+    shadowCx = petWalk.x + petWalk.dir * (cc - 0.5) * boxSize;
+    shadowRx = Math.max(14, ((petDrawInfo.contentR - petDrawInfo.contentL) * boxSize) / 2);
+  }
   stageCtx.save();
   stageCtx.globalAlpha = 0.22;
   stageCtx.fillStyle = '#000';
   stageCtx.beginPath();
-  stageCtx.ellipse(petWalk.x, petWalk.y + 4, 30 + 26 * depthF, 8 + 3 * depthF, 0, 0, Math.PI * 2);
+  stageCtx.ellipse(shadowCx, petWalk.y + 4, shadowRx, 8 + 3 * depthF, 0, 0, Math.PI * 2);
   stageCtx.fill();
   stageCtx.restore();
 
@@ -2191,8 +2208,16 @@ function drawStagePet(now) {
     stageCtx.save();
     stageCtx.imageSmoothingEnabled = smoothGraphics;
     const shake = prog > 0.6 ? Math.sin(now / 55) * 4 * prog : 0;
+    const eggAnim = prog > 0.92 ? 'crack' : (now < eggExciteUntil || prog > 0.6 ? 'shaking' : 'idle');
+    const eggFrames = sprites.petSheetFrames('egg', eggAnim);
     const eggOk = !eggSprite.bad && eggSprite.complete && eggSprite.naturalWidth > 0;
-    if (eggOk) {
+    if (eggFrames && eggFrames.length) {
+      const fps = sprites.petSheetFps('egg', eggAnim);
+      const fr = eggFrames[Math.floor((now * fps) / 1000) % eggFrames.length];
+      const eggH = 118;
+      stageCtx.imageSmoothingEnabled = false;
+      stageCtx.drawImage(fr, STAGE_CX - eggH / 2, petWalk.y - eggH + Math.round(Math.sin(now / 500) * 2), eggH, eggH);
+    } else if (eggOk) {
       const eggH = 100;
       const eggW = Math.round(eggH * eggSprite.naturalWidth / eggSprite.naturalHeight);
       stageCtx.drawImage(eggSprite, STAGE_CX + shake - eggW / 2, petWalk.y - eggH + Math.round(Math.sin(now / 500) * 2), eggW, eggH);
@@ -2219,43 +2244,65 @@ function drawStagePet(now) {
       if (petWalk.dir < 0) g.scale(-1, 1);
       const bx = -boxSize / 2;
       const speciesId = s.pet.species || 'kala';
-      const evoSingle = s.pet.evolved ? evoSingleFor(speciesId, st) : null;
-      const evoFrame = s.pet.evolved && !evoSingle ? evoSheetFrameFor(speciesId, st) : null;
+      const speciesKey = sprites.normalizeSpeciesId(speciesId);
+      const isEvo = s.pet.evolved;
+      const v2Try = (pid, stateOverride) => {
+        const anim = sprites.petSheetAnim(stateOverride || st, pid);
+        const frames = anim ? sprites.petSheetFrames(pid, anim) : null;
+        if (frames && frames.length) {
+          const fps = sprites.petSheetFps(pid, anim);
+          return { frames, idx: Math.floor((now * fps) / 1000) % frames.length };
+        }
+        return null;
+      };
+      let v2hit = null;
+      if (battleFx && speciesKey === 'dragon') v2hit = v2Try('dragon', 'FIRE_BREATH');
+      if (!v2hit && isEvo) v2hit = v2Try(`${speciesKey}_evo`);
+      if (!v2hit) v2hit = v2Try(speciesId);
       let img = null;
       let sub = null;
-      if (evoSingle) {
-        img = evoSingle;
-      } else if (evoFrame) {
-        img = evoFrame.img;
-        sub = { sx: evoFrame.idx * evoFrame.frameW, sy: 0, sw: evoFrame.frameW, sh: evoFrame.frameH };
+      if (v2hit) {
+        img = v2hit.frames[v2hit.idx];
       } else {
-        const pngs = stageFramesFor(speciesId, st);
-        const single = stageSingleFor(speciesId, st);
-        if (pngs.length > 0) {
-          img = pngs[Math.floor(now / 170) % pngs.length];
-        } else if (single) {
-          img = single;
+        const evoSingle = s.pet.evolved ? evoSingleFor(speciesId, st) : null;
+        const evoFrame = s.pet.evolved && !evoSingle ? evoSheetFrameFor(speciesId, st) : null;
+        if (evoSingle) {
+          img = evoSingle;
+        } else if (evoFrame) {
+          img = evoFrame.img;
+          sub = { sx: evoFrame.idx * evoFrame.frameW, sy: 0, sw: evoFrame.frameW, sh: evoFrame.frameH };
         } else {
-          let bank = null;
-          try {
-            bank = sprites.ensurePetSprites(s.pet.species || 'kala');
-          } catch (err) {
-            bank = null;
+          const pngs = stageFramesFor(speciesId, st);
+          const single = stageSingleFor(speciesId, st);
+          if (pngs.length > 0) {
+            img = pngs[Math.floor(now / 170) % pngs.length];
+          } else if (single) {
+            img = single;
+          } else {
+            let bank = null;
+            try {
+              bank = sprites.ensurePetSprites(s.pet.species || 'kala');
+            } catch (err) {
+              bank = null;
+            }
+            if (bank && bank[st]) img = bank[st][Math.floor(now / 170) % bank[st].length];
           }
-          if (bank && bank[st]) img = bank[st][Math.floor(now / 170) % bank[st].length];
         }
       }
       if (img) {
+        g.imageSmoothingEnabled = false;
         const by = petWalk.y - Math.round(boxSize * spriteFootFrac(img)) + yOff;
         if (sub) g.drawImage(img, sub.sx, sub.sy, sub.sw, sub.sh, bx, by, boxSize, boxSize);
         else g.drawImage(img, bx, by, boxSize, boxSize);
-        const cb = sub ? { top: 0.06, bottom: 0.94 } : contentBoxOf(img);
+        const cb = sub ? { top: 0.06, bottom: 0.94, left: 0.25, right: 0.75 } : contentBoxOf(img);
         petDrawInfo = {
           cx: petWalk.x,
           topY: by + boxSize * cb.top,
           contentH: Math.max(20, boxSize * (cb.bottom - cb.top)),
           yOff,
           dir: petWalk.dir,
+          contentL: cb.left,
+          contentR: cb.right,
         };
       }
       g.restore();
@@ -2428,6 +2475,9 @@ petStageCanvas.addEventListener('click', async (e) => {
     const now = performance.now();
     if (now - lastStagePat < 900) return;
     lastStagePat = now;
+    if (latest && latest.state && latest.state.pet && latest.state.pet.stage === 'egg') {
+      eggExciteUntil = now + 1400;
+    }
     for (let i = 0; i < 3; i += 1) {
       stageFx.push({ kind: 'heart', x: petDraw.cx + (Math.random() * 26 - 13), y: STAGE_GROUND - petDraw.size * 0.3, vy: -0.9, life: 1, size: 14 + Math.random() * 10, wobble: Math.random() * 6 });
     }

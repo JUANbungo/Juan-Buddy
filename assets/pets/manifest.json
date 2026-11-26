@@ -1,0 +1,1273 @@
+{
+  "pack": "Juan Buddy Full Animated Sprite Pack v2",
+  "totalPets": 37,
+  "nativeCanvas": [
+    48,
+    48
+  ],
+  "exportScale": 4,
+  "frameSize": [
+    192,
+    192
+  ],
+  "pets": {
+    "banog": {
+      "flying": {
+        "sheet": "sprites/banog/banog_flying_sheet.png",
+        "gif": "sprites/banog/banog_flying.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/banog/banog_idle_sheet.png",
+        "gif": "sprites/banog/banog_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/banog/banog_sleeping_sheet.png",
+        "gif": "sprites/banog/banog_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/banog/banog_working_sheet.png",
+        "gif": "sprites/banog/banog_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "banog_evo": {
+      "flying": {
+        "sheet": "sprites/banog_evo/banog_evo_flying_sheet.png",
+        "gif": "sprites/banog_evo/banog_evo_flying.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/banog_evo/banog_evo_idle_sheet.png",
+        "gif": "sprites/banog_evo/banog_evo_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/banog_evo/banog_evo_sleeping_sheet.png",
+        "gif": "sprites/banog_evo/banog_evo_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/banog_evo/banog_evo_working_sheet.png",
+        "gif": "sprites/banog_evo/banog_evo_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "bantay": {
+      "walking": {
+        "sheet": "sprites/bantay/bantay_walking_sheet.png",
+        "gif": "sprites/bantay/bantay_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/bantay/bantay_idle_sheet.png",
+        "gif": "sprites/bantay/bantay_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/bantay/bantay_sleeping_sheet.png",
+        "gif": "sprites/bantay/bantay_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/bantay/bantay_working_sheet.png",
+        "gif": "sprites/bantay/bantay_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "bantay_evo": {
+      "walking": {
+        "sheet": "sprites/bantay_evo/bantay_evo_walking_sheet.png",
+        "gif": "sprites/bantay_evo/bantay_evo_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/bantay_evo/bantay_evo_idle_sheet.png",
+        "gif": "sprites/bantay_evo/bantay_evo_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/bantay_evo/bantay_evo_sleeping_sheet.png",
+        "gif": "sprites/bantay_evo/bantay_evo_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/bantay_evo/bantay_evo_working_sheet.png",
+        "gif": "sprites/bantay_evo/bantay_evo_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "bao": {
+      "walking": {
+        "sheet": "sprites/bao/bao_walking_sheet.png",
+        "gif": "sprites/bao/bao_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/bao/bao_idle_sheet.png",
+        "gif": "sprites/bao/bao_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/bao/bao_sleeping_sheet.png",
+        "gif": "sprites/bao/bao_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/bao/bao_working_sheet.png",
+        "gif": "sprites/bao/bao_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "bao_evo": {
+      "walking": {
+        "sheet": "sprites/bao_evo/bao_evo_walking_sheet.png",
+        "gif": "sprites/bao_evo/bao_evo_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/bao_evo/bao_evo_idle_sheet.png",
+        "gif": "sprites/bao_evo/bao_evo_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/bao_evo/bao_evo_sleeping_sheet.png",
+        "gif": "sprites/bao_evo/bao_evo_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/bao_evo/bao_evo_working_sheet.png",
+        "gif": "sprites/bao_evo/bao_evo_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "bara": {
+      "walking": {
+        "sheet": "sprites/bara/bara_walking_sheet.png",
+        "gif": "sprites/bara/bara_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/bara/bara_idle_sheet.png",
+        "gif": "sprites/bara/bara_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/bara/bara_sleeping_sheet.png",
+        "gif": "sprites/bara/bara_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/bara/bara_working_sheet.png",
+        "gif": "sprites/bara/bara_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "bara_evo": {
+      "walking": {
+        "sheet": "sprites/bara_evo/bara_evo_walking_sheet.png",
+        "gif": "sprites/bara_evo/bara_evo_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/bara_evo/bara_evo_idle_sheet.png",
+        "gif": "sprites/bara_evo/bara_evo_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/bara_evo/bara_evo_sleeping_sheet.png",
+        "gif": "sprites/bara_evo/bara_evo_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/bara_evo/bara_evo_working_sheet.png",
+        "gif": "sprites/bara_evo/bara_evo_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "chai": {
+      "walking": {
+        "sheet": "sprites/chai/chai_walking_sheet.png",
+        "gif": "sprites/chai/chai_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/chai/chai_idle_sheet.png",
+        "gif": "sprites/chai/chai_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/chai/chai_sleeping_sheet.png",
+        "gif": "sprites/chai/chai_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/chai/chai_working_sheet.png",
+        "gif": "sprites/chai/chai_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "chai_evo": {
+      "walking": {
+        "sheet": "sprites/chai_evo/chai_evo_walking_sheet.png",
+        "gif": "sprites/chai_evo/chai_evo_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/chai_evo/chai_evo_idle_sheet.png",
+        "gif": "sprites/chai_evo/chai_evo_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/chai_evo/chai_evo_sleeping_sheet.png",
+        "gif": "sprites/chai_evo/chai_evo_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/chai_evo/chai_evo_working_sheet.png",
+        "gif": "sprites/chai_evo/chai_evo_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "dragon": {
+      "flying": {
+        "sheet": "sprites/dragon/dragon_flying_sheet.png",
+        "gif": "sprites/dragon/dragon_flying.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "fire_breath": {
+        "sheet": "sprites/dragon/dragon_fire_breath_sheet.png",
+        "gif": "sprites/dragon/dragon_fire_breath.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/dragon/dragon_idle_sheet.png",
+        "gif": "sprites/dragon/dragon_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/dragon/dragon_sleeping_sheet.png",
+        "gif": "sprites/dragon/dragon_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/dragon/dragon_working_sheet.png",
+        "gif": "sprites/dragon/dragon_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "egg": {
+      "idle": {
+        "sheet": "sprites/egg/egg_idle_sheet.png",
+        "gif": "sprites/egg/egg_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "shaking": {
+        "sheet": "sprites/egg/egg_shaking_sheet.png",
+        "gif": "sprites/egg/egg_shaking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 12
+      },
+      "crack": {
+        "sheet": "sprites/egg/egg_crack_sheet.png",
+        "gif": "sprites/egg/egg_crack.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      }
+    },
+    "gagak": {
+      "flying": {
+        "sheet": "sprites/gagak/gagak_flying_sheet.png",
+        "gif": "sprites/gagak/gagak_flying.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/gagak/gagak_idle_sheet.png",
+        "gif": "sprites/gagak/gagak_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/gagak/gagak_sleeping_sheet.png",
+        "gif": "sprites/gagak/gagak_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/gagak/gagak_working_sheet.png",
+        "gif": "sprites/gagak/gagak_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "gagak_evo": {
+      "flying": {
+        "sheet": "sprites/gagak_evo/gagak_evo_flying_sheet.png",
+        "gif": "sprites/gagak_evo/gagak_evo_flying.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/gagak_evo/gagak_evo_idle_sheet.png",
+        "gif": "sprites/gagak_evo/gagak_evo_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/gagak_evo/gagak_evo_sleeping_sheet.png",
+        "gif": "sprites/gagak_evo/gagak_evo_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/gagak_evo/gagak_evo_working_sheet.png",
+        "gif": "sprites/gagak_evo/gagak_evo_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "gino": {
+      "walking": {
+        "sheet": "sprites/gino/gino_walking_sheet.png",
+        "gif": "sprites/gino/gino_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/gino/gino_idle_sheet.png",
+        "gif": "sprites/gino/gino_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/gino/gino_sleeping_sheet.png",
+        "gif": "sprites/gino/gino_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/gino/gino_working_sheet.png",
+        "gif": "sprites/gino/gino_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "gino_evo": {
+      "walking": {
+        "sheet": "sprites/gino_evo/gino_evo_walking_sheet.png",
+        "gif": "sprites/gino_evo/gino_evo_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/gino_evo/gino_evo_idle_sheet.png",
+        "gif": "sprites/gino_evo/gino_evo_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/gino_evo/gino_evo_sleeping_sheet.png",
+        "gif": "sprites/gino_evo/gino_evo_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/gino_evo/gino_evo_working_sheet.png",
+        "gif": "sprites/gino_evo/gino_evo_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "kala": {
+      "walking": {
+        "sheet": "sprites/kala/kala_walking_sheet.png",
+        "gif": "sprites/kala/kala_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/kala/kala_idle_sheet.png",
+        "gif": "sprites/kala/kala_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/kala/kala_sleeping_sheet.png",
+        "gif": "sprites/kala/kala_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/kala/kala_working_sheet.png",
+        "gif": "sprites/kala/kala_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "kala_evo": {
+      "walking": {
+        "sheet": "sprites/kala_evo/kala_evo_walking_sheet.png",
+        "gif": "sprites/kala_evo/kala_evo_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/kala_evo/kala_evo_idle_sheet.png",
+        "gif": "sprites/kala_evo/kala_evo_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/kala_evo/kala_evo_sleeping_sheet.png",
+        "gif": "sprites/kala_evo/kala_evo_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/kala_evo/kala_evo_working_sheet.png",
+        "gif": "sprites/kala_evo/kala_evo_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "linh": {
+      "walking": {
+        "sheet": "sprites/linh/linh_walking_sheet.png",
+        "gif": "sprites/linh/linh_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/linh/linh_idle_sheet.png",
+        "gif": "sprites/linh/linh_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/linh/linh_sleeping_sheet.png",
+        "gif": "sprites/linh/linh_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/linh/linh_working_sheet.png",
+        "gif": "sprites/linh/linh_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "linh_evo": {
+      "walking": {
+        "sheet": "sprites/linh_evo/linh_evo_walking_sheet.png",
+        "gif": "sprites/linh_evo/linh_evo_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/linh_evo/linh_evo_idle_sheet.png",
+        "gif": "sprites/linh_evo/linh_evo_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/linh_evo/linh_evo_sleeping_sheet.png",
+        "gif": "sprites/linh_evo/linh_evo_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/linh_evo/linh_evo_working_sheet.png",
+        "gif": "sprites/linh_evo/linh_evo_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "merli": {
+      "walking": {
+        "sheet": "sprites/merli/merli_walking_sheet.png",
+        "gif": "sprites/merli/merli_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/merli/merli_idle_sheet.png",
+        "gif": "sprites/merli/merli_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/merli/merli_sleeping_sheet.png",
+        "gif": "sprites/merli/merli_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/merli/merli_working_sheet.png",
+        "gif": "sprites/merli/merli_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "merli_evo": {
+      "walking": {
+        "sheet": "sprites/merli_evo/merli_evo_walking_sheet.png",
+        "gif": "sprites/merli_evo/merli_evo_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/merli_evo/merli_evo_idle_sheet.png",
+        "gif": "sprites/merli_evo/merli_evo_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/merli_evo/merli_evo_sleeping_sheet.png",
+        "gif": "sprites/merli_evo/merli_evo_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/merli_evo/merli_evo_working_sheet.png",
+        "gif": "sprites/merli_evo/merli_evo_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "misha": {
+      "walking": {
+        "sheet": "sprites/misha/misha_walking_sheet.png",
+        "gif": "sprites/misha/misha_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/misha/misha_idle_sheet.png",
+        "gif": "sprites/misha/misha_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/misha/misha_sleeping_sheet.png",
+        "gif": "sprites/misha/misha_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/misha/misha_working_sheet.png",
+        "gif": "sprites/misha/misha_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "misha_evo": {
+      "walking": {
+        "sheet": "sprites/misha_evo/misha_evo_walking_sheet.png",
+        "gif": "sprites/misha_evo/misha_evo_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/misha_evo/misha_evo_idle_sheet.png",
+        "gif": "sprites/misha_evo/misha_evo_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/misha_evo/misha_evo_sleeping_sheet.png",
+        "gif": "sprites/misha_evo/misha_evo_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/misha_evo/misha_evo_working_sheet.png",
+        "gif": "sprites/misha_evo/misha_evo_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "mochi": {
+      "walking": {
+        "sheet": "sprites/mochi/mochi_walking_sheet.png",
+        "gif": "sprites/mochi/mochi_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/mochi/mochi_idle_sheet.png",
+        "gif": "sprites/mochi/mochi_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/mochi/mochi_sleeping_sheet.png",
+        "gif": "sprites/mochi/mochi_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/mochi/mochi_working_sheet.png",
+        "gif": "sprites/mochi/mochi_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "mochi_evo": {
+      "walking": {
+        "sheet": "sprites/mochi_evo/mochi_evo_walking_sheet.png",
+        "gif": "sprites/mochi_evo/mochi_evo_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/mochi_evo/mochi_evo_idle_sheet.png",
+        "gif": "sprites/mochi_evo/mochi_evo_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/mochi_evo/mochi_evo_sleeping_sheet.png",
+        "gif": "sprites/mochi_evo/mochi_evo_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/mochi_evo/mochi_evo_working_sheet.png",
+        "gif": "sprites/mochi_evo/mochi_evo_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "moti_evo": {
+      "walking": {
+        "sheet": "sprites/moti_evo/moti_evo_walking_sheet.png",
+        "gif": "sprites/moti_evo/moti_evo_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/moti_evo/moti_evo_idle_sheet.png",
+        "gif": "sprites/moti_evo/moti_evo_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/moti_evo/moti_evo_sleeping_sheet.png",
+        "gif": "sprites/moti_evo/moti_evo_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/moti_evo/moti_evo_working_sheet.png",
+        "gif": "sprites/moti_evo/moti_evo_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "muning": {
+      "walking": {
+        "sheet": "sprites/muning/muning_walking_sheet.png",
+        "gif": "sprites/muning/muning_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/muning/muning_idle_sheet.png",
+        "gif": "sprites/muning/muning_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/muning/muning_sleeping_sheet.png",
+        "gif": "sprites/muning/muning_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/muning/muning_working_sheet.png",
+        "gif": "sprites/muning/muning_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "muning_evo": {
+      "walking": {
+        "sheet": "sprites/muning_evo/muning_evo_walking_sheet.png",
+        "gif": "sprites/muning_evo/muning_evo_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/muning_evo/muning_evo_idle_sheet.png",
+        "gif": "sprites/muning_evo/muning_evo_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/muning_evo/muning_evo_sleeping_sheet.png",
+        "gif": "sprites/muning_evo/muning_evo_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/muning_evo/muning_evo_working_sheet.png",
+        "gif": "sprites/muning_evo/muning_evo_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "raja": {
+      "walking": {
+        "sheet": "sprites/raja/raja_walking_sheet.png",
+        "gif": "sprites/raja/raja_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/raja/raja_idle_sheet.png",
+        "gif": "sprites/raja/raja_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/raja/raja_sleeping_sheet.png",
+        "gif": "sprites/raja/raja_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/raja/raja_working_sheet.png",
+        "gif": "sprites/raja/raja_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "raja_evo": {
+      "walking": {
+        "sheet": "sprites/raja_evo/raja_evo_walking_sheet.png",
+        "gif": "sprites/raja_evo/raja_evo_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/raja_evo/raja_evo_idle_sheet.png",
+        "gif": "sprites/raja_evo/raja_evo_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/raja_evo/raja_evo_sleeping_sheet.png",
+        "gif": "sprites/raja_evo/raja_evo_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/raja_evo/raja_evo_working_sheet.png",
+        "gif": "sprites/raja_evo/raja_evo_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "ran": {
+      "slither": {
+        "sheet": "sprites/ran/ran_slither_sheet.png",
+        "gif": "sprites/ran/ran_slither.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/ran/ran_idle_sheet.png",
+        "gif": "sprites/ran/ran_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/ran/ran_sleeping_sheet.png",
+        "gif": "sprites/ran/ran_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/ran/ran_working_sheet.png",
+        "gif": "sprites/ran/ran_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "ran_evo": {
+      "slither": {
+        "sheet": "sprites/ran_evo/ran_evo_slither_sheet.png",
+        "gif": "sprites/ran_evo/ran_evo_slither.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/ran_evo/ran_evo_idle_sheet.png",
+        "gif": "sprites/ran_evo/ran_evo_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/ran_evo/ran_evo_sleeping_sheet.png",
+        "gif": "sprites/ran_evo/ran_evo_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/ran_evo/ran_evo_working_sheet.png",
+        "gif": "sprites/ran_evo/ran_evo_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "rimau": {
+      "walking": {
+        "sheet": "sprites/rimau/rimau_walking_sheet.png",
+        "gif": "sprites/rimau/rimau_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/rimau/rimau_idle_sheet.png",
+        "gif": "sprites/rimau/rimau_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/rimau/rimau_sleeping_sheet.png",
+        "gif": "sprites/rimau/rimau_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/rimau/rimau_working_sheet.png",
+        "gif": "sprites/rimau/rimau_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "rimau_evo": {
+      "walking": {
+        "sheet": "sprites/rimau_evo/rimau_evo_walking_sheet.png",
+        "gif": "sprites/rimau_evo/rimau_evo_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/rimau_evo/rimau_evo_idle_sheet.png",
+        "gif": "sprites/rimau_evo/rimau_evo_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/rimau_evo/rimau_evo_sleeping_sheet.png",
+        "gif": "sprites/rimau_evo/rimau_evo_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/rimau_evo/rimau_evo_working_sheet.png",
+        "gif": "sprites/rimau_evo/rimau_evo_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "tala": {
+      "walking": {
+        "sheet": "sprites/tala/tala_walking_sheet.png",
+        "gif": "sprites/tala/tala_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/tala/tala_idle_sheet.png",
+        "gif": "sprites/tala/tala_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/tala/tala_sleeping_sheet.png",
+        "gif": "sprites/tala/tala_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/tala/tala_working_sheet.png",
+        "gif": "sprites/tala/tala_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    },
+    "tala_evo": {
+      "walking": {
+        "sheet": "sprites/tala_evo/tala_evo_walking_sheet.png",
+        "gif": "sprites/tala_evo/tala_evo_walking.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      },
+      "idle": {
+        "sheet": "sprites/tala_evo/tala_evo_idle_sheet.png",
+        "gif": "sprites/tala_evo/tala_evo_idle.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 8
+      },
+      "sleeping": {
+        "sheet": "sprites/tala_evo/tala_evo_sleeping_sheet.png",
+        "gif": "sprites/tala_evo/tala_evo_sleeping.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 6
+      },
+      "working": {
+        "sheet": "sprites/tala_evo/tala_evo_working_sheet.png",
+        "gif": "sprites/tala_evo/tala_evo_working.gif",
+        "frames": 8,
+        "frameWidth": 192,
+        "frameHeight": 192,
+        "fps": 10
+      }
+    }
+  }
+}

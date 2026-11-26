@@ -736,28 +736,28 @@
         }
       },
       {
-        id: 'pusa', name: 'Muning', country: 'Asia', region: 'Asia', flag: '\ud83c\udf0f',
+        id: 'muning', name: 'Muning', country: 'Asia', region: 'Asia', flag: '\ud83c\udf0f',
         species: 'Cozy Asia Cat', favoriteFood: 'pad_thai', greeting: 'Meow!',
         skillName: 'Purr of Luck', skillEmoji: '\ud83d\udc9e', speed: 38,
         dialogues: ['Meow! Kain tayo!', 'Purr... cozy day!', 'Ang ganda ng buwan!', 'Laro tayo!'],
         pngAnim: { dir: 'pusa/pusa', frames: 8 },
       },
       {
-        id: 'agila', name: 'Banog', country: 'Philippines', region: 'Philippines', flag: '\ud83c\uddf5\ud83c\udded',
+        id: 'banog', name: 'Banog', country: 'Philippines', region: 'Philippines', flag: '\ud83c\uddf5\ud83c\udded',
         species: 'Philippine Eagle', favoriteFood: 'satay', greeting: 'Swoosh!',
         skillName: 'Storm Dive', skillEmoji: '\ud83c\udf2a', speed: 46,
         dialogues: ['Swoosh! Lipad tayo!', 'Kitang-kita lahat!', 'Sky\'s the limit!', 'Uwing agila, hehe!'],
         pngAnim: { dir: 'pusa/agila', frames: 8 },
       },
       {
-        id: 'uwak', name: 'Gagak', country: 'Indonesia', region: 'Indonesia', flag: '\ud83c\udde9\ud83c\uddea',
+        id: 'gagak', name: 'Gagak', country: 'Indonesia', region: 'Indonesia', flag: '\ud83c\udde9\ud83c\uddea',
         species: 'Clever Crow', favoriteFood: 'satay', greeting: 'Caw!',
         skillName: 'Shiny Snatch', skillEmoji: '\ud83d\udc8e', speed: 40,
         dialogues: ['Caw! Ada apa?', 'Barter? Shiny things!', 'Caw caw! Pintar!', 'Suka comrade? Caw!'],
         pngAnim: { dir: 'pusa/uwak', frames: 8 },
       },
       {
-        id: 'ahas', name: 'Ran', country: 'Vietnam', region: 'Vietnam', flag: '\ud83c\uddfb\ud83c\uddf3',
+        id: 'ran', name: 'Ran', country: 'Vietnam', region: 'Vietnam', flag: '\ud83c\uddfb\ud83c\uddf3',
         species: 'Garden Guardian Snake', favoriteFood: 'pho', greeting: 'Ssss!',
         skillName: 'Coiled Charm', skillEmoji: '\ud83c\udf34', speed: 32,
         dialogues: ['Xin ch\u00e0o! Ssss!', 'C\u1ee9 chill th\u00f4i, ssss!', 'Ssssarap ng pho!', 'Coil and relax!'],
@@ -771,6 +771,13 @@
         pngAnim: { dir: 'pusa/dragon_flame', frames: 12 },
       }
     ];
+
+    const DRAWFRAME_FALLBACKS = { muning: 'linh', banog: 'nila', gagak: 'nila', ran: 'kala', dragon: 'bara' };
+    for (const p of PET_ROSTER) {
+      if (typeof p.drawFrame === 'function') continue;
+      const donor = PET_ROSTER.find((x) => x.id === DRAWFRAME_FALLBACKS[p.id]) || PET_ROSTER[0];
+      p.drawFrame = function (g, state, f, wardrobe) { donor.drawFrame(g, state, f, wardrobe); };
+    }
 
     // ==========================================================================
     // 5. 30 PROCEDURAL 16-BIT CULTURAL DELICACIES (ASEAN, INDIA & WORLD)
@@ -1031,7 +1038,10 @@ const GameState = {
 };
 
 function getPetById(id) {
-  return PET_ROSTER.find((p) => p.id === id) || PET_ROSTER[0];
+  const nid = normalizeSpeciesId(id);
+  return PET_ROSTER.find((p) => p.id === id)
+    || PET_ROSTER.find((p) => p.id === nid)
+    || PET_ROSTER[0];
 }
 
 const SpriteBank = { pets: {}, foods: {} };
@@ -1069,6 +1079,106 @@ function ensureFoodSprite(delId) {
   return SpriteBank.foods[delId];
 }
 
+    const PET_SHEET_ANIMS = JSON.parse(
+      '{"banog":{"flying":{"fps":10,"fr":8},"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"working":{"fps":10,"fr":8}},"banog_evo":{"flying":{"fps":10,"fr":8},"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"working":{"fps":10,"fr":8}},"bantay":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"bantay_evo":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"bao":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"bao_evo":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"bara":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"bara_evo":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"chai":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"chai_evo":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"dragon":{"fire_breath":{"fps":10,"fr":8},"flying":{"fps":10,"fr":8},"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"working":{"fps":10,"fr":8}},"egg":{"crack":{"fps":8,"fr":8},"idle":{"fps":8,"fr":8},"shaking":{"fps":12,"fr":8}},"gagak":{"flying":{"fps":10,"fr":8},"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"working":{"fps":10,"fr":8}},"gagak_evo":{"flying":{"fps":10,"fr":8},"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"working":{"fps":10,"fr":8}},"gino":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"gino_evo":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"kala":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"kala_evo":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"linh":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"linh_evo":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"merli":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"merli_evo":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"misha":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"misha_evo":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"mochi":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"mochi_evo":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"moti_evo":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"muning":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"muning_evo":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"raja":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"raja_evo":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"ran":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"slither":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"ran_evo":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"slither":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"rimau":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"rimau_evo":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"tala":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}},"tala_evo":{"idle":{"fps":8,"fr":8},"sleeping":{"fps":6,"fr":8},"walking":{"fps":10,"fr":8},"working":{"fps":10,"fr":8}}}'
+    );
+
+    const SPECIES_ALIASES = { pusa: 'muning', agila: 'banog', uwak: 'gagak', ahas: 'ran' };
+
+    function normalizeSpeciesId(id) {
+      if (typeof id !== 'string' || !id) return id;
+      return SPECIES_ALIASES[id] || id;
+    }
+
+    const SPRITE_SHEET_ROOTS = ['../../assets/pets/', 'assets/pets/', 'pets/'];
+
+    function setSheetRoots(list) {
+      if (Array.isArray(list) && list.length) SPRITE_SHEET_ROOTS.splice(0, SPRITE_SHEET_ROOTS.length, ...list);
+    }
+
+    const V2_MOVE_ANIM = {
+      banog: 'flying', banog_evo: 'flying', gagak: 'flying', gagak_evo: 'flying', dragon: 'flying',
+      ran: 'slither', ran_evo: 'slither',
+    };
+    const V2_STATE_ANIMS = { IDLE: 'idle', HAPPY: 'idle', EAT: 'working', SLEEP: 'sleeping' };
+
+    function petSheetInfo(petId, anim) {
+      const pid = normalizeSpeciesId(petId);
+      const p = PET_SHEET_ANIMS[pid];
+      if (!p) return null;
+      const a = anim ? String(anim) : '';
+      if (p[a]) return { petId: pid, anim: a, fps: p[a].fps, frames: p[a].fr || 8 };
+      return null;
+    }
+
+    function petSheetAnim(state, petId) {
+      const pid = normalizeSpeciesId(petId);
+      const p = PET_SHEET_ANIMS[pid];
+      if (!p) return null;
+      const st = state ? String(state).toUpperCase() : 'IDLE';
+      const lower = st.toLowerCase();
+      if (p[lower]) return lower;
+      const anim = st === 'WALK' ? (V2_MOVE_ANIM[pid] || 'walking') : (V2_STATE_ANIMS[st] || 'idle');
+      return p[anim] ? anim : (p.idle ? 'idle' : (Object.keys(p)[0] || null));
+    }
+
+    function petSheetFps(petId, anim) {
+      const info = petSheetInfo(petId, anim);
+      return info ? info.fps : 8;
+    }
+
+    const sheetBank = {};
+
+    function sliceSheet(img) {
+      const wFrame = 192;
+      const hFrame = 192;
+      const total = Math.max(1, Math.floor(img.naturalWidth / wFrame));
+      const frames = [];
+      for (let i = 0; i < total; i += 1) {
+        const c = document.createElement('canvas');
+        c.width = wFrame;
+        c.height = hFrame;
+        const ctx = c.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, i * wFrame, 0, wFrame, hFrame, 0, 0, wFrame, hFrame);
+        frames.push(c);
+      }
+      return frames;
+    }
+
+    function petSheetFrames(petId, anim) {
+      const info = petSheetInfo(petId, anim);
+      if (!info || typeof document === 'undefined' || typeof Image === 'undefined') return null;
+      const key = `${info.petId}@${info.anim}`;
+      let slot = sheetBank[key];
+      if (!slot) {
+        slot = { frames: null, roots: SPRITE_SHEET_ROOTS.slice(), trying: false };
+        sheetBank[key] = slot;
+      }
+      if (slot.frames) return slot.frames;
+      if (slot.trying) return null;
+      slot.trying = true;
+      const root = slot.roots.shift();
+      if (root === undefined) return null;
+      const img = new Image();
+      img.onload = () => {
+        slot.trying = false;
+        if (img.naturalWidth >= 192) slot.frames = sliceSheet(img);
+      };
+      img.onerror = () => { slot.trying = false; };
+      img.src = `${root}sprites/${info.petId}/${info.petId}_${info.anim}_sheet.png`;
+      return null;
+    }
+
+    function petSheetGif(petId, anim) {
+      const info = petSheetInfo(petId, anim || 'idle');
+      return info ? `${SPRITE_SHEET_ROOTS[0]}sprites/${info.petId}/${info.petId}_${info.anim}.gif` : null;
+    }
+
+    function isPetSheetEvo(petId) {
+      return typeof petId === 'string' && petId.endsWith('_evo') && !!PET_SHEET_ANIMS[petId];
+    }
+
 const EVO_DEFS = [
   { id: 'bantay', evolvedName: "Datu Bantay", country: 'Philippines' },
   { id: 'kala', evolvedName: "Bathala Kala", country: 'Philippines' },
@@ -1084,18 +1194,50 @@ const EVO_DEFS = [
   { id: 'bao', evolvedName: "Emperor Bao", country: 'China' },
   { id: 'misha', evolvedName: "Tsar Misha", country: 'Russia' },
   { id: 'gino', evolvedName: "Doge Gino", country: 'Italy' },
+  { id: 'muning', evolvedName: "Datu Muning", country: 'Asia' },
+  { id: 'banog', evolvedName: "Mandirigma Banog", country: 'Philippines' },
+  { id: 'gagak', evolvedName: "Diwata Gagak", country: 'Indonesia' },
+  { id: 'ran', evolvedName: "Naga Ran", country: 'Vietnam' },
 ];
+
+    for (const evoId of Object.keys(PET_SHEET_ANIMS)) {
+      if (evoId === 'egg' || !evoId.endsWith('_evo')) continue;
+      if (PET_ROSTER.some((p) => p.id === evoId)) continue;
+      const baseId = evoId.slice(0, -4);
+      const base = PET_ROSTER.find((p) => p.id === baseId) || PET_ROSTER[0];
+      PET_ROSTER.push({
+        id: evoId,
+        name: (() => { const def = EVO_DEFS.find((e) => e.id === baseId); return def ? def.evolvedName : `${base.name} Evo`; })(),
+        country: base.country, region: base.region, flag: base.flag,
+        species: base.species ? `${base.species} (Evolved)` : evoId,
+        favoriteFood: base.favoriteFood, greeting: base.greeting,
+        skillName: base.skillName, skillEmoji: base.skillEmoji,
+        speed: base.speed, evoOf: baseId, shopOnly: true,
+        dialogues: base.dialogues,
+        drawFrame(g, state, f, wardrobe) { base.drawFrame(g, state, f, wardrobe); },
+      });
+    }
 
 return {
   PET_ROSTER,
+  PET_SHEET_ANIMS,
   EVO_DEFS,
   DELICACIES,
   STATES,
   FRAMES_PER_STATE,
   SpriteBank,
   PixelGrid,
+  SPECIES_ALIASES,
+  normalizeSpeciesId,
   getPetById,
   ensurePetSprites,
   ensureFoodSprite,
+  setSheetRoots,
+  petSheetInfo,
+  petSheetAnim,
+  petSheetFps,
+  petSheetFrames,
+  petSheetGif,
+  isPetSheetEvo,
 };
 });

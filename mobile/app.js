@@ -3,6 +3,7 @@
 const engine = window.JBEngine;
 const sprites = window.JBSprites;
 const sfx = window.JBSfx;
+if (sprites && sprites.setSheetRoots) sprites.setSheetRoots(['pets/', 'assets/pets/']);
 
 const SAVE_KEY = 'juanbuddy-mobile-save';
 
@@ -255,9 +256,28 @@ const particles = [];
 let lastPat = 0;
 let currentSpecies = null;
 
+let eggExciteUntil = 0;
 function drawMobileEgg(now) {
   const prog = Math.max(0.04, Math.min(1, (state.pet.xp || 0) / 14));
   const shake = prog > 0.6 ? Math.sin(now / 55) * 3 * prog : 0;
+  const eggAnim = prog > 0.92 ? 'crack' : (now < eggExciteUntil || prog > 0.6 ? 'shaking' : 'idle');
+  const eggFrames = sprites.petSheetFrames ? sprites.petSheetFrames('egg', eggAnim) : null;
+  if (eggFrames && eggFrames.length) {
+    const fps = sprites.petSheetFps('egg', eggAnim);
+    const fr = eggFrames[Math.floor((now * fps) / 1000) % eggFrames.length];
+    const eggH = 104;
+    petCtx.save();
+    petCtx.imageSmoothingEnabled = false;
+    petCtx.drawImage(fr, 120 - eggH / 2, 218 - eggH, eggH, eggH);
+    petCtx.restore();
+    petCtx.save();
+    petCtx.font = '11px sans-serif';
+    petCtx.textAlign = 'center';
+    petCtx.fillStyle = 'rgba(255,255,255,0.85)';
+    petCtx.fillText(prog > 0.8 ? 'crack... crack!' : `keep caring... ${Math.round(prog * 100)}%`, 120, 232);
+    petCtx.restore();
+    return;
+  }
   petCtx.save();
   petCtx.globalAlpha = 0.22;
   petCtx.fillStyle = '#000';
@@ -393,6 +413,27 @@ function drawPet(now) {
   const petTop = 214 - boxSize + (anim === 'HAPPY' || anim === 'WALK' ? Math.round(Math.sin(now / 260) * 4) : 0);
   petCtx.imageSmoothingEnabled = false;
 
+  if (sprites.petSheetAnim) {
+    const speciesKey = sprites.normalizeSpeciesId(speciesId);
+    const v2Try = (pid) => {
+      const animName = sprites.petSheetAnim(anim, pid);
+      const frames = animName ? sprites.petSheetFrames(pid, animName) : null;
+      if (frames && frames.length) {
+        const fps = sprites.petSheetFps(pid, animName);
+        return frames[Math.floor((now * fps) / 1000) % frames.length];
+      }
+      return null;
+    };
+    let fr = null;
+    if (state.pet.evolved) fr = v2Try(`${speciesKey}_evo`);
+    if (!fr) fr = v2Try(speciesId);
+    if (fr) {
+      petCtx.drawImage(fr, petLeft, petTop, boxSize, boxSize);
+      if (anim === 'SLEEP' && Math.random() < 0.02) particles.push({ kind: 'z', x: 150, y: 30, vy: -0.5, life: 1, size: 16, wobble: 0 });
+      return;
+    }
+  }
+
   if (state.pet.evolved) {
     const evoSingle = evoSingleFor(speciesId, anim);
     if (evoSingle) {
@@ -428,6 +469,7 @@ petCanvas.addEventListener('click', () => {
   const now = performance.now();
   if (now - lastPat < 800) return;
   lastPat = now;
+  if (state.pet.stage === 'egg') eggExciteUntil = now + 1400;
   particles.push({ kind: 'heart', x: 140, y: 40, vy: -0.6, life: 1, size: 20, wobble: 0 });
   run('pat');
 });

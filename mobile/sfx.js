@@ -244,10 +244,12 @@
     bao() { tone(390, 0.16, { type: 'square', vol: 0.11, slideTo: 300 }); tone(390, 0.16, { type: 'square', vol: 0.11, delay: 0.2, slideTo: 300 }); tone(330, 0.2, { type: 'square', vol: 0.1, delay: 0.42, slideTo: 280 }); },
   };
 
+  const VOICE_ALIASES = { pusa: 'muning', agila: 'banog', uwak: 'gagak', ahas: 'ran' };
+
   function petVoice(species) {
     if (!enabled) return;
     try {
-      const fn = PET_VOICES[species] || PET_VOICES.bantay;
+      const fn = PET_VOICES[VOICE_ALIASES[species] || species] || PET_VOICES.bantay;
       fn();
     } catch (err) { /* audio unavailable */ }
   }

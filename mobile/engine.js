@@ -766,6 +766,9 @@ function ensureState(state) {
     state.pet.stage = state.pet.species ? 'adult' : 'egg';
   }
   if (state.pet.stage !== 'egg' && !state.pet.species) state.pet.species = 'kala';
+  if (typeof state.pet.species === 'string' && state.pet.species) {
+    state.pet.species = spritesApi.normalizeSpeciesId ? spritesApi.normalizeSpeciesId(state.pet.species) : state.pet.species;
+  }
   if (!(state.pet.name)) state.pet.name = fresh.pet.name;
   if (!state.dead) state.dead = null;
   return state;
@@ -1021,7 +1024,7 @@ function applyLevelUps(state) {
   }
 }
 
-const HATCH_RARITY_WEIGHTS = { pusa: 0.35, agila: 0.35, uwak: 0.35, ahas: 0.35 };
+const HATCH_RARITY_WEIGHTS = { muning: 0.35, banog: 0.35, gagak: 0.35, ran: 0.35 };
 function rollHatchSpecies() {
   const roster = (spritesApi.PET_ROSTER || []).filter((pt) => !pt.shopOnly);
   if (!roster.length) return 'kala';

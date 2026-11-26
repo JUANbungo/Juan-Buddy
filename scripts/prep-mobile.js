@@ -18,13 +18,14 @@ fs.copyFileSync(path.join(root, 'src', 'pet', 'bgm.js'), path.join(mobile, 'bgm.
 fs.mkdirSync(path.join(mobile, 'sprites'), { recursive: true });
 fs.cpSync(path.join(root, 'assets', 'sprites'), path.join(mobile, 'sprites'), { recursive: true });
 fs.cpSync(path.join(root, 'assets', 'bgm'), path.join(mobile, 'bgm'), { recursive: true });
+fs.cpSync(path.join(root, 'assets', 'pets'), path.join(mobile, 'pets'), { recursive: true });
 
 const icon = decodePNG(Buffer.from(require(path.join(root, 'assets', 'icons.js')).ICON_PNG_BASE64, 'base64'));
 for (const size of [180, 192, 512]) {
   fs.writeFileSync(path.join(mobile, 'icons', `icon-${size}.png`), encodeImagePNG(scaleImage(icon, size)));
 }
 
-console.log('Prepared mobile/: sprites.js, engine.js, motivation.js, sfx.js, bgm.js, sprites/, bgm/, icons/');
+console.log('Prepared mobile/: sprites.js, engine.js, motivation.js, sfx.js, bgm.js, sprites/, bgm/, pets/, icons/');
 
 // ==== Full desktop dashboard for GitHub Pages (browser version) ====
 const pages = path.join(root, 'pages');
