@@ -17,6 +17,10 @@ dist/
 !assets/sheets-src/*.png
 !assets/pets/**/*.png
 !mobile/pets/**/*.png
+!assets/arena/**/*.png
+!assets/monsters/**/*.png
+!assets/death/**/*.png
+!assets/items/**/*.png
 !assets/branding/*.png
 !assets/scenes/*.png
 !assets/wallpapers/*.png

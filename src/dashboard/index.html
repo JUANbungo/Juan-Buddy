@@ -5,6 +5,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src 'self' data: file:" />
   <link rel="stylesheet" href="dashboard.css" />
   <link rel="stylesheet" href="css/eco-theme.css" />
+  <link rel="stylesheet" href="css/battle-arena.css" />
 </head>
 <body class="eco-polished">
   <div id="splash" class="splash">
@@ -108,6 +109,10 @@
         </div>
         <div class="playground-wrap">
           <canvas id="dash-pet" width="480" height="360"></canvas>
+          <div id="arena-lock-badge" class="arena-lock-badge hidden">
+            <div class="arena-lock-msg">💀 Your pet is dead! Buy a Reincarnation Stone in the Shop to revive.</div>
+            <div id="arena-lock-clock" class="arena-lock-clock">01:00:00</div>
+          </div>
           <button id="stage-menu-btn" class="stage-menu-btn" title="Open the feature menu">☰ <span>Menu</span></button>
           <div id="stage-menu" class="stage-menu hidden">
             <button class="stage-menu-item" data-menu-tab="food"><img class="eco-pixel" src="assets/icons/tab_delicacies.png" alt="" draggable="false"> Delicacies</button>
@@ -145,6 +150,10 @@
           <button id="btn-sleep" class="btn-graphic" title="Rest / Wake"><img class="pixelated" src="../../assets/sprites/ui/buttons/sleep.png" alt="Sleep"></button>
           <button id="btn-cheer" class="btn-graphic" title="Cheer Me Up"><img class="pixelated" src="../../assets/sprites/ui/buttons/cheer_me_up.png" alt="Cheer Me Up"></button>
         </div>
+      </div>
+      <div id="arena-place" class="arena-place hidden">
+        <div id="arena-stage"></div>
+        <div id="arena-selector"></div>
       </div>
       <div class="jb-ad eco-bulletin-banner jb-ad-bottom">
         <img class="pixelated" src="../../assets/ads/bottom_ad_promo/ad_bottom_promo.gif" alt="Juan Buddy updates and team coming soon" draggable="false">
@@ -466,6 +475,7 @@
   <script src="../pet/motivation.js"></script>
   <script src="js/eco-particles.js"></script>
   <script src="js/cute-sfx.js"></script>
+  <script src="js/battle-arena.js"></script>
   <script src="browser-api.js"></script>
   <script src="dashboard.js"></script>
 </body>

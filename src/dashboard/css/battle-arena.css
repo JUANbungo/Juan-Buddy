@@ -1,0 +1,385 @@
+/* Juan Buddy — Battle Arena, Ghost/Tombstone & Reincarnation Shop Styles */
+.jb-arena-hidden {
+  display: none !important;
+}
+
+.jb-pixel {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Main Arena Stage Container (replaces or overlays Buddy's Home room) */
+.jb-arena-stage {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 3px solid #3c2b23;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  background: #2c2244 url("../../../assets/arena/arena_bg.png") center/cover no-repeat;
+  image-rendering: pixelated;
+  user-select: none;
+  font-family: "Trebuchet MS", system-ui, sans-serif;
+}
+
+.jb-arena-topbar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+  gap: 8px;
+}
+
+.jb-arena-badge {
+  background: rgba(24, 18, 34, 0.86);
+  color: #ffe28a;
+  border: 2px solid #e0a943;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+}
+
+.jb-arena-btn {
+  background: #f5b942;
+  color: #2b1d12;
+  border: 2px solid #3c2b23;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-weight: 800;
+  font-size: 12px;
+  cursor: pointer;
+  transition: transform 0.1s ease, filter 0.15s ease;
+}
+.jb-arena-btn:hover:not(:disabled) {
+  filter: brightness(1.07);
+  transform: translateY(-1px);
+}
+.jb-arena-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.jb-arena-btn.secondary {
+  background: #fff3d6;
+}
+.jb-arena-btn.danger {
+  background: #e35252;
+  color: #fff;
+}
+.jb-arena-btn.revive {
+  background: #44d4e6;
+  color: #102a33;
+}
+.jb-arena-btn.special {
+  background: linear-gradient(135deg, #ffd24c, #ff884d);
+  color: #2b1408;
+}
+
+/* Combatants on the Arena Pads */
+.jb-fighter {
+  position: absolute;
+  bottom: 14%;
+  width: 112px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: left 0.45s ease, right 0.45s ease, transform 0.18s ease;
+  z-index: 5;
+}
+.jb-fighter.player {
+  left: 16%;
+}
+.jb-fighter.enemy {
+  right: 16%;
+}
+.jb-fighter.walking-in {
+  right: -18%;
+}
+.jb-fighter.attack-right {
+  transform: translateX(48px) scale(1.06);
+}
+.jb-fighter.attack-left {
+  transform: translateX(-48px) scale(1.06);
+}
+.jb-fighter.hit-flash {
+  filter: brightness(2.2) saturate(0.4);
+  transform: translateY(-6px);
+}
+
+.jb-sprite-box {
+  width: 96px;
+  height: 96px;
+  background-repeat: no-repeat;
+  background-size: 400% 100%;
+  image-rendering: pixelated;
+  animation: jbSprite4Frame 0.64s steps(4) infinite;
+}
+
+@keyframes jbSprite4Frame {
+  from { background-position: 0% 0; }
+  to { background-position: -400% 0; }
+}
+
+.jb-hp-wrap {
+  width: 108px;
+  background: rgba(20, 16, 28, 0.85);
+  border: 2px solid #2b1d12;
+  border-radius: 7px;
+  padding: 3px 5px;
+  margin-bottom: 4px;
+  text-align: center;
+}
+.jb-hp-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff8e7;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+.jb-hp-track {
+  width: 100%;
+  height: 8px;
+  background: #3a2b3d;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.jb-hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #52d669, #8df27a);
+  transition: width 0.25s ease;
+}
+.jb-hp-fill.enemy {
+  background: linear-gradient(90deg, #e84b4b, #ff8566);
+}
+
+/* Battle Log Banner */
+.jb-arena-log {
+  position: absolute;
+  bottom: 8px;
+  left: 10px;
+  right: 10px;
+  background: rgba(22, 18, 32, 0.86);
+  color: #fff4d9;
+  border: 2px solid #5c4438;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 9;
+}
+
+/* Enemy Selection Grid */
+.jb-enemy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.jb-enemy-card {
+  background: #fff9ec;
+  border: 2px solid #d9c39e;
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+}
+.jb-enemy-card:hover {
+  border-color: #e09c2b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(60, 43, 35, 0.12);
+}
+.jb-enemy-card.selected {
+  border-color: #e35252;
+  background: #fff0e2;
+  box-shadow: 0 0 0 2px rgba(227, 82, 82, 0.25);
+}
+.jb-enemy-card-sprite {
+  width: 64px;
+  height: 64px;
+  background-repeat: no-repeat;
+  background-size: 400% 100%;
+  image-rendering: pixelated;
+  animation: jbSprite4Frame 0.72s steps(4) infinite;
+}
+.jb-enemy-name {
+  font-weight: 800;
+  font-size: 13px;
+  color: #2b1d12;
+  margin-top: 4px;
+}
+.jb-enemy-meta {
+  font-size: 11px;
+  color: #6b5344;
+  margin: 2px 0 6px;
+}
+
+/* Death / Ghost / Tombstone Overlay */
+.jb-death-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(16, 14, 28, 0.84);
+  backdrop-filter: blur(2px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 18px;
+  z-index: 20;
+  color: #f4f2ff;
+}
+.jb-death-overlay.tombstone-mode {
+  background: rgba(24, 10, 16, 0.9);
+}
+.jb-death-title {
+  font-size: 18px;
+  font-weight: 900;
+  color: #9be8ff;
+  margin: 6px 0 4px;
+}
+.jb-death-overlay.tombstone-mode .jb-death-title {
+  color: #ff7a7a;
+}
+.jb-death-timer {
+  font-family: monospace;
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffe28a;
+  background: rgba(0, 0, 0, 0.45);
+  border: 2px solid #5e5078;
+  border-radius: 8px;
+  padding: 4px 14px;
+  margin: 6px 0;
+}
+.jb-death-desc {
+  font-size: 12px;
+  max-width: 420px;
+  color: #d6d0ea;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+/* Reincarnation Shop Modal */
+.jb-shop-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 10, 20, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+}
+.jb-shop-card {
+  background: #fff8e8;
+  border: 3px solid #3c2b23;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 480px;
+  padding: 18px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4);
+  color: #2b1d12;
+}
+.jb-shop-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border: 2px solid #dfc89f;
+  border-radius: 10px;
+  padding: 10px;
+  margin-top: 10px;
+}
+.jb-shop-item img {
+  width: 56px;
+  height: 56px;
+  image-rendering: pixelated;
+}
+.jb-shop-item-info {
+  flex: 1;
+}
+.jb-shop-item-info h4 {
+  margin: 0 0 3px;
+  font-size: 14px;
+}
+.jb-shop-item-info p {
+  margin: 0;
+  font-size: 12px;
+  color: #634d3e;
+}
+
+/* Juan Buddy app integration */
+.arena-place {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.arena-place > #arena-stage {
+  width: 100%;
+  max-width: 640px;
+}
+.arena-place > #arena-selector {
+  width: 100%;
+  max-width: 640px;
+}
+
+.jb-arena-hidden {
+  display: none !important;
+}
+.jb-limited-tag {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(224, 169, 67, 0.16);
+  border: 1px solid rgba(224, 169, 67, 0.55);
+  color: #ffe28a;
+  font-size: 9px;
+  font-weight: 700;
+}
+.arena-lock-badge {
+  position: absolute;
+  left: 50%;
+  bottom: 12%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: rgba(24, 14, 14, 0.88);
+  border: 2px solid #b83232;
+  border-radius: 10px;
+  padding: 8px 14px;
+  color: #ffe28a;
+  font-weight: 800;
+  max-width: 78%;
+  text-align: center;
+  pointer-events: none;
+}
+.arena-lock-badge .arena-lock-msg {
+  font-size: 11px;
+  line-height: 1.35;
+}
+.arena-lock-badge .arena-lock-clock {
+  font-size: 16px;
+  color: #fff;
+  letter-spacing: 1px;
+}

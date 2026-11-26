@@ -83,6 +83,8 @@ function runAction(action, payload) {
     case 'equipItem': result = engine.equipItem(state, payload && payload.itemId); break;
     case 'useEvoStone': result = engine.useEvoStone(state); break;
     case 'battleMonster': result = engine.battleMonster(state, payload && payload.monsterId); break;
+    case 'arenaResult': result = engine.arenaResult(state, payload); break;
+    case 'arenaRevive': result = engine.arenaRevive(state, payload); break;
     case 'buyGear': result = engine.buyGear(state, payload && payload.gearId); break;
     case 'equipGear': result = engine.equipGear(state, payload && payload.gearId); break;
     case 'choosePath': result = engine.choosePath(state, payload && payload.pathId); break;

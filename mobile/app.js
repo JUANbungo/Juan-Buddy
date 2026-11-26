@@ -118,6 +118,8 @@ function run(action, payload) {
     case 'claimDaily': result = engine.claimDaily(state); break;
     case 'allocateStat': result = engine.allocateStat(state, payload && payload.statId); break;
     case 'battleMonster': result = engine.battleMonster(state, payload && payload.monsterId); break;
+    case 'arenaResult': result = engine.arenaResult(state, payload); break;
+    case 'arenaRevive': result = engine.arenaRevive(state, payload); break;
     case 'buyGear': result = engine.buyGear(state, payload && payload.gearId); break;
     case 'equipGear': result = engine.equipGear(state, payload && payload.gearId); break;
     case 'pullGearGacha': result = engine.pullGearGacha(state, payload && payload.times); break;

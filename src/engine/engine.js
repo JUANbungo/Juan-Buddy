@@ -113,6 +113,24 @@ const STAGES = [
   { id: 'adult', name: 'Adult', minLevel: 10, scale: 1 },
 ];
 const DEATH_SECONDS = 60 * 60;
+const ARENA = {
+  GHOST_MS: 60 * 60 * 1000,
+  TOMBSTONE_MS: 24 * 60 * 60 * 1000,
+  STONE_COST_FIRST: 1000,
+  STONE_COST_REPEAT: 24000,
+  SPECIAL_STONE_COST: 150000,
+};
+
+const ARENA_MONSTER_ALIASES = {
+  guard_slime: 'slime',
+  cave_bat: 'bat',
+  wild_boar: 'boar',
+  ridge_wolf: 'wolf',
+  kumiho: 'kumiho',
+  oni_brute: 'oni',
+  ember_wyvern: 'wyvern',
+  void_titan: 'titan',
+};
 
 const SKINS = {
   classic: { id: 'classic', name: 'Classic', cost: 0, tint: null },
@@ -733,6 +751,7 @@ function defaultState() {
     epicPerks: 0,
     neglect: 0,
     dead: null,
+    arena: { deaths: 0, status: 'alive', ghostUntil: 0, resetAt: 0 },
     lastSeen: Date.now(),
   };
 }
@@ -771,6 +790,11 @@ function ensureState(state) {
   }
   if (!(state.pet.name)) state.pet.name = fresh.pet.name;
   if (!state.dead) state.dead = null;
+  if (!state.arena || typeof state.arena !== 'object') state.arena = { deaths: 0, status: 'alive', ghostUntil: 0, resetAt: 0 };
+  if (state.arena.status !== 'alive' && state.arena.status !== 'ghost' && state.arena.status !== 'tombstone') state.arena.status = 'alive';
+  state.arena.deaths = Math.max(0, Math.round(Number(state.arena.deaths) || 0));
+  state.arena.ghostUntil = Math.max(0, Math.round(Number(state.arena.ghostUntil) || 0));
+  state.arena.resetAt = Math.max(0, Math.round(Number(state.arena.resetAt) || 0));
   return state;
 }
 
@@ -811,6 +835,8 @@ function coinRate(state) {
 function statusText(state) {
   const m = state.meters;
   if (state.dead) return 'Passed away...';
+  if (state.arena && state.arena.status === 'tombstone') return 'Tombstone...';
+  if (state.arena && state.arena.status === 'ghost') return 'Ghost...';
   const danger = (state.neglect || 0) > 0.4 * DEATH_SECONDS;
   if (state.flags.sleeping) return 'Sleeping zZz';
   if (state.activity) return ACTIVITIES[state.activity.id].name;
@@ -825,6 +851,25 @@ function statusText(state) {
 function tick(state, dtSeconds, offline) {
   const dt = Math.max(0, Math.min(dtSeconds, offline ? OFFLINE_CAP_SECONDS : 3600));
   if (dt === 0) return [];
+  const arenaNow = Date.now();
+  if (state.arena && state.arena.status !== 'alive') {
+    if (state.arena.status === 'ghost' && state.arena.ghostUntil && arenaNow >= state.arena.ghostUntil) {
+      state.arena.status = 'alive';
+      state.arena.ghostUntil = 0;
+      return [{ ok: true, message: `✨ ${state.pet.name} revived on their own after the rest period! Welcome back.` }];
+    }
+    if (state.arena.status === 'tombstone' && state.arena.resetAt && arenaNow >= state.arena.resetAt) {
+      const name = state.pet.name;
+      resetToEgg(state);
+      state.flags.sleeping = false;
+      state.flags.working = false;
+      state.activity = null;
+      state.activityCooldowns = {};
+      return [{ ok: true, message: `🪦 24 hours passed since ${name}'s full death... the Tombstone claimed the save. A fresh egg awaits!`, arenaReset: true }];
+    }
+    if (offline) state.lastSeen = Date.now();
+    return [];
+  }
   const scale = offline ? 0.35 : 1;
   const m = state.meters;
   const f = state.flags;
@@ -1039,7 +1084,89 @@ function rollHatchSpecies() {
 
 function deadGate(state) {
   if (state.dead) return { ok: false, message: `🕊️ ${state.pet.name} has passed away. Start a new game in the ✨ Life tab.` };
+  const a = state.arena;
+  if (a && a.status === 'tombstone') {
+    return { ok: false, dead: true, message: `🪦 ${state.pet.name} is dead! Revive with the Special Reincarnation Stone (150,000 gold) — the game resets in ${formatArenaCountdown(a.resetAt - Date.now())}.` };
+  }
+  if (a && a.status === 'ghost') {
+    return { ok: false, dead: true, message: `👻 ${state.pet.name} is dead! Buy a Reincarnation Stone in the Shop to revive (${formatArenaCountdown(a.ghostUntil - Date.now())} left).` };
+  }
   return null;
+}
+
+function formatArenaCountdown(ms) {
+  const total = Math.max(0, Math.ceil((Number(ms) || 0) / 1000));
+  const h = Math.floor(total / 3600);
+  const mm = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h >= 24) return `${Math.floor(h / 24)}d ${h % 24}h`;
+  return `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function arenaSnapshot(state) {
+  const a = state.arena || {};
+  const now = Date.now();
+  return {
+    deaths: a.deaths || 0,
+    status: a.status || 'alive',
+    ghostUntil: a.ghostUntil || 0,
+    resetAt: a.resetAt || 0,
+    lockoutRemainingMs: a.status === 'ghost' ? Math.max(0, (a.ghostUntil || 0) - now) : 0,
+    resetRemainingMs: a.status === 'tombstone' ? Math.max(0, (a.resetAt || 0) - now) : 0,
+  };
+}
+
+function arenaResult(state, payload) {
+  payload = payload || {};
+  const mon = MONSTERS.find((mo) => mo.id === (ARENA_MONSTER_ALIASES[payload.monsterId] || payload.monsterId));
+  if (!mon) return { ok: false, message: 'Unknown monster.' };
+  const a = state.arena || (state.arena = { deaths: 0, status: 'alive', ghostUntil: 0, resetAt: 0 });
+  if (a.status !== 'alive') return { ok: false, message: 'Your buddy cannot fight while dead \u2014 revive first!' };
+  if (!payload.win) {
+    a.deaths += 1;
+    const now = Date.now();
+    if (a.deaths >= 2) {
+      a.status = 'tombstone';
+      a.resetAt = now + ARENA.TOMBSTONE_MS;
+      a.ghostUntil = 0;
+    } else {
+      a.status = 'ghost';
+      a.ghostUntil = now + ARENA.GHOST_MS;
+      a.resetAt = 0;
+    }
+    state.battle.losses = (state.battle.losses || 0) + 1;
+    state.flags.working = false;
+    state.flags.sleeping = false;
+    state.activity = null;
+    const msg = a.status === 'tombstone'
+      ? `🪦 ${state.pet.name} FULLY died fighting ${mon.name}! Buy the Special Reincarnation Stone (150,000 gold) in the Shop — or the game resets in 24h!`
+      : `👻 ${state.pet.name} died fighting ${mon.name}! Ghost mode for 1 hour — buy a Reincarnation Stone (1,000 gold) in the Shop to revive instantly.`;
+    return { ok: true, arena: arenaSnapshot(state), message: msg };
+  }
+  const gold = Math.max(0, Math.min(Math.round(Number(payload.gold) || 0), mon.coins[1]));
+  const xp = Math.max(0, Math.min(Math.round(Number(payload.xp) || 0), mon.xp));
+  const preLevel = state.pet.level;
+  if (state.pet.stage !== 'egg') state.pet.xp += xp * currentXpMul(state);
+  state.coins += gold;
+  state.stats.coinsEarned += gold;
+  applyLevelUps(state);
+  state.battle.wins = (state.battle.wins || 0) + 1;
+  return { ok: true, arena: arenaSnapshot(state), gold, xp, leveledUp: state.pet.level > preLevel, message: gold || xp ? `🏆 Victory over ${mon.name}! +🪙${gold} +${xp} XP` : null };
+}
+
+function arenaRevive(state, payload) {
+  const a = state.arena || (state.arena = { deaths: 0, status: 'alive', ghostUntil: 0, resetAt: 0 });
+  if (a.status === 'alive') return { ok: false, message: `${state.pet.name} is alive and well!` };
+  const kind = payload && payload.kind;
+  if (a.status === 'ghost' && kind !== 'reincarnation') return { ok: false, message: 'A Reincarnation Stone revives a Ghost — the Special Stone is for Tombstones.' };
+  if (a.status === 'tombstone' && kind !== 'special') return { ok: false, message: 'Only the Special Reincarnation Stone can revive a Tombstone.' };
+  const price = a.status === 'tombstone' ? ARENA.SPECIAL_STONE_COST : (a.deaths <= 1 ? ARENA.STONE_COST_FIRST : ARENA.STONE_COST_REPEAT);
+  if ((state.coins || 0) < price) return { ok: false, message: `🪙 Not enough gold — the stone costs ${price.toLocaleString('en-US')}.` };
+  state.coins -= price;
+  a.status = 'alive';
+  a.ghostUntil = 0;
+  a.resetAt = 0;
+  return { ok: true, arena: arenaSnapshot(state), message: `✨ ${state.pet.name} was reborn! (-🪙${price.toLocaleString('en-US')})` };
 }
 
 const PERK_TYPES = {
@@ -1204,7 +1331,14 @@ function petPat(state) {
   if (gate) return gate;
   if (state.flags.sleeping) return { ok: false, message: 'Shh... sleeping.' };
   state.meters.happiness = clamp100(state.meters.happiness + 1.5);
-  return { ok: true, message: '' };
+  let msg = '';
+  if (state.pet.stage === 'egg') {
+    state.pet.xp += 1;
+    applyLevelUps(state);
+    const prog = Math.min(100, Math.round((state.pet.xp / 14) * 100));
+    msg = state.pet.stage !== 'egg' ? null : `🥚 ${prog}% — keep patting!`;
+  }
+  return { ok: true, message: msg };
 }
 
 function toggleWork(state) {
@@ -1441,8 +1575,7 @@ function importSave(state, code) {
   return { ok: true, message: `Save imported! Welcome back, ${state.pet.name}.` };
 }
 
-function newGame(state) {
-  if (!state.dead) return { ok: false, message: 'Your buddy is still alive! (Reset progress in footer if you really want to start over.)' };
+function resetToEgg(state) {
   const kept = { achievements: state.achievements, daily: state.daily, skinsOwned: state.skinsOwned, gacha: state.gacha, skin: state.skin, gearGacha: state.gearGacha, itemsOwned: state.items ? state.items.owned : [] };
   const fresh = defaultState();
   Object.keys(state).forEach((key) => { delete state[key]; });
@@ -1454,6 +1587,11 @@ function newGame(state) {
   state.gearGacha = kept.gearGacha;
   state.skin = kept.skinsOwned.includes(kept.skin) ? kept.skin : 'classic';
   state.items = { owned: kept.itemsOwned || [], equipped: fresh.items.equipped };
+}
+
+function newGame(state) {
+  if (!state.dead) return { ok: false, message: 'Your buddy is still alive! (Reset progress in footer if you really want to start over.)' };
+  resetToEgg(state);
   return { ok: true, message: '🌱 A new egg awaits! Take good care of your next buddy.' };
 }
 
@@ -1482,6 +1620,7 @@ function derivedStats(state) {
   const stage = stageOf(state);
   const nextStage = STAGES.find((st) => st.minLevel > state.pet.level) || null;
   return {
+    arena: arenaSnapshot(state),
     coinRate: state.flags.working ? coinRate(state) : 0,
     statusText: statusText(state),
     nextLevelXp: xpForNextLevel(state.pet.level),
@@ -1738,6 +1877,10 @@ return {
   PERK_EPIC_CHANCE,
   allocateStat,
   battleMonster,
+  arenaResult,
+  arenaRevive,
+  arenaSnapshot,
+  ARENA,
   buyGear,
   equipGear,
   pullGearGacha,

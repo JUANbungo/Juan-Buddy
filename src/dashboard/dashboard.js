@@ -286,6 +286,8 @@ function render(snapshot) {
   if (homeTitle) homeTitle.textContent = `🏠 ${s.pet.name}'s Home`;
   maybeShowNameModal();
   maybeShowPerkModal(d);
+  arenaSyncPack();
+  renderArenaLock(s);
 
   if (toast && sfx) {
     const msg = String(toast);
@@ -348,10 +350,10 @@ function render(snapshot) {
     el('death-cause').textContent = `Cause: ${s.dead.cause} — reached Lv ${s.dead.level}`;
   }
 
-  renderExtras(d);
-  renderRpg(d);
-  renderExplore(d);
-  renderPetShop(d);
+  safeRender('extras', () => renderExtras(d));
+  safeRender('rpg', () => renderRpg(d));
+  safeRender('explore', () => renderExplore(d));
+  safeRender('petshop', () => renderPetShop(d));
 
   if (d.rpg.items.evolved && !evoTrack.shown) {
     evoTrack.shown = true;
@@ -365,11 +367,19 @@ function render(snapshot) {
 
   el('btn-play').disabled = s.flags.sleeping || s.meters.energy < 8;
 
-  renderShop(s, d);
-  renderFoods(s, d);
-  renderActivities(s, d);
-  renderBuddyPicker(s);
+  safeRender('shop', () => renderShop(s, d));
+  safeRender('foods', () => renderFoods(s, d));
+  safeRender('activities', () => renderActivities(s, d));
+  safeRender('buddyPicker', () => renderBuddyPicker(s));
   if (toast) showToast(toast);
+}
+
+function safeRender(label, fn) {
+  try {
+    fn();
+  } catch (err) {
+    try { console.error(`[Juan Buddy] render("${label}") failed:`, err); } catch (e2) { /* ignore */ }
+  }
 }
 
 const FOOD_EMOJI = { pad_thai: '🍜', bamboo_stalks: '🎍', khao_lam: '🎋', mango_sticky_rice: '🥭' };
@@ -910,6 +920,213 @@ function splashSetup() {
   });
 }
 splashSetup();
+
+// ===== Battle Arena + Death/Revive integration (engine-authoritative economy) =====
+let arena = null;
+
+function arenaPetDead() {
+  const a = latest && latest.state && latest.state.arena;
+  return !!(a && (a.status === 'ghost' || a.status === 'tombstone'));
+}
+
+function fmtArenaClock(ms) {
+  const total = Math.max(0, Math.ceil((Number(ms) || 0) / 1000));
+  const h = Math.floor(total / 3600);
+  const mm = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h >= 24) return `${Math.floor(h / 24)}d ${h % 24}h`;
+  const pad = (v) => String(v).padStart(2, '0');
+  return `${pad(h)}:${pad(mm)}:${pad(s)}`;
+}
+
+function arenaDeathFromEngine(a) {
+  return {
+    status: a && a.status ? a.status : 'alive',
+    deathCount: (a && a.deaths) || 0,
+    lockoutUntil: (a && a.ghostUntil) || 0,
+    resetAt: (a && a.resetAt) || 0,
+    lastDeathAt: Date.now(),
+  };
+}
+
+function arenaSyncPack() {
+  if (!arena || !latest || !latest.state) return;
+  const snap = latest.derived ? latest.derived.arena : null;
+  const next = arenaDeathFromEngine(snap);
+  const cur = arena.deathState;
+  if (!cur || cur.status !== next.status || cur.deathCount !== next.deathCount || cur.lockoutUntil !== next.lockoutUntil || cur.resetAt !== next.resetAt) {
+    arena.deathState = next;
+    if (arena.inArena) arena.renderArenaStage();
+  }
+}
+
+function arenaMenuTab(name) {
+  if (!arena) return;
+  if (name === 'battle') {
+    const unlocks = latest && latest.derived && latest.derived.rpg && latest.derived.rpg.unlocks ? latest.derived.rpg.unlocks : [];
+    const bu = unlocks.find((u) => u.id === 'battle');
+    if (bu && bu.unlocked) {
+      arena.enterArena();
+    } else if (arena.inArena) {
+      arena.exitArena();
+    }
+    return;
+  }
+  if (arena.inArena) arena.exitArena();
+}
+
+function renderArenaLock(s) {
+  const badge = el('arena-lock-badge');
+  if (!badge) return;
+  const dead = arenaPetDead();
+  badge.classList.toggle('hidden', !dead);
+  if (!dead) return;
+  const snap = latest && latest.derived ? latest.derived.arena : null;
+  const petName = s && s.pet ? s.pet.name : 'Your pet';
+  const msgEl = badge.querySelector('.arena-lock-msg');
+  const clockEl = el('arena-lock-clock');
+  if (msgEl) {
+    if (snap && snap.status === 'tombstone') {
+      msgEl.textContent = '🪦 FULL DEATH! Buy the Special Reincarnation Stone (150,000 gold) in the Shop — or the game resets in:';
+    } else {
+      msgEl.textContent = `👻 ${petName} is dead! Buy a Reincarnation Stone in the Shop to revive.`;
+    }
+  }
+  if (clockEl && snap) {
+    clockEl.textContent = fmtArenaClock(snap.status === 'tombstone' ? snap.resetRemainingMs : snap.lockoutRemainingMs);
+  }
+}
+
+const DEATH_SHEETS = {};
+function deathSheetFrames(sheetName) {
+  if (typeof Image === 'undefined') return null;
+  const url = `../../assets/death/${sheetName}.png`;
+  const entry = DEATH_SHEETS[url];
+  if (entry) return entry.ready ? entry.frames : null;
+  const rec = { ready: false, frames: [] };
+  DEATH_SHEETS[url] = rec;
+  const img = new Image();
+  img.onload = () => {
+    try {
+      const fw = Math.floor(img.naturalWidth / 4);
+      const fh = img.naturalHeight;
+      const fr = [];
+      for (let i = 0; i < 4; i += 1) {
+        const cv = document.createElement('canvas');
+        cv.width = fw;
+        cv.height = fh;
+        const g = cv.getContext('2d');
+        g.imageSmoothingEnabled = false;
+        g.drawImage(img, i * fw, 0, fw, fh, 0, 0, fw, fh);
+        fr.push(cv);
+      }
+      rec.frames = fr;
+      rec.ready = true;
+    } catch (err) { /* canvas unavailable */ }
+  };
+  img.onerror = () => { rec.failed = true; };
+  img.src = url;
+  return entry ? null : null;
+}
+
+function drawDeathPet(now, status) {
+  petWalk.target = null;
+  petWalk.x = STAGE_CX;
+  petWalk.y = 312;
+  petDraw = { cx: STAGE_CX, gy: 312, size: 96, dir: 1 };
+  const isGhost = status === 'ghost';
+  const frames = isGhost ? deathSheetFrames('pet_ghost_idle_sheet') : deathSheetFrames('pet_tombstone_idle_sheet');
+  stageCtx.save();
+  stageCtx.imageSmoothingEnabled = false;
+  if (frames && frames.length) {
+    const fr = frames[Math.floor((now * 6) / 1000) % frames.length];
+    const h = 88;
+    const bob = isGhost ? Math.round(Math.sin(now / 500) * 3) : Math.round(Math.sin(now / 700) * 1.5);
+    stageCtx.drawImage(fr, STAGE_CX - h / 2, 312 - h + bob, h, h);
+  }
+  stageCtx.restore();
+  const snap = latest && latest.derived ? latest.derived.arena : null;
+  const remain = snap ? (isGhost ? snap.lockoutRemainingMs : snap.resetRemainingMs) : 0;
+  stageCtx.save();
+  stageCtx.font = '11px sans-serif';
+  stageCtx.textAlign = 'center';
+  stageCtx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+  stageCtx.fillText(isGhost ? `👻 dead... revives in ${fmtArenaClock(remain)}` : `🪦 full death... reset in ${fmtArenaClock(remain)}`, STAGE_CX, 330);
+  stageCtx.restore();
+}
+
+function initArena() {
+  if (arena || typeof window.JuanBuddyBattleArena !== 'function' || typeof document === 'undefined') return;
+  const stageMount = el('arena-stage');
+  if (!stageMount) return;
+  arena = new window.JuanBuddyBattleArena({
+    assetBase: '../../assets',
+    stageMount,
+    selectorMount: el('arena-selector'),
+    homeElement: document.querySelector('.card.playground'),
+    getPlayer() {
+      const s = latest && latest.state;
+      const rpg = latest && latest.derived ? latest.derived.rpg : null;
+      const bs = rpg && rpg.battle ? rpg.battle : {};
+      const level = s && s.pet ? s.pet.level : 1;
+      const maxHp = 40 + (bs.def || 2) * 4 + level * 6;
+      const species = s && s.pet && s.pet.species ? sprites.normalizeSpeciesId(s.pet.species) : null;
+      return {
+        name: (s && s.pet && s.pet.name) || 'Buddy',
+        level,
+        maxHp,
+        hp: maxHp,
+        atk: bs.atk || 5,
+        def: bs.def || 2,
+        spd: bs.spd || 3,
+        gold: (s && s.coins) || 0,
+        spriteUrl: (species && PET_PREVIEW_PNG[species]) || `${this.assetBase}/monsters/guard_slime/idle_sheet.png`,
+      };
+    },
+    setGold() { /* gold is engine-authoritative */ },
+    addReward(reward) {
+      return api.action('arenaResult', { monsterId: reward.monster.id, win: true, gold: reward.gold, xp: reward.xp }).then((res) => {
+        if (res && res.ok && window.JB_rollLimitedDrop) {
+          const drop = window.JB_rollLimitedDrop(reward.monster);
+          if (drop) showToast(`🎁 Limited drop found: ${drop.itemName}!`, 2600);
+        }
+        return res;
+      }).catch(() => null);
+    },
+    onResetGame() { /* the engine tick performs the tombstone reset */ },
+    onStateChange(info) {
+      const place = el('arena-place');
+      if (place && place.classList) place.classList.toggle('hidden', !(info && info.inArena));
+    },
+  });
+
+  arena.triggerPetDeath = function (forceFullDeath) {
+    api.action('arenaResult', { monsterId: this.selectedMonster.id, win: false, gold: 0, xp: 0 }).then((res) => {
+      if (res && res.arena) {
+        this.deathState = arenaDeathFromEngine(res.arena);
+        if (this.inArena) this.renderArenaStage();
+      }
+      if (res && res.message) showToast(res.message, 4200);
+    }).catch(() => {});
+  };
+
+  const reviveVia = (inst, kind) => api.action('arenaRevive', { kind }).then((res) => {
+    if (res && res.ok && res.arena) {
+      inst.deathState = arenaDeathFromEngine(res.arena);
+      inst.renderArenaStage();
+    }
+    return { ok: !!(res && res.ok), message: (res && res.message) || '' };
+  }).catch(() => ({ ok: false, message: 'Revival failed.' }));
+
+  arena.buyReincarnationStone = function () { return reviveVia(this, 'reincarnation'); };
+  arena.buySpecialReincarnationStone = function () { return reviveVia(this, 'special'); };
+
+  setInterval(() => {
+    if (arenaPetDead() && (!arena || !arena.inArena)) renderArenaLock(latest && latest.state);
+  }, 1000);
+}
+
+initArena();
 
 api.onState(render);
 api.getState().then((snap) => {
@@ -2235,6 +2452,11 @@ function drawStagePet(now) {
     return;
   }
 
+  if (arenaPetDead()) {
+    drawDeathPet(now, latest.state.arena.status);
+    return;
+  }
+
   const isEgg = s.pet.stage === 'egg';
   const skinDef = d.skins ? d.skins.find((sk) => sk.equipped) : null;
   const tint = skinDef ? skinDef.tint : null;
@@ -2491,7 +2713,7 @@ petStageCanvas.addEventListener('click', async (e) => {
   const rect = petStageCanvas.getBoundingClientRect();
   const x = ((e.clientX - rect.left) / rect.width) * STAGE_W;
   const y = ((e.clientY - rect.top) / rect.height) * STAGE_H;
-  if (latest && latest.state.dead) return;
+  if (latest && (latest.state.dead || arenaPetDead())) return;
   const wastes = (latest.derived && latest.derived.waste) || [];
   let nearest = null;
   let nd = 1e9;
@@ -2567,7 +2789,10 @@ if (stageMenuBtn && stageMenu) {
   });
   stageMenu.querySelectorAll('.stage-menu-item').forEach((b) => {
     b.addEventListener('click', () => {
-      if (b.dataset && b.dataset.menuTab) activateTab(b.dataset.menuTab);
+      if (b.dataset && b.dataset.menuTab) {
+        activateTab(b.dataset.menuTab);
+        arenaMenuTab(b.dataset.menuTab);
+      }
       stageMenu.classList.add('hidden');
     });
   });
@@ -2585,7 +2810,7 @@ let eatMunchAt = 0;
 (function stageLoop() {
   const stageNow = performance.now();
   drawStagePet(stageNow);
-  if (petWalk.moving && (!latest || !latest.state || !latest.state.dead) && stageNow - lastStepAt > 240) {
+  if (petWalk.moving && (!latest || !latest.state || (!latest.state.dead && !arenaPetDead())) && stageNow - lastStepAt > 240) {
     lastStepAt = stageNow;
     if (cuteSfx) cuteSfx.play('step');
     if (Math.random() < 0.45) spawnFx('crumb', petWalk.x - 14 * petWalk.dir, petWalk.y + 2, { vy: -0.12, size: 8 });
