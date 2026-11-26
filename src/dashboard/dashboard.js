@@ -111,7 +111,12 @@ function maybeShowNameModal() {
   if (s && s.pet && s.pet.name === 'Buddy' && s.pet.stage === 'egg') {
     modal.classList.remove('hidden');
     const input = el('name-input');
-    if (input) setTimeout(() => { try { input.focus(); } catch (err) { /* ignore */ } }, 60);
+    if (input) {
+      input.disabled = false;
+      input.readOnly = false;
+      input.value = '';
+      setTimeout(() => { try { window.focus(); input.focus(); } catch (err) { /* ignore */ } }, 50);
+    }
   }
 }
 
@@ -754,8 +759,41 @@ on('open-login','change', (e) => {
   api.action('setOpenAtLogin', { open: e.target.checked });
 });
 
+function askConfirm(message) {
+  return new Promise((resolve) => {
+    const modal = el('confirm-modal');
+    if (!modal) { resolve(window.confirm(message)); return; }
+    const txt = el('confirm-text');
+    const yes = el('btn-confirm-yes');
+    const no = el('btn-confirm-no');
+    if (txt) txt.textContent = message;
+    modal.classList.remove('hidden');
+    if (sfx) sfx.play('click');
+    const done = (val) => {
+      modal.classList.add('hidden');
+      if (yes) yes.removeEventListener('click', okH);
+      if (no) no.removeEventListener('click', noH);
+      modal.removeEventListener('click', outH);
+      document.removeEventListener('keydown', keyH, true);
+      resolve(val);
+    };
+    const okH = (e) => { if (e.cancelable) e.preventDefault(); e.stopPropagation(); done(true); };
+    const noH = (e) => { if (e.cancelable) e.preventDefault(); e.stopPropagation(); done(false); };
+    const outH = (e) => { if (e.target === modal) done(false); };
+    const keyH = (e) => {
+      if (e.key === 'Escape') { if (e.cancelable) e.preventDefault(); e.stopPropagation(); done(false); }
+      else if (e.key === 'Enter') { if (e.cancelable) e.preventDefault(); e.stopPropagation(); done(true); }
+    };
+    if (yes) yes.addEventListener('click', okH);
+    if (no) no.addEventListener('click', noH);
+    modal.addEventListener('click', outH);
+    document.addEventListener('keydown', keyH, true);
+    setTimeout(() => { try { window.focus(); if (yes) yes.focus(); } catch (err) { /* ignore */ } }, 50);
+  });
+}
+
 on('btn-reset','click', async () => {
-  if (!window.confirm('Reset all progress? This cannot be undone.')) return;
+  if (!(await askConfirm('Reset all progress? This cannot be undone.'))) return;
   const res = await api.action('reset');
   if (res && res.ok) clearNamedFlag();
   showToast('Progress reset.');
@@ -1871,7 +1909,7 @@ function monsterFrames(monId, kind) {
   if (hi.length) return hi;
   const key = `${monId}:${kind}`;
   if (!(key in monsterAnimCache)) {
-    const spec = { idle: ['', '', 8], attack: ['attack/frames/', 'attack_', 6], hurt: ['hurt_defeated/frames/', 'hurt_defeated_', 4] }[kind] || ['', '', 8];
+    const spec = { idle: ['frames/', '', 8], attack: ['attack/frames/', 'attack_', 6], hurt: ['hurt_defeated/frames/', 'hurt_defeated_', 4] }[kind] || ['frames/', '', 8];
     const imgs = [];
     for (let f = 1; f <= spec[2]; f += 1) {
       const img = new Image();
@@ -2895,7 +2933,7 @@ on('btn-import','click', async () => {
 });
 
 on('btn-new-game','click', async () => {
-  if (!window.confirm('Start over with a new egg? Your buddy will be gone forever, but your achievements stay.')) return;
+  if (!(await askConfirm('Start over with a new egg? Your buddy will be gone forever, but your achievements stay.'))) return;
   const res = await api.action('newGame');
   if (res && res.ok) clearNamedFlag();
   showToast(res && res.message, 4000);

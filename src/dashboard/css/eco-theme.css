@@ -420,6 +420,34 @@ body.eco-polished .modal-content {
 #splash-credits.hidden {
   display: none;
 }
+
+/* ===== In-app confirm modal (replaces native confirm(), Electron focus-safe) ===== */
+#name-modal { z-index: 4500; }
+#name-modal .name-input {
+  pointer-events: auto;
+}
+#confirm-modal {
+  z-index: 4600;
+}
+#confirm-modal.hidden,
+#confirm-modal[hidden] {
+  display: none !important;
+}
+.confirm-card {
+  max-width: 340px;
+  text-align: center;
+}
+.confirm-text {
+  margin: 10px 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.confirm-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+}
 .splash-links {
   position: relative;
   z-index: 2;
