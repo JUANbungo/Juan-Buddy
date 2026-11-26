@@ -253,13 +253,23 @@
     if (cs && cs.src && /^(https?|file):/i.test(cs.src) && cs.src.indexOf('blob:') !== 0) BGM_BASE = cs.src;
   } catch (err) { BGM_BASE = ''; }
 
+  // Browser pages (PWA / GitHub Pages / Capacitor localhost) keep music next to
+  // the page in bgm/, so the page-relative URL loads without a 404 detour.
+  // The desktop Electron build (file://) resolves assets via the script path instead.
+  function pageRelativeFirst() {
+    try {
+      if (typeof root.location !== 'undefined' && /^(https?):/i.test(root.location.href)) return true;
+    } catch (err) { /* ignore */ }
+    return false;
+  }
+
   function assetUrls(rel) {
-    const urls = [];
+    const base = [];
     if (BGM_BASE) {
-      try { urls.push(new URL('../../assets/' + rel, BGM_BASE).href); } catch (err) { /* ignore */ }
+      try { base.push(new URL('../../assets/' + rel, BGM_BASE).href); } catch (err) { /* ignore */ }
     }
-    urls.push(rel);
-    return urls;
+    base.push(rel);
+    return pageRelativeFirst() ? base.reverse() : base;
   }
 
   function mp3Volume() { return Math.max(0, Math.min(1, volume * 0.5)); }
@@ -347,6 +357,7 @@
   function play(name) {
     const def = TRACKS[name];
     if (!def || !enabled) return Promise.resolve(false);
+    hookGestureRecovery();
     if (mp3Supported() && !mp3Broken) {
       if (mp3Role === name && mp3Audio) return Promise.resolve(true);
       stop();
@@ -400,6 +411,29 @@
     try { localStorage.setItem('juanbuddy-bgm-vol', String(volume)); } catch (err) { /* ignore */ }
     if (master && ctx) master.gain.value = volume * 0.5;
     if (mp3Audio) { try { mp3Audio.volume = mp3Volume(); } catch (err) { /* ignore */ } }
+  }
+
+  // Some browsers (iOS Safari, Chrome with strict media engagement) block
+  // autoplay retries that happen outside a real user gesture — e.g. when an
+  // async load error swaps the song URL after the tap that started the track.
+  // One lightweight listener keeps both the AudioContext and any paused MP3
+  // alive on every later interaction, so music resumes as soon as it can.
+  let gestureRecoveryHooked = false;
+  function hookGestureRecovery() {
+    if (gestureRecoveryHooked || typeof document === 'undefined' || !document.addEventListener) return;
+    gestureRecoveryHooked = true;
+    const kick = () => {
+      if (!enabled) return;
+      if (ctx && ctx.state === 'suspended') {
+        try { ctx.resume(); } catch (err) { /* ignore */ }
+      }
+      if (mp3Audio && mp3Audio.paused) {
+        try { mp3Audio.src = mp3Audio.src; } catch (err) { /* ignore */ }
+        const q = mp3Audio.play();
+        if (q && typeof q.catch === 'function') q.catch(() => { /* still blocked; wait for next gesture */ });
+      }
+    };
+    ['pointerdown', 'keydown', 'touchend'].forEach((ev) => document.addEventListener(ev, kick, { passive: true }));
   }
 
   function setEnabled(on) {

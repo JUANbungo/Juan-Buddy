@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'juanbuddy-v4';
+const CACHE = 'juanbuddy-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -12,6 +12,12 @@ const ASSETS = [
   './engine.js',
   './sfx.js',
   './bgm.js',
+  './bgm/01_boss_thrash_battle.mid',
+  './bgm/02_doom_boss_ceremony.mid',
+  './bgm/03_final_boss_shred.mid',
+  './bgm/04_cozy_home_acoustic.mid',
+  './bgm/05_midnight_rooftop_chill.mid',
+  './bgm/06_sunset_coffee_town.mid',
   './bgm/mp3/idle_pet_groove.mp3',
   './bgm/mp3/level_1_1.mp3',
   './bgm/mp3/level_13.mp3',
