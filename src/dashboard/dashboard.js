@@ -619,6 +619,7 @@ function renderActivities(s, d) {
   const list = el('activities');
   if (!activityIndex) activityIndex = {};
   for (const a of d.activities) {
+    if (a.outdoor) continue;
     let row = activityIndex[a.id];
     if (!row) {
       row = document.createElement('div');
@@ -637,8 +638,8 @@ function renderActivities(s, d) {
     }
     row.querySelector('.a-name').textContent = `${a.icon} ${a.name}`;
     row.querySelector('.a-desc').textContent = a.desc;
-    row.querySelector('.a-rewards').textContent =
-      `⚡${a.energy} · ${COIN_ICON_HTML}${a.coins[0]}–${a.coins[1]} · +${a.xp} XP · ${a.duration}s · CD ${a.cooldown}s`;
+    row.querySelector('.a-rewards').innerHTML =
+      `<span class="a-reward-line">⚡${a.energy} · ${COIN_ICON_HTML}${a.coins[0]}–${a.coins[1]} · +${a.xp} XP · ${a.duration}s · CD ${a.cooldown}s</span>`;
     const btn = row.querySelector('.a-btn');
     const anyActive = d.activities.some((x) => x.active);
     if (a.active) {
@@ -796,6 +797,11 @@ on('btn-sleep','click', () => act('toggleSleep'));
 on('btn-cheer','click', async () => {
   const ev = await window.BuddyAPI.getEvent();
   if (ev && ev.native) showToast(`✨ ${ev.native}\n${ev.romanization ? '(' + ev.romanization + ') — ' : ''}${ev.translation}`, 5000);
+});
+
+on('btn-title-screen','click', () => {
+  if (cuteSfx) cuteSfx.play('click');
+  window.location.reload();
 });
 
 on('pet-name','click', () => {
@@ -1071,6 +1077,10 @@ function initArena() {
       const level = s && s.pet ? s.pet.level : 1;
       const maxHp = 40 + (bs.def || 2) * 4 + level * 6;
       const species = s && s.pet && s.pet.species ? sprites.normalizeSpeciesId(s.pet.species) : null;
+      const evolved = !!(s && s.pet && s.pet.evolved);
+      const sheetPetId = species && evolved ? `${species}_evo` : species;
+      const sheetInfo = sheetPetId ? sprites.petSheetInfo(sheetPetId, 'idle') : null;
+      const sheetUrl = sheetInfo ? sprites.petSheetUrl(sheetPetId, 'idle') : (species ? sprites.petSheetUrl(species, 'idle') : null);
       return {
         name: (s && s.pet && s.pet.name) || 'Buddy',
         level,
@@ -1080,6 +1090,8 @@ function initArena() {
         def: bs.def || 2,
         spd: bs.spd || 3,
         gold: (s && s.coins) || 0,
+        sheetFrames: sheetInfo ? sheetInfo.frames : 0,
+        sheetUrl,
         spriteUrl: (species && PET_PREVIEW_PNG[species]) || `${this.assetBase}/monsters/guard_slime/idle_sheet.png`,
       };
     },
@@ -1095,8 +1107,11 @@ function initArena() {
     },
     onResetGame() { /* the engine tick performs the tombstone reset */ },
     onStateChange(info) {
+      const inArena = !!(info && info.inArena);
       const place = el('arena-place');
-      if (place && place.classList) place.classList.toggle('hidden', !(info && info.inArena));
+      if (place && place.classList) place.classList.toggle('hidden', !inArena);
+      const adRight = el('ad-right');
+      if (adRight && adRight.classList) adRight.classList.toggle('hidden', inArena);
     },
   });
 
@@ -1152,6 +1167,8 @@ const stageFx = [];
 let lastStageNow = 0;
 let petDraw = { cx: STAGE_CX, size: 264, dir: 1 };
 let petDrawInfo = null;
+let stageV2Key = null;
+const shadowSmooth = { cx: null, rx: null };
 
 function spawnFx(kind, x, y, opts) {
   const o = opts || {};
@@ -2394,16 +2411,29 @@ function drawStagePet(now) {
   const evoShrink = s.pet.evolved ? 0.8 : 1;
   const boxSize = Math.round(264 * stageScale * evoShrink * (0.8 + 0.28 * depthF));
   petDraw = { cx: petWalk.x, gy: petWalk.y, size: boxSize, dir: petWalk.dir };
+  const stageSpeciesKey = sprites.normalizeSpeciesId(s.pet.species || 'kala');
+  if (stageV2Key !== stageSpeciesKey) {
+    stageV2Key = stageSpeciesKey;
+    sprites.prewarmPetSheets(stageSpeciesKey);
+  }
   // keep petDrawInfo from the previous frame — the back-layer cosmetics pass
   // renders before this frame's sprite is measured (1-frame staleness is invisible)
 
   let shadowCx = petWalk.x;
-  let shadowRx = 30 + 26 * depthF;
+  let shadowRx = Math.min(30 + 26 * depthF, 44);
   if (petDrawInfo && typeof petDrawInfo.contentL === 'number' && !(latest && latest.state && latest.state.pet && latest.state.pet.stage === 'egg')) {
     const cc = (petDrawInfo.contentL + petDrawInfo.contentR) / 2;
     shadowCx = petWalk.x + petWalk.dir * (cc - 0.5) * boxSize;
-    shadowRx = Math.max(14, ((petDrawInfo.contentR - petDrawInfo.contentL) * boxSize) / 2);
+    shadowRx = Math.max(12, Math.min(boxSize * 0.2, ((petDrawInfo.contentR - petDrawInfo.contentL) * boxSize) / 2));
   }
+  if (shadowSmooth.cx === null) { shadowSmooth.cx = shadowCx; shadowSmooth.rx = shadowRx; }
+  else {
+    const k = Math.min(1, dt * 12);
+    shadowSmooth.cx += (shadowCx - shadowSmooth.cx) * k;
+    shadowSmooth.rx += (shadowRx - shadowSmooth.rx) * k;
+  }
+  shadowCx = shadowSmooth.cx;
+  shadowRx = shadowSmooth.rx;
   stageCtx.save();
   stageCtx.globalAlpha = 0.22;
   stageCtx.fillStyle = '#000';
@@ -2522,11 +2552,16 @@ function drawStagePet(now) {
       if (battleFx && speciesKey === 'dragon') v2hit = v2Try('dragon', 'FIRE_BREATH');
       if (!v2hit && isEvo) v2hit = v2Try(`${speciesKey}_evo`);
       if (!v2hit) v2hit = v2Try(speciesId);
+      const isV2Pet = !!sprites.petSheetInfo(speciesKey, 'idle');
+      if (!v2hit && isV2Pet) {
+        v2hit = v2Try(speciesKey, 'IDLE');
+        if (!v2hit && isEvo) v2hit = v2Try(`${speciesKey}_evo`, 'IDLE');
+      }
       let img = null;
       let sub = null;
       if (v2hit) {
         img = v2hit.frames[v2hit.idx];
-      } else {
+      } else if (!isV2Pet) {
         const evoSingle = s.pet.evolved ? evoSingleFor(speciesId, st) : null;
         const evoFrame = s.pet.evolved && !evoSingle ? evoSheetFrameFor(speciesId, st) : null;
         if (evoSingle) {
@@ -3037,7 +3072,7 @@ async function pullGacha(times) {
   const coinLine = document.createElement('div');
   coinLine.className = 'gacha-reward';
   const totalCoins = (res.results || []).reduce((sum, r) => sum + (r.coins || 0), 0);
-  coinLine.textContent = times === 10 ? `${best.name} best of 10 — +${totalCoins} ${COIN_ICON_HTML} total` : `+${best.coins} ${COIN_ICON_HTML}`;
+  coinLine.innerHTML = times === 10 ? `${best.name} best of 10 — +${totalCoins} ${COIN_ICON_HTML} total` : `+${best.coins} ${COIN_ICON_HTML}`;
   const iconLine = document.createElement('div');
   iconLine.className = 'gacha-icon';
   iconLine.textContent = best.icon || '🎰';
@@ -3277,28 +3312,7 @@ if (brandLogoEl) {
   });
 }
 
-const monsterCards = {};
 const exploreCards = {};
-function monsterPortraitCandidates(id) {
-  return [
-    `../../assets/sprites/battle/monsters/${id}/frames_4x/idle/${id}_idle_01.png`,
-    `../../assets/sprites/battle/monsters/${id}/${id}_static.png`,
-    `../../assets/sprites/battle/monsters/${id}/frames/${id}_frame_01.png`,
-  ];
-}
-function setMonsterPortrait(icoEl, mo, candidates, idx) {
-  icoEl.innerHTML = '';
-  const img = document.createElement('img');
-  img.className = 'pixelated mo-sprite';
-  img.alt = mo.name;
-  img.draggable = false;
-  img.addEventListener('error', () => {
-    if (idx + 1 < candidates.length) setMonsterPortrait(icoEl, mo, candidates, idx + 1);
-    else icoEl.textContent = mo.icon;
-  });
-  img.src = candidates[idx];
-  icoEl.appendChild(img);
-}
 
 function rpgUnlock(d, id) {
   return (d.rpg && d.rpg.unlocks.find((u) => u.id === id)) || { unlocked: false, daysLeft: 99, day: 99, icon: '', name: '', desc: '' };
@@ -3322,36 +3336,6 @@ function renderRpg(d) {
     document.querySelectorAll('#battle-points-row .btn-stat').forEach((btn) => {
       btn.disabled = rpg.statPoints <= 0;
     });
-    const grid = el('monster-grid');
-    if (grid.childElementCount === 0) {
-      for (const mo of rpg.monsters) {
-        const card = document.createElement('div');
-        card.className = 'monster-card';
-        card.innerHTML = `<div class="mo-ico"></div><div class="mo-name"></div><div class="mo-lvl muted"></div><div class="mo-stats muted small"></div><button class="btn btn-amber mo-btn">\u2694\ufe0f Fight</button>`;
-        card.querySelector('.mo-btn').dataset.monster = mo.id;
-        grid.appendChild(card);
-        monsterCards[mo.id] = card;
-      }
-    }
-    for (const mo of rpg.monsters) {
-      const card = monsterCards[mo.id];
-      card.classList.toggle('locked', !mo.canFight);
-      const icoEl = card.querySelector('.mo-ico');
-      const pidKey = `${mo.id}:0`;
-      if (icoEl.dataset.portrait !== pidKey) {
-        icoEl.dataset.portrait = pidKey;
-        setMonsterPortrait(icoEl, mo, monsterPortraitCandidates(mo.id), 0);
-      }
-      card.querySelector('.mo-name').textContent = mo.name;
-      card.querySelector('.mo-lvl').textContent = `Lv ${mo.lvl} monster`;
-      card.querySelector('.mo-stats').innerHTML = `HP ${mo.hp} \u00b7 ATK ${mo.atk} \u00b7 ${COIN_ICON_HTML}${mo.coins[0]}-${mo.coins[1]} +${mo.xp}xp \u00b7 \u26a1${mo.energy}`;
-      const btn = card.querySelector('.mo-btn');
-      btn.disabled = !mo.canFight || rpg.cooldownMs > 0;
-      btn.textContent = rpg.cooldownMs > 0
-        ? `\ud83d\udcaa Rest ${Math.ceil(rpg.cooldownMs / 1000)}s`
-        : !mo.canFight ? `Lv ${mo.lvl} + ${mo.energy}\u26a1` : '\u2694\ufe0f Fight';
-    }
-    el('battle-record').textContent = `Record: ${rpg.battle.wins}W \u2014 ${rpg.battle.losses}L \u00b7 Day ${rpg.daysPlayed} of your journey`;
   }
 
   const pu = rpgUnlock(d, 'path');
@@ -3436,25 +3420,6 @@ on('battle-points-row','click', async (e) => {
   if (!btn || btn.disabled) return;
   const res = await api.action('allocateStat', { statId: btn.dataset.stat });
   showToast((res && res.message) || '. ..', 1800);
-});
-
-on('monster-grid','click', async (e) => {
-  const btn = e.target.closest('button[data-monster]');
-  if (!btn || btn.disabled) return;
-  btn.disabled = true;
-  const res = await api.action('battleMonster', { monsterId: btn.dataset.monster });
-  if (res && res.ok) {
-    setBgmOverride('battle', 40000);
-    const mon = latest && latest.derived && latest.derived.rpg && latest.derived.rpg.monsters
-      ? latest.derived.rpg.monsters.find((m) => m.id === btn.dataset.monster) : null;
-    if (mon) startBattleFx(mon, res.win);
-  }
-  if (res && res.ok && res.win) {
-    for (let i = 0; i < 8; i += 1) spawnFx('coin', STAGE_CX + (Math.random() * 140 - 70), 110 + Math.random() * 40, { vy: -0.5, size: 18 });
-  } else if (res && res.ok) {
-    spawnFx('z', STAGE_CX, 160, { vy: -0.3, size: 16 });
-  }
-  showToast((res && res.message) || '. ..', 2800);
 });
 
 let pathPending = null;
@@ -3599,7 +3564,7 @@ function renderQuestsPop() {
       btn.disabled = true;
       btn.textContent = '\u2705 Claimed';
     } else {
-      btn.textContent = `+${q.rewardCoins || 40} ${COIN_ICON_HTML}`;
+      btn.innerHTML = `+${q.rewardCoins || 40} ${COIN_ICON_HTML}`;
       btn.disabled = !def.done;
       btn.addEventListener('click', async () => {
         const res = await act('claimQuest', { questId: def.id });

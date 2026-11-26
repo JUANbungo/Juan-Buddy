@@ -568,6 +568,7 @@ const activityCards = {};
 function renderActivities(d) {
   const list = $('m-activities');
   for (const a of d.activities) {
+    if (a.outdoor) continue;
     let row = activityCards[a.id];
     if (!row) {
       row = document.createElement('div');

@@ -1052,16 +1052,27 @@ button .coin-ico { width: 14px; height: 14px; }
 .pet-shop { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
 .pet-shop-card {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: center;
+  gap: 6px;
+  padding: 12px 10px 10px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.5);
   border: 2px solid var(--border);
 }
-.petshop-ico { width: 64px; height: 64px; object-fit: contain; }
+.petshop-ico { width: 84px; height: 84px; object-fit: contain; margin: 0 auto; }
 .pet-shop-card .b-name { font-weight: 700; }
-.pet-shop-card .b-btn { white-space: nowrap; }
+.pet-shop-card .b-bonus { flex: 1; }
+.pet-shop-card .b-btn {
+  white-space: nowrap;
+  margin-top: auto;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
 
 .tab-panel > .card {
   border: 8px solid transparent;
@@ -1624,6 +1635,23 @@ header.topbar { padding-right: 262px; }
 @media (prefers-reduced-motion: reduce) {
   .btn-graphic, .btn-graphic:hover { transition: none; transform: none; }
 }
+
+/* ==== Return to Title Screen (black pill) ==== */
+.btn-title-screen {
+  background: #14100f;
+  color: #ffe9c9;
+  border: 2px solid #3d2f1e;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.45);
+  transition: transform 0.1s ease, filter 0.1s ease;
+}
+.btn-title-screen:hover { filter: brightness(1.25); transform: translateY(-2px); }
+.btn-title-screen:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.45); }
 
 /* ==== Flag icons (Windows-10-safe, drawn on canvas) ==== */
 .flag-node {

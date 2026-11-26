@@ -795,7 +795,7 @@
           g.px(7, 8, '#22c55e'); // chives
         }
       },
-      { id: 'bamboo_stalks', name: 'Fresh Bamboo Stalks', country: 'China', region: 'East Asia', flag: '🇨🇳', cost: 0, hunger: 28, happy: 18, energy: 15, buff: { stat: 'DEF', val: 3, label: '+3 DEF' },
+      { id: 'bamboo_stalks', name: 'Fresh Bamboo Stalks', country: 'China', region: 'East Asia', flag: '🇨🇳', cost: 15, hunger: 28, happy: 18, energy: 15, buff: { stat: 'DEF', val: 3, label: '+3 DEF' },
         draw(g) {
           g.rect(5, 3, 3, 11, '#22c55e'); g.rect(9, 4, 3, 10, '#16a34a');
           g.rect(5, 7, 3, 1, '#86efac'); g.rect(5, 11, 3, 1, '#86efac'); // bamboo nodes
@@ -1158,8 +1158,9 @@ function ensureFoodSprite(delId) {
       if (slot.frames) return slot.frames;
       if (slot.trying) return null;
       slot.trying = true;
+      if (!slot.roots.length) slot.roots = SPRITE_SHEET_ROOTS.slice();
       const root = slot.roots.shift();
-      if (root === undefined) return null;
+      if (root === undefined) { slot.trying = false; return null; }
       const img = new Image();
       img.onload = () => {
         slot.trying = false;
@@ -1173,6 +1174,20 @@ function ensureFoodSprite(delId) {
     function petSheetGif(petId, anim) {
       const info = petSheetInfo(petId, anim || 'idle');
       return info ? `${SPRITE_SHEET_ROOTS[0]}sprites/${info.petId}/${info.petId}_${info.anim}.gif` : null;
+    }
+
+    function petSheetUrl(petId, anim) {
+      const info = petSheetInfo(petId, anim || 'idle');
+      return info ? `${SPRITE_SHEET_ROOTS[0]}sprites/${info.petId}/${info.petId}_${info.anim}_sheet.png` : null;
+    }
+
+    function prewarmPetSheets(petId) {
+      const pid = normalizeSpeciesId(petId);
+      const p = PET_SHEET_ANIMS[pid];
+      if (!p || typeof document === 'undefined' || typeof Image === 'undefined') return;
+      for (const anim of Object.keys(p)) petSheetFrames(pid, anim);
+      const evoId = `${pid}_evo`;
+      if (PET_SHEET_ANIMS[evoId]) for (const anim of Object.keys(PET_SHEET_ANIMS[evoId])) petSheetFrames(evoId, anim);
     }
 
     function isPetSheetEvo(petId) {
@@ -1238,6 +1253,8 @@ return {
   petSheetFps,
   petSheetFrames,
   petSheetGif,
+  petSheetUrl,
+  prewarmPetSheets,
   isPetSheetEvo,
 };
 });
