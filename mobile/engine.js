@@ -1,13 +1,17 @@
 'use strict';
 
 (function (root, factory) {
-  const api = factory(typeof module !== 'undefined' && module.exports ? require('../pet/sprites.js') : root.JBSprites);
+  const api = factory(
+    typeof module !== 'undefined' && module.exports ? require('../pet/sprites.js') : root.JBSprites,
+    typeof module !== 'undefined' && module.exports ? require('../pet/battle-skills.js') : root.JBBattleSkills
+  );
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = api;
   }
   root.JBEngine = api;
-})(typeof self !== 'undefined' ? self : this, function (spritesApi) {
+})(typeof self !== 'undefined' ? self : this, function (spritesApi, battleApi) {
 const DELICACIES = spritesApi.DELICACIES;
+const BS = battleApi || null;
 
 const FOODS = Object.fromEntries(DELICACIES.map((d) => [d.id, {
   id: d.id,
@@ -383,8 +387,9 @@ function itemBonus(state) {
 function evolvePet(state) {
   if (state.pet.evolved) return false;
   state.pet.evolved = true;
-  state.meters.happiness = clamp100(Math.min(100, state.meters.happiness + 20));
-  state.meters.energy = clamp100(Math.min(100, state.meters.energy + 20));
+  state.meters.happiness = clampMeter(state, 'happiness', state.meters.happiness + 20);
+  state.meters.energy = clampMeter(state, 'energy', state.meters.energy + 20);
+  markCollection(state);
   return true;
 }
 
@@ -540,7 +545,7 @@ function battleMonster(state, monsterId) {
     state.stats.coinsEarned += coins;
     state.pet.xp += mon.xp * currentXpMul(state);
     state.battle.wins += 1;
-    state.meters.happiness = clamp100(Math.min(100, state.meters.happiness + 4));
+    state.meters.happiness = clampMeter(state, 'happiness', state.meters.happiness + 4);
     if (!state.items) state.items = { owned: [], equipped: { Head: null, Neck: null, Back: null, Weapon: null, Armor: null, Relic: null } };
     if (!Array.isArray(state.items.owned)) state.items.owned = [];
     const dropChance = Math.min(0.35, 0.12 + (bs.luk || 0) * 0.015);
@@ -752,14 +757,20 @@ function defaultState() {
     neglect: 0,
     dead: null,
     arena: { deaths: 0, status: 'alive', ghostUntil: 0, resetAt: 0 },
+    collection: { seen: {} },
     lastSeen: Date.now(),
   };
 }
 
 function ensureState(state) {
   const fresh = defaultState();
-  for (const key of ['stats', 'achievements', 'daily', 'gacha', 'playdays', 'allocated', 'gear', 'gearOwned', 'gearGacha', 'battle', 'waste', 'skin', 'skinsOwned', 'neglect', 'dead', 'settings', 'perks', 'items', 'milestones', 'freePulls', 'freeFood', 'quests']) {
+  for (const key of ['stats', 'achievements', 'daily', 'gacha', 'playdays', 'allocated', 'gear', 'gearOwned', 'gearGacha', 'battle', 'waste', 'skin', 'skinsOwned', 'neglect', 'dead', 'settings', 'perks', 'items', 'milestones', 'freePulls', 'freeFood', 'quests', 'collection']) {
     if (state[key] === undefined) state[key] = fresh[key];
+  }
+  if (!state.collection || typeof state.collection !== 'object' || !state.collection.seen || typeof state.collection.seen !== 'object') state.collection = { seen: {} };
+  if (typeof state.pet.species === 'string' && state.pet.species && state.pet.stage !== 'egg') {
+    const colEntry = state.collection.seen[state.pet.species] || {};
+    state.collection.seen[state.pet.species] = { evolved: !!state.pet.evolved || !!colEntry.evolved };
   }
   if (state.pendingPerk === undefined) state.pendingPerk = null;
   if (state.epicPerks === undefined) state.epicPerks = 0;
@@ -816,6 +827,56 @@ function clamp100(value) {
   return value;
 }
 
+function normalizeSpecies(id) {
+  return spritesApi.normalizeSpeciesId ? spritesApi.normalizeSpeciesId(id) : id;
+}
+
+function markCollection(state) {
+  if (!state.collection || typeof state.collection !== 'object') state.collection = { seen: {} };
+  if (!state.collection.seen || typeof state.collection.seen !== 'object') state.collection.seen = {};
+  const sp = state.pet && state.pet.species;
+  if (typeof sp !== 'string' || !sp || state.pet.stage === 'egg') return;
+  const prev = state.collection.seen[sp] || {};
+  state.collection.seen[normalizeSpecies(sp)] = { evolved: !!state.pet.evolved || !!prev.evolved };
+}
+
+function collectionOf(state) {
+  const seen = state.collection && state.collection.seen ? state.collection.seen : {};
+  const list = [];
+  const push = (id, evolved) => {
+    if (typeof id !== 'string' || !id) return;
+    const norm = normalizeSpecies(id);
+    const existing = list.find((u) => u.id === norm);
+    if (existing) existing.evolved = existing.evolved || !!evolved;
+    else list.push({ id: norm, evolved: !!evolved });
+  };
+  for (const [id, entry] of Object.entries(seen)) push(id, entry && entry.evolved);
+  if (state.pet && state.pet.stage !== 'egg') push(state.pet.species, state.pet.evolved);
+  return list;
+}
+
+function collectionBonusesOf(state) {
+  if (!BS || typeof BS.collectionBonuses !== 'function') return { totals: {}, contributors: [] };
+  const b = BS.collectionBonuses(collectionOf(state));
+  return b && b.totals ? b : { totals: {}, contributors: [] };
+}
+
+function activePetKitOf(state) {
+  if (!BS || typeof BS.petKit !== 'function' || !state.pet || state.pet.stage === 'egg') return null;
+  return BS.petKit(state.pet.species, state.pet.evolved);
+}
+
+function meterCap(state, key) {
+  const totals = collectionBonusesOf(state).totals;
+  if (key === 'energy') return MAX_METERS + Math.round(totals.maxEnergyFlat || 0);
+  if (key === 'happiness') return MAX_METERS + Math.round(totals.maxHappinessFlat || 0);
+  return MAX_METERS;
+}
+
+function clampMeter(state, key, value) {
+  return Math.max(0, Math.min(meterCap(state, key), value));
+}
+
 function upgradeCost(id, currentLevel) {
   const u = UPGRADES[id];
   return Math.round(u.baseCost * Math.pow(u.growth, currentLevel));
@@ -828,6 +889,7 @@ function coinRate(state) {
   if (state.meters.happiness < 25) rate *= 0.6;
   if (state.path === 'work') rate *= 1.5;
   rate *= 1 + perkPct(state, 'coins');
+  rate *= 1 + (collectionBonusesOf(state).totals.coinBonusPct || 0);
   rate += itemBonus(state).luk * 0.02;
   return rate;
 }
@@ -899,8 +961,14 @@ function tick(state, dtSeconds, offline) {
   if (m.energy < 20) happinessDrain += 0.02;
   if ((state.waste || []).length > 0) happinessDrain += 0.02 * state.waste.length;
 
+  const col = collectionBonusesOf(state);
+  const decayMul = 1 - Math.min(0.9, col.totals.decayReductionPct || 0);
+  energyDrain *= decayMul;
+  hungerDrain *= decayMul;
+  happinessDrain *= decayMul;
+
   if (f.sleeping) {
-    m.energy = clamp100(m.energy + 0.8 * (1 + perkPct(state, 'rest')) * dt);
+    m.energy = clampMeter(state, 'energy', m.energy + 0.8 * (1 + perkPct(state, 'rest')) * (1 + Math.min(0.9, col.totals.recoverySpeedPct || 0)) * dt);
     hungerDrain = 0.02;
   } else if (offline) {
     const gained = coinRate(state) * OFFLINE_RATE * dt;
@@ -1003,7 +1071,8 @@ function completeActivity(state) {
   state.coins += coins;
   state.pet.xp += a.xp * currentXpMul(state);
   state.activity = null;
-  state.activityCooldowns[a.id] = Date.now() + a.cooldown * 1000;
+  const cdMul = 1 - Math.min(0.9, collectionBonusesOf(state).totals.workCooldownReductionPct || 0);
+  state.activityCooldowns[a.id] = Date.now() + a.cooldown * 1000 * cdMul;
   state.effects.happyUntil = Date.now() + 5000;
   return message;
 }
@@ -1015,12 +1084,14 @@ function startActivity(state, id) {
   if (!a) return { ok: false, message: 'Unknown activity.' };
   if (state.activity) return { ok: false, message: 'Already busy with an activity!' };
   if (state.flags.sleeping) return { ok: false, message: 'Wake up first!' };
-  if (state.meters.energy < a.energy) return { ok: false, message: `Not enough energy (needs ${a.energy} ⚡).` };
+  const colCost = collectionBonusesOf(state).totals.energyCostReductionPct || 0;
+  const cost = Math.max(1, Math.round(a.energy * (1 - Math.min(0.9, colCost))));
+  if (state.meters.energy < cost) return { ok: false, message: `Not enough energy (needs ${cost} ⚡).` };
   const cd = state.activityCooldowns[id] || 0;
   if (Date.now() < cd) {
     return { ok: false, message: `${a.name} is on cooldown (${Math.ceil((cd - Date.now()) / 1000)}s).` };
   }
-  state.meters.energy = clamp100(state.meters.energy - a.energy);
+  state.meters.energy = clamp100(state.meters.energy - cost);
   state.activity = { id, endsAt: Date.now() + a.duration * 1000 };
   state.flags.working = false;
   return { ok: true, message: `${a.icon} ${a.name} started!` };
@@ -1065,6 +1136,7 @@ function applyLevelUps(state) {
       state.stats.coinsEarned += 25;
     }
     state.pet.stage = target.id;
+    markCollection(state);
     state.effects.happyUntil = Math.max(state.effects.happyUntil, Date.now() + 8000);
   }
 }
@@ -1188,7 +1260,7 @@ function currentXpMul(state) {
   const effectMul = state.effects.xpMulUntil && Date.now() < state.effects.xpMulUntil
     ? state.effects.xpMul || 1
     : 1;
-  return effectMul * (1 + perkPct(state, 'xp'));
+  return effectMul * (1 + perkPct(state, 'xp') + (collectionBonusesOf(state).totals.xpBonusPct || 0));
 }
 
 function perkDesc(perk) {
@@ -1282,9 +1354,11 @@ function applyFood(state, food, opts) {
   const speciesPet = spritesApi.getPetById(state.pet.species);
   const isFavorite = speciesPet && speciesPet.favoriteFood === food.id;
   const happyGain = food.happiness * (isFavorite ? 1.5 : 1);
+  const colFood = collectionBonusesOf(state);
+  const recMul = 1 + Math.min(0.9, colFood.totals.recoverySpeedPct || 0);
   state.meters.hunger = clamp100(state.meters.hunger + food.hunger);
-  state.meters.happiness = clamp100(state.meters.happiness + happyGain);
-  if (food.energy) state.meters.energy = clamp100(state.meters.energy + food.energy);
+  state.meters.happiness = clampMeter(state, 'happiness', state.meters.happiness + happyGain);
+  if (food.energy) state.meters.energy = clampMeter(state, 'energy', state.meters.energy + food.energy * recMul);
   state.pet.xp += isFavorite ? 4 : 2;
   if (food.buff && food.buff.stat === 'EXP') {
     state.effects.xpMul = 1 + food.buff.val / 100;
@@ -1317,7 +1391,7 @@ function play(state) {
   if (state.flags.sleeping) return { ok: false, message: `${state.pet.name} is sleeping...` };
   if (state.meters.energy < 8) return { ok: false, message: 'Too tired to play.' };
   state.meters.energy = clamp100(state.meters.energy - 8);
-  state.meters.happiness = clamp100(state.meters.happiness + 10 * (1 + 0.25 * state.upgrades.toys));
+  state.meters.happiness = clampMeter(state, 'happiness', state.meters.happiness + 10 * (1 + 0.25 * state.upgrades.toys));
   state.stats.playCount += 1;
   bumpQuest(state, 'play');
   state.pet.xp += 4 * currentXpMul(state);
@@ -1330,7 +1404,7 @@ function petPat(state) {
   const gate = deadGate(state);
   if (gate) return gate;
   if (state.flags.sleeping) return { ok: false, message: 'Shh... sleeping.' };
-  state.meters.happiness = clamp100(state.meters.happiness + 1.5);
+  state.meters.happiness = clampMeter(state, 'happiness', state.meters.happiness + 1.5);
   let msg = '';
   if (state.pet.stage === 'egg') {
     state.pet.xp += 1;
@@ -1576,7 +1650,7 @@ function importSave(state, code) {
 }
 
 function resetToEgg(state) {
-  const kept = { achievements: state.achievements, daily: state.daily, skinsOwned: state.skinsOwned, gacha: state.gacha, skin: state.skin, gearGacha: state.gearGacha, itemsOwned: state.items ? state.items.owned : [] };
+  const kept = { achievements: state.achievements, daily: state.daily, skinsOwned: state.skinsOwned, gacha: state.gacha, skin: state.skin, gearGacha: state.gearGacha, itemsOwned: state.items ? state.items.owned : [], collection: state.collection };
   const fresh = defaultState();
   Object.keys(state).forEach((key) => { delete state[key]; });
   Object.assign(state, fresh);
@@ -1587,6 +1661,7 @@ function resetToEgg(state) {
   state.gearGacha = kept.gearGacha;
   state.skin = kept.skinsOwned.includes(kept.skin) ? kept.skin : 'classic';
   state.items = { owned: kept.itemsOwned || [], equipped: fresh.items.equipped };
+  state.collection = kept.collection && kept.collection.seen ? kept.collection : { seen: {} };
 }
 
 function newGame(state) {
@@ -1609,6 +1684,7 @@ function buyShopPet(state, petId) {
   if (state.coins < def.cost) return { ok: false, message: `\ud83e\ude99 Not enough coins \u2014 ${def.name} costs ${def.cost.toLocaleString('en-US')}! Work + battle + invest para sa 1,000,000!` };
   state.coins -= def.cost;
   state.pet.species = def.id;
+  markCollection(state);
   checkAchievements(state, []);
   if (state.pet.stage !== 'egg') {
     return { ok: true, message: `\ud83d\udc09 ADOPTED! ${def.name} joins as your active buddy \u2014 same level, same heart, new flames!` };
@@ -1692,6 +1768,23 @@ function derivedStats(state) {
     stats: state.stats,
     waste: (state.waste || []).map((w, i) => ({ ...w, index: i })),
     rpg: rpgStats(state),
+    collection: (function () {
+      const bonuses = collectionBonusesOf(state);
+      const kit = activePetKitOf(state);
+      return {
+        totals: bonuses.totals,
+        caps: BS && BS.GLOBAL_CAPS ? BS.GLOBAL_CAPS : {},
+        count: collectionOf(state).length,
+        activeKit: kit ? {
+          source: kit.source,
+          isEvo: kit.isEvo,
+          skill: { ...kit.skill },
+          talent: { ...kit.talent },
+          passive: { ...kit.passive },
+        } : null,
+        eggCharm: (!kit && state.pet.stage === 'egg' && BS && BS.EGG_CHARM) ? BS.EGG_CHARM : null,
+      };
+    })(),
     perks: {
       bonuses: state.perks ? { ...state.perks } : { coins: 0, xp: 0, energy: 0, rest: 0 },
       pending: state.pendingPerk && Array.isArray(state.pendingPerk.choices) ? {
@@ -1746,7 +1839,7 @@ function cleanWaste(state, index) {
   const w = state.waste[idx];
   if (!w) return { ok: false, message: '\u2728 Already squeaky clean!' };
   state.waste.splice(idx, 1);
-  state.meters.happiness = clamp100(Math.min(100, state.meters.happiness + 2));
+  state.meters.happiness = clampMeter(state, 'happiness', state.meters.happiness + 2);
   state.pet.xp += 1;
   applyLevelUps(state);
   bumpQuest(state, 'clean');
@@ -1866,6 +1959,11 @@ return {
   ITEMS,
   ITEM_SLOTS,
   SHOP_PETS,
+  markCollection,
+  collectionOf,
+  collectionBonusesOf,
+  activePetKitOf,
+  meterCap,
   EVOLVE_LEVEL,
   EVO_STONE_ID,
   buyItem,

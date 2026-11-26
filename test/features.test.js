@@ -565,7 +565,7 @@ check('perk system: choosePerk applies coin/xp bonuses and clamps bad input', ()
   const ok = engine.choosePerk(s, 0);
   assert(ok.ok === true, `claim ok: ${ok.message}`);
   assert(s.perks.coins === 0.05, 'coins bonus stored');
-  const base = 0.5 * 1 * (1 + 0.05);
+  const base = 0.5 * 1 * (1 + 0.05) * (1 + 0.03);
   assert(Math.abs(engine.coinRate(s) - base) < 1e-9, `coinRate boosted (${engine.coinRate(s)})`);
   assert(Math.abs(engine.currentXpMul(s) - 1) < 1e-9, 'xp bonus not applied until chosen');
   s.pendingPerk = { at: 2, choices: [{ type: 'xp', rarity: 'epic', bonus: 0.15 }] };

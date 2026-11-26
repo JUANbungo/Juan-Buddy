@@ -10,6 +10,7 @@ const mobile = path.join(root, 'mobile');
 fs.mkdirSync(path.join(mobile, 'icons'), { recursive: true });
 
 fs.copyFileSync(path.join(root, 'src', 'pet', 'sprites.js'), path.join(mobile, 'sprites.js'));
+fs.copyFileSync(path.join(root, 'src', 'pet', 'battle-skills.js'), path.join(mobile, 'battle-skills.js'));
 fs.copyFileSync(path.join(root, 'src', 'engine', 'engine.js'), path.join(mobile, 'engine.js'));
 fs.copyFileSync(path.join(root, 'src', 'pet', 'motivation.js'), path.join(mobile, 'motivation.js'));
 fs.copyFileSync(path.join(root, 'src', 'pet', 'sfx.js'), path.join(mobile, 'sfx.js'));
@@ -50,7 +51,7 @@ fs.cpSync(path.join(root, 'src', 'dashboard', 'css'), path.join(dashDir, 'css'),
 fs.cpSync(path.join(root, 'src', 'dashboard', 'js'), path.join(dashDir, 'js'), { recursive: true });
 fs.cpSync(path.join(root, 'src', 'dashboard', 'assets'), path.join(dashDir, 'assets'), { recursive: true });
 fs.copyFileSync(path.join(root, 'src', 'engine', 'engine.js'), path.join(engDir, 'engine.js'));
-for (const f of ['sprites.js', 'sfx.js', 'bgm.js', 'motivation.js']) {
+for (const f of ['sprites.js', 'sfx.js', 'bgm.js', 'motivation.js', 'battle-skills.js']) {
   fs.copyFileSync(path.join(root, 'src', 'pet', f), path.join(petDir, f));
 }
 

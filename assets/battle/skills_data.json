@@ -1,0 +1,1010 @@
+{
+  "pack": "Juan Buddy Battle Skills, Talents & Balanced Passives Pack v1",
+  "balanceNotes": {
+    "philosophy": "Collection passives are intentionally subtle (+2% to +5% base, +4% to +8% Evo) with hard global caps so collecting all pets rewards progression without breaking game economy or combat.",
+    "evoScaling": "Evo forms unlock upgraded skill multipliers, talent proc rates, and higher collection passive tier (replaces base passive, does not stack with base form)."
+  },
+  "globalPassiveCaps": {
+    "coinBonusPct": 0.25,
+    "xpBonusPct": 0.2,
+    "energyCostReductionPct": 0.15,
+    "decayReductionPct": 0.15,
+    "recoverySpeedPct": 0.2,
+    "maxEnergyFlat": 35,
+    "maxHappinessFlat": 30,
+    "arenaAtkPct": 0.12,
+    "arenaHpPct": 0.15,
+    "workCooldownReductionPct": 0.12
+  },
+  "eggCharm": {
+    "id": "egg",
+    "passive": {
+      "id": "warm_shell",
+      "name": "Warm Shell",
+      "stat": "hatchSpeedPct",
+      "baseValue": 0.05,
+      "desc": "+5% faster Egg hatching speed."
+    }
+  },
+  "universalVfx": {
+    "status_shield_pop": {
+      "sheet": "vfx/status_shield_pop_sheet.png",
+      "gif": "vfx/status_shield_pop.gif",
+      "frames": 8,
+      "frameSize": [
+        192,
+        192
+      ],
+      "fps": 11
+    },
+    "status_heal_tick": {
+      "sheet": "vfx/status_heal_tick_sheet.png",
+      "gif": "vfx/status_heal_tick.gif",
+      "frames": 8,
+      "frameSize": [
+        192,
+        192
+      ],
+      "fps": 11
+    }
+  },
+  "pets": [
+    {
+      "id": "kala",
+      "name": "Kala",
+      "region": "Philippines",
+      "role": "Tank",
+      "evoId": "kala_evo",
+      "skill": {
+        "id": "carabao_charge",
+        "name": "Carabao Charge",
+        "type": "attack",
+        "vfx": "carabao_charge",
+        "target": "enemy",
+        "cooldown": 3,
+        "energyCost": 15,
+        "baseMultiplier": 1.35,
+        "evoMultiplier": 1.5,
+        "effect": {
+          "status": "stun",
+          "chance": 0.3,
+          "evoChance": 0.4,
+          "duration": 1
+        },
+        "desc": "Heavy horn tackle dealing 135% ATK (150% Evo) with a 30% chance to Stun for 1 turn.",
+        "icon": "icons/skills/kala_skill.png",
+        "vfxSheet": "vfx/carabao_charge_vfx_sheet.png",
+        "vfxGif": "vfx/carabao_charge_vfx.gif",
+        "vfxFrames": 8,
+        "vfxFrameSize": [
+          192,
+          192
+        ],
+        "vfxFps": 12
+      },
+      "talent": {
+        "id": "iron_hide",
+        "name": "Iron Hide",
+        "trigger": "on_hit_taken",
+        "stat": "damageReductionPct",
+        "baseValue": 0.1,
+        "evoValue": 0.14,
+        "desc": "Reduces incoming battle damage by 10% (14% Evo).",
+        "icon": "icons/talents/kala_talent.png"
+      },
+      "passive": {
+        "id": "masipag",
+        "name": "Masipag",
+        "stat": "coinBonusPct",
+        "baseValue": 0.03,
+        "evoValue": 0.05,
+        "desc": "+3% Work Coin rewards (+5% when Evo unlocked).",
+        "icon": "icons/passives/kala_passive.png"
+      }
+    },
+    {
+      "id": "bantay",
+      "name": "Bantay",
+      "region": "Philippines",
+      "role": "Bruiser",
+      "evoId": "bantay_evo",
+      "skill": {
+        "id": "loyal_bite",
+        "name": "Loyal Bite",
+        "type": "attack",
+        "vfx": "loyal_bite",
+        "target": "enemy",
+        "cooldown": 2,
+        "energyCost": 12,
+        "baseMultiplier": 1.25,
+        "evoMultiplier": 1.4,
+        "effect": {
+          "status": "def_down",
+          "value": 0.15,
+          "chance": 0.6,
+          "duration": 2
+        },
+        "desc": "Quick bite for 125% ATK (140% Evo) with 60% chance to lower enemy DEF by 15% for 2 turns.",
+        "icon": "icons/skills/bantay_skill.png",
+        "vfxSheet": "vfx/loyal_bite_vfx_sheet.png",
+        "vfxGif": "vfx/loyal_bite_vfx.gif",
+        "vfxFrames": 8,
+        "vfxFrameSize": [
+          192,
+          192
+        ],
+        "vfxFps": 12
+      },
+      "talent": {
+        "id": "guard_dog",
+        "name": "Guard Dog",
+        "trigger": "on_hit_taken",
+        "stat": "counterChance",
+        "baseValue": 0.15,
+        "evoValue": 0.22,
+        "counterMult": 0.6,
+        "desc": "15% chance (22% Evo) to counterattack for 60% ATK when hit.",
+        "icon": "icons/talents/bantay_talent.png"
+      },
+      "passive": {
+        "id": "good_boy",
+        "name": "Good Boy",
+        "stat": "decayReductionPct",
+        "baseValue": 0.03,
+        "evoValue": 0.05,
+        "desc": "-3% Happiness decay rate (-5% when Evo unlocked).",
+        "icon": "icons/passives/bantay_passive.png"
+      }
+    },
+    {
+      "id": "tala",
+      "name": "Tala",
+      "region": "Philippines",
+      "role": "Mage",
+      "evoId": "tala_evo",
+      "skill": {
+        "id": "hex_bolt",
+        "name": "Hex Bolt",
+        "type": "attack",
+        "vfx": "hex_bolt",
+        "target": "enemy",
+        "cooldown": 3,
+        "energyCost": 15,
+        "baseMultiplier": 1.4,
+        "evoMultiplier": 1.55,
+        "effect": {
+          "status": "atk_down",
+          "value": 0.15,
+          "chance": 0.5,
+          "duration": 2
+        },
+        "desc": "Fires a cursed star bolt for 140% ATK (155% Evo) with 50% chance to lower enemy ATK by 15%.",
+        "icon": "icons/skills/tala_skill.png",
+        "vfxSheet": "vfx/hex_bolt_vfx_sheet.png",
+        "vfxGif": "vfx/hex_bolt_vfx.gif",
+        "vfxFrames": 8,
+        "vfxFrameSize": [
+          192,
+          192
+        ],
+        "vfxFps": 12
+      },
+      "talent": {
+        "id": "night_cloak",
+        "name": "Night Cloak",
+        "trigger": "passive_battle",
+        "stat": "evasionPct",
+        "baseValue": 0.1,
+        "evoValue": 0.15,
+        "desc": "+10% Evasion in Battle Arena (+15% Evo).",
+        "icon": "icons/talents/tala_talent.png"
+      },
+      "passive": {
+        "id": "night_owl",
+        "name": "Night Owl",
+        "stat": "energyCostReductionPct",
+        "baseValue": 0.02,
+        "evoValue": 0.04,
+        "desc": "-2% Energy used when working (-4% when Evo unlocked).",
+        "icon": "icons/passives/tala_passive.png"
+      }
+    },
+    {
+      "id": "muning",
+      "name": "Muning",
+      "region": "Asia",
+      "role": "Assassin",
+      "evoId": "muning_evo",
+      "skill": {
+        "id": "catnip_flurry",
+        "name": "Catnip Flurry",
+        "type": "attack",
+        "vfx": "catnip_flurry",
+        "target": "enemy",
+        "cooldown": 3,
+        "energyCost": 14,
+        "hits": 3,
+        "baseMultiplier": 0.45,
+        "evoMultiplier": 0.5,
+        "effect": {
+          "status": "none"
+        },
+        "desc": "3 rapid claw slashes dealing 45% ATK each (50% Evo), each hit can Crit independently.",
+        "icon": "icons/skills/muning_skill.png",
+        "vfxSheet": "vfx/catnip_flurry_vfx_sheet.png",
+        "vfxGif": "vfx/catnip_flurry_vfx.gif",
+        "vfxFrames": 8,
+        "vfxFrameSize": [
+          192,
+          192
+        ],
+        "vfxFps": 12
+      },
+      "talent": {
+        "id": "nine_lives",
+        "name": "Nine Lives",
+        "trigger": "on_lethal_damage",
+        "stat": "surviveOnceHpPct",
+        "baseValue": 0.05,
+        "evoValue": 0.12,
+        "usesPerBattle": 1,
+        "desc": "Once per battle, survives a fatal hit with 5% HP (12% Evo).",
+        "icon": "icons/talents/muning_talent.png"
+      },
+      "passive": {
+        "id": "purr_therapy",
+        "name": "Purr Therapy",
+        "stat": "recoverySpeedPct",
+        "baseValue": 0.03,
+        "evoValue": 0.05,
+        "desc": "+3% faster Happiness recovery (+5% when Evo unlocked).",
+        "icon": "icons/passives/muning_passive.png"
+      }
+    },
+    {
+      "id": "banog",
+      "name": "Banog",
+      "region": "Philippines",
+      "role": "Striker",
+      "evoId": "banog_evo",
+      "skill": {
+        "id": "sky_dive",
+        "name": "Sky Dive",
+        "type": "attack",
+        "vfx": "sky_dive",
+        "target": "enemy",
+        "cooldown": 3,
+        "energyCost": 15,
+        "baseMultiplier": 1.35,
+        "evoMultiplier": 1.5,
+        "bonusCritChance": 0.25,
+        "effect": {
+          "status": "none"
+        },
+        "desc": "High-speed aerial swoop for 135% ATK (150% Evo) with +25% bonus Crit chance.",
+        "icon": "icons/skills/banog_skill.png",
+        "vfxSheet": "vfx/sky_dive_vfx_sheet.png",
+        "vfxGif": "vfx/sky_dive_vfx.gif",
+        "vfxFrames": 8,
+        "vfxFrameSize": [
+          192,
+          192
+        ],
+        "vfxFps": 12
+      },
+      "talent": {
+        "id": "eagle_eye",
+        "name": "Eagle Eye",
+        "trigger": "passive_battle",
+        "stat": "critChancePct",
+        "baseValue": 0.12,
+        "evoValue": 0.18,
+        "desc": "+12% Critical Hit chance in battle (+18% Evo).",
+        "icon": "icons/talents/banog_talent.png"
+      },
+      "passive": {
+        "id": "soaring_spirit",
+        "name": "Soaring Spirit",
+        "stat": "maxEnergyFlat",
+        "baseValue": 4,
+        "evoValue": 7,
+        "desc": "+4 Max Energy (+7 when Evo unlocked).",
+        "icon": "icons/passives/banog_passive.png"
+      }
+    },
+    {
+      "id": "gagak",
+      "name": "Gagak",
+      "region": "Asia",
+      "role": "Trickster",
+      "evoId": "gagak_evo",
+      "skill": {
+        "id": "shadow_peck",
+        "name": "Shadow Peck",
+        "type": "attack",
+        "vfx": "shadow_peck",
+        "target": "enemy",
+        "cooldown": 2,
+        "energyCost": 12,
+        "baseMultiplier": 1.25,
+        "evoMultiplier": 1.4,
+        "effect": {
+          "status": "blind",
+          "value": 0.2,
+          "chance": 0.5,
+          "duration": 2
+        },
+        "desc": "Dark feather strike for 125% ATK (140% Evo) with 50% chance to Blind (-20% accuracy) for 2 turns.",
+        "icon": "icons/skills/gagak_skill.png",
+        "vfxSheet": "vfx/shadow_peck_vfx_sheet.png",
+        "vfxGif": "vfx/shadow_peck_vfx.gif",
+        "vfxFrames": 8,
+        "vfxFrameSize": [
+          192,
+          192
+        ],
+        "vfxFps": 12
+      },
+      "talent": {
+        "id": "scavenger",
+        "name": "Scavenger",
+        "trigger": "on_battle_win",
+        "stat": "arenaGoldBonusPct",
+        "baseValue": 0.1,
+        "evoValue": 0.15,
+        "desc": "+10% bonus Arena Gold when winning a battle (+15% Evo).",
+        "icon": "icons/talents/gagak_talent.png"
+      },
+      "passive": {
+        "id": "clever_crow",
+        "name": "Clever Crow",
+        "stat": "xpBonusPct",
+        "baseValue": 0.03,
+        "evoValue": 0.05,
+        "desc": "+3% XP gain from activities (+5% when Evo unlocked).",
+        "icon": "icons/passives/gagak_passive.png"
+      }
+    },
+    {
+      "id": "ran",
+      "name": "Ran",
+      "region": "Asia",
+      "role": "Debuffer",
+      "evoId": "ran_evo",
+      "skill": {
+        "id": "venom_fang",
+        "name": "Venom Fang",
+        "type": "attack",
+        "vfx": "venom_fang",
+        "target": "enemy",
+        "cooldown": 3,
+        "energyCost": 14,
+        "baseMultiplier": 1.15,
+        "evoMultiplier": 1.3,
+        "effect": {
+          "status": "poison",
+          "tickPctMaxHp": 0.05,
+          "chance": 0.85,
+          "duration": 3
+        },
+        "desc": "Venomous strike for 115% ATK (130% Evo) inflicting Poison (5% Max HP/turn) for 3 turns.",
+        "icon": "icons/skills/ran_skill.png",
+        "vfxSheet": "vfx/venom_fang_vfx_sheet.png",
+        "vfxGif": "vfx/venom_fang_vfx.gif",
+        "vfxFrames": 8,
+        "vfxFrameSize": [
+          192,
+          192
+        ],
+        "vfxFps": 12
+      },
+      "talent": {
+        "id": "shed_skin",
+        "name": "Shed Skin",
+        "trigger": "every_n_turns",
+        "everyTurns": 3,
+        "stat": "cleanseAndHealPct",
+        "baseValue": 0.05,
+        "evoValue": 0.08,
+        "desc": "Every 3 turns, cleanses 1 debuff and recovers 5% HP (8% Evo).",
+        "icon": "icons/talents/ran_talent.png"
+      },
+      "passive": {
+        "id": "cold_blooded",
+        "name": "Cold-Blooded",
+        "stat": "decayReductionPct",
+        "baseValue": 0.03,
+        "evoValue": 0.05,
+        "desc": "-3% Energy/Hunger drain rate (-5% when Evo unlocked).",
+        "icon": "icons/passives/ran_passive.png"
+      }
+    },
+    {
+      "id": "chai",
+      "name": "Chai",
+      "region": "Thailand",
+      "role": "Tank",
+      "evoId": "chai_evo",
+      "extraEvoIds": [
+        "moti_evo"
+      ],
+      "skill": {
+        "id": "trunk_slam",
+        "name": "Trunk Slam",
+        "type": "attack",
+        "vfx": "trunk_slam",
+        "target": "enemy",
+        "cooldown": 3,
+        "energyCost": 16,
+        "baseMultiplier": 1.35,
+        "evoMultiplier": 1.5,
+        "effect": {
+          "status": "self_shield_pct",
+          "value": 0.1,
+          "evoValue": 0.14,
+          "duration": 2
+        },
+        "desc": "Earth-shaking slam for 135% ATK (150% Evo) and grants a 10% Max HP Shield (14% Evo) for 2 turns.",
+        "icon": "icons/skills/chai_skill.png",
+        "vfxSheet": "vfx/trunk_slam_vfx_sheet.png",
+        "vfxGif": "vfx/trunk_slam_vfx.gif",
+        "vfxFrames": 8,
+        "vfxFrameSize": [
+          192,
+          192
+        ],
+        "vfxFps": 12
+      },
+      "talent": {
+        "id": "royal_guard",
+        "name": "Royal Guard",
+        "trigger": "on_battle_start",
+        "stat": "startShieldPct",
+        "baseValue": 0.1,
+        "evoValue": 0.15,
+        "desc": "Starts every battle with a 10% Max HP Shield (15% Evo).",
+        "icon": "icons/talents/chai_talent.png"
+      },
+      "passive": {
+        "id": "stamina_giant",
+        "name": "Stamina Giant",
+        "stat": "maxEnergyFlat",
+        "baseValue": 5,
+        "evoValue": 8,
+        "desc": "+5 Max Energy (+8 when Evo unlocked).",
+        "icon": "icons/passives/chai_passive.png"
+      }
+    },
+    {
+      "id": "linh",
+      "name": "Linh",
+      "region": "Vietnam",
+      "role": "Support",
+      "evoId": "linh_evo",
+      "skill": {
+        "id": "lotus_heal",
+        "name": "Lotus Heal",
+        "type": "heal",
+        "vfx": "lotus_heal",
+        "target": "self",
+        "cooldown": 3,
+        "energyCost": 14,
+        "baseHealPct": 0.22,
+        "evoHealPct": 0.3,
+        "effect": {
+          "status": "cleanse",
+          "count": 1
+        },
+        "desc": "Restores 22% Max HP (30% Evo) and removes 1 active debuff.",
+        "icon": "icons/skills/linh_skill.png",
+        "vfxSheet": "vfx/lotus_heal_vfx_sheet.png",
+        "vfxGif": "vfx/lotus_heal_vfx.gif",
+        "vfxFrames": 8,
+        "vfxFrameSize": [
+          192,
+          192
+        ],
+        "vfxFps": 12
+      },
+      "talent": {
+        "id": "zen_focus",
+        "name": "Zen Focus",
+        "trigger": "on_turn_end",
+        "stat": "regenHpPct",
+        "baseValue": 0.04,
+        "evoValue": 0.06,
+        "desc": "Regenerates 4% Max HP at the end of every turn (6% Evo).",
+        "icon": "icons/talents/linh_talent.png"
+      },
+      "passive": {
+        "id": "inner_peace",
+        "name": "Inner Peace",
+        "stat": "recoverySpeedPct",
+        "baseValue": 0.04,
+        "evoValue": 0.06,
+        "desc": "+4% faster Sleep energy recovery (+6% when Evo unlocked).",
+        "icon": "icons/passives/linh_passive.png"
+      }
+    },
+    {
+      "id": "bara",
+      "name": "Bara",
+      "region": "Indonesia",
+      "role": "Bruiser",
+      "evoId": "bara_evo",
+      "skill": {
+        "id": "komodo_whip",
+        "name": "Komodo Whip",
+        "type": "attack",
+        "vfx": "komodo_whip",
+        "target": "enemy",
+        "cooldown": 3,
+        "energyCost": 14,
+        "baseMultiplier": 1.3,
+        "evoMultiplier": 1.45,
+        "effect": {
+          "status": "bleed",
+          "tickAtkPct": 0.25,
+          "chance": 0.7,
+          "duration": 2
+        },
+        "desc": "Heavy tail whip for 130% ATK (145% Evo) with 70% chance to inflict Bleed for 2 turns.",
+        "icon": "icons/skills/bara_skill.png",
+        "vfxSheet": "vfx/komodo_whip_vfx_sheet.png",
+        "vfxGif": "vfx/komodo_whip_vfx.gif",
+        "vfxFrames": 8,
+        "vfxFrameSize": [
+          192,
+          192
+        ],
+        "vfxFps": 12
+      },
+      "talent": {
+        "id": "thick_scales",
+        "name": "Thick Scales",
+        "trigger": "on_hit_taken",
+        "stat": "reflectDamagePct",
+        "baseValue": 0.1,
+        "evoValue": 0.14,
+        "desc": "Reflects 10% of incoming melee damage back to the attacker (14% Evo).",
+        "icon": "icons/talents/bara_talent.png"
+      },
+      "passive": {
+        "id": "tough_skin",
+        "name": "Tough Skin",
+        "stat": "arenaHpPct",
+        "baseValue": 0.02,
+        "evoValue": 0.04,
+        "desc": "+2% Max HP for all pets in Battle Arena (+4% when Evo unlocked).",
+        "icon": "icons/passives/bara_passive.png"
+      }
+    },
+    {
+      "id": "rimau",
+      "name": "Rimau",
+      "region": "Malaysia",
+      "role": "Striker",
+      "evoId": "rimau_evo",
+      "skill": {
+        "id": "tiger_pounce",
+        "name": "Tiger Pounce",
+        "type": "attack",
+        "vfx": "tiger_pounce",
+        "target": "enemy",
+        "cooldown": 3,
+        "energyCost": 15,
+        "baseMultiplier": 1.45,
+        "evoMultiplier": 1.6,
+        "effect": {
+          "status": "none"
+        },
+        "desc": "Fierce pounce dealing 145% ATK (160% Evo) burst damage.",
+        "icon": "icons/skills/rimau_skill.png",
+        "vfxSheet": "vfx/tiger_pounce_vfx_sheet.png",
+        "vfxGif": "vfx/tiger_pounce_vfx.gif",
+        "vfxFrames": 8,
+        "vfxFrameSize": [
+          192,
+          192
+        ],
+        "vfxFps": 12
+      },
+      "talent": {
+        "id": "apex_hunter",
+        "name": "Apex Hunter",
+        "trigger": "on_attack",
+        "condition": "enemy_hp_below_50",
+        "stat": "bonusDamagePct",
+        "baseValue": 0.15,
+        "evoValue": 0.22,
+        "desc": "Deals +15% bonus damage (+22% Evo) against enemies below 50% HP.",
+        "icon": "icons/talents/rimau_talent.png"
+      },
+      "passive": {
+        "id": "fierce_drive",
+        "name": "Fierce Drive",
+        "stat": "arenaAtkPct",
+        "baseValue": 0.02,
+        "evoValue": 0.04,
+        "desc": "+2% Attack for all pets in Battle Arena (+4% when Evo unlocked).",
+        "icon": "icons/passives/rimau_passive.png"
+      }
+    },
+    {
+      "id": "merli",
+      "name": "Merli",
+      "region": "Singapore",
+      "role": "Mage",
+      "evoId": "merli_evo",
+      "skill": {
+        "id": "hydro_jet",
+        "name": "Hydro Jet",
+        "type": "attack",
+        "vfx": "hydro_jet",
+        "target": "enemy",
+        "cooldown": 2,
+        "energyCost": 13,
+        "baseMultiplier": 1.3,
+        "evoMultiplier": 1.45,
+        "effect": {
+          "status": "spd_down",
+          "value": 0.15,
+          "chance": 0.55,
+          "duration": 2
+        },
+        "desc": "Pressurized water jet for 130% ATK (145% Evo) with 55% chance to Slow enemy by 15%.",
+        "icon": "icons/skills/merli_skill.png",
+        "vfxSheet": "vfx/hydro_jet_vfx_sheet.png",
+        "vfxGif": "vfx/hydro_jet_vfx.gif",
+        "vfxFrames": 8,
+        "vfxFrameSize": [
+          192,
+          192
+        ],
+        "vfxFps": 12
+      },
+      "talent": {
+        "id": "tidal_flow",
+        "name": "Tidal Flow",
+        "trigger": "on_crit",
+        "stat": "cooldownReductionTurns",
+        "baseValue": 1,
+        "evoValue": 1,
+        "procChance": 0.65,
+        "evoProcChance": 0.9,
+        "desc": "65% chance on Crit (90% Evo) to reduce Skill Cooldown by 1 turn.",
+        "icon": "icons/talents/merli_talent.png"
+      },
+      "passive": {
+        "id": "refreshing",
+        "name": "Refreshing",
+        "stat": "energyCostReductionPct",
+        "baseValue": 0.02,
+        "evoValue": 0.04,
+        "desc": "-2% Energy cost on all actions (-4% when Evo unlocked).",
+        "icon": "icons/passives/merli_passive.png"
+      }
+    },
+    {
+      "id": "raja",
+      "name": "Raja",
+      "region": "India",
+      "role": "Buffer",
+      "evoId": "raja_evo",
+      "skill": {
+        "id": "royal_roar",
+        "name": "Royal Roar",
+        "type": "buff_attack",
+        "vfx": "royal_roar",
+        "target": "enemy",
+        "cooldown": 3,
+        "energyCost": 14,
+        "baseMultiplier": 1.2,
+        "evoMultiplier": 1.35,
+        "effect": {
+          "status": "self_atk_up",
+          "value": 0.18,
+          "evoValue": 0.24,
+          "duration": 2
+        },
+        "desc": "Roars for 120% ATK (135% Evo) and boosts own ATK by +18% (+24% Evo) for 2 turns.",
+        "icon": "icons/skills/raja_skill.png",
+        "vfxSheet": "vfx/royal_roar_vfx_sheet.png",
+        "vfxGif": "vfx/royal_roar_vfx.gif",
+        "vfxFrames": 8,
+        "vfxFrameSize": [
+          192,
+          192
+        ],
+        "vfxFps": 12
+      },
+      "talent": {
+        "id": "maharaja_pride",
+        "name": "Maharaja's Pride",
+        "trigger": "passive_battle",
+        "condition": "self_hp_above_70",
+        "stat": "allBattleStatsPct",
+        "baseValue": 0.08,
+        "evoValue": 0.12,
+        "desc": "+8% ATK & DEF (+12% Evo) while HP is above 70%.",
+        "icon": "icons/talents/raja_talent.png"
+      },
+      "passive": {
+        "id": "golden_touch",
+        "name": "Golden Touch",
+        "stat": "coinBonusPct",
+        "baseValue": 0.04,
+        "evoValue": 0.06,
+        "desc": "+4% Coin bonus from all sources (+6% when Evo unlocked).",
+        "icon": "icons/passives/raja_passive.png"
+      }
+    },
+    {
+      "id": "mochi",
+      "name": "Mochi",
+      "region": "Japan",
+      "role": "Speedster",
+      "evoId": "mochi_evo",
+      "skill": {
+        "id": "sakura_dash",
+        "name": "Sakura Dash",
+        "type": "attack",
+        "vfx": "sakura_dash",
+        "target": "enemy",
+        "cooldown": 2,
+        "energyCost": 12,
+        "baseMultiplier": 1.25,
+        "evoMultiplier": 1.4,
+        "effect": {
+          "status": "self_spd_up",
+          "value": 0.2,
+          "duration": 2
+        },
+        "desc": "Swift blossom dash for 125% ATK (140% Evo) and boosts Speed by +20% for 2 turns.",
+        "icon": "icons/skills/mochi_skill.png",
+        "vfxSheet": "vfx/sakura_dash_vfx_sheet.png",
+        "vfxGif": "vfx/sakura_dash_vfx.gif",
+        "vfxFrames": 8,
+        "vfxFrameSize": [
+          192,
+          192
+        ],
+        "vfxFps": 12
+      },
+      "talent": {
+        "id": "first_strike",
+        "name": "First Strike",
+        "trigger": "on_turn_1",
+        "stat": "turn1BonusDamagePct",
+        "baseValue": 0.15,
+        "evoValue": 0.22,
+        "desc": "Always acts first on Turn 1 and deals +15% bonus damage (+22% Evo).",
+        "icon": "icons/talents/mochi_talent.png"
+      },
+      "passive": {
+        "id": "kawaii_aura",
+        "name": "Kawaii Aura",
+        "stat": "maxHappinessFlat",
+        "baseValue": 5,
+        "evoValue": 8,
+        "desc": "+5 Max Happiness (+8 when Evo unlocked).",
+        "icon": "icons/passives/mochi_passive.png"
+      }
+    },
+    {
+      "id": "bao",
+      "name": "Bao",
+      "region": "China",
+      "role": "Sustain",
+      "evoId": "bao_evo",
+      "skill": {
+        "id": "bamboo_roll",
+        "name": "Bamboo Roll",
+        "type": "attack_heal",
+        "vfx": "bamboo_roll",
+        "target": "enemy",
+        "cooldown": 3,
+        "energyCost": 14,
+        "baseMultiplier": 1.2,
+        "evoMultiplier": 1.35,
+        "selfHealPct": 0.1,
+        "evoSelfHealPct": 0.14,
+        "effect": {
+          "status": "none"
+        },
+        "desc": "Rolling slam for 120% ATK (135% Evo) and heals self for 10% Max HP (14% Evo).",
+        "icon": "icons/skills/bao_skill.png",
+        "vfxSheet": "vfx/bamboo_roll_vfx_sheet.png",
+        "vfxGif": "vfx/bamboo_roll_vfx.gif",
+        "vfxFrames": 8,
+        "vfxFrameSize": [
+          192,
+          192
+        ],
+        "vfxFps": 12
+      },
+      "talent": {
+        "id": "full_belly",
+        "name": "Full Belly",
+        "trigger": "passive_battle",
+        "stat": "healingReceivedPct",
+        "baseValue": 0.15,
+        "evoValue": 0.25,
+        "desc": "+15% bonus healing from skills and items (+25% Evo).",
+        "icon": "icons/talents/bao_talent.png"
+      },
+      "passive": {
+        "id": "foodie",
+        "name": "Foodie",
+        "stat": "recoverySpeedPct",
+        "baseValue": 0.04,
+        "evoValue": 0.06,
+        "desc": "+4% extra Energy gained from feeding (+6% when Evo unlocked).",
+        "icon": "icons/passives/bao_passive.png"
+      }
+    },
+    {
+      "id": "misha",
+      "name": "Misha",
+      "region": "Russia",
+      "role": "Tank",
+      "evoId": "misha_evo",
+      "skill": {
+        "id": "frost_hug",
+        "name": "Frost Bear Hug",
+        "type": "attack",
+        "vfx": "frost_hug",
+        "target": "enemy",
+        "cooldown": 3,
+        "energyCost": 15,
+        "baseMultiplier": 1.3,
+        "evoMultiplier": 1.45,
+        "effect": {
+          "status": "freeze_slow",
+          "value": 0.25,
+          "chance": 0.5,
+          "duration": 2
+        },
+        "desc": "Crushing icy hug for 130% ATK (145% Evo) with 50% chance to Chill (-25% Speed) for 2 turns.",
+        "icon": "icons/skills/misha_skill.png",
+        "vfxSheet": "vfx/frost_hug_vfx_sheet.png",
+        "vfxGif": "vfx/frost_hug_vfx.gif",
+        "vfxFrames": 8,
+        "vfxFrameSize": [
+          192,
+          192
+        ],
+        "vfxFps": 12
+      },
+      "talent": {
+        "id": "hibernation",
+        "name": "Hibernation",
+        "trigger": "on_hp_below_30",
+        "stat": "emergencyHealPct",
+        "baseValue": 0.15,
+        "evoValue": 0.22,
+        "usesPerBattle": 1,
+        "desc": "Once per battle, heals 15% Max HP (22% Evo) when dropping below 30% HP.",
+        "icon": "icons/talents/misha_talent.png"
+      },
+      "passive": {
+        "id": "deep_sleeper",
+        "name": "Deep Sleeper",
+        "stat": "recoverySpeedPct",
+        "baseValue": 0.04,
+        "evoValue": 0.06,
+        "desc": "+4% Sleep recovery speed (+6% when Evo unlocked).",
+        "icon": "icons/passives/misha_passive.png"
+      }
+    },
+    {
+      "id": "gino",
+      "name": "Gino",
+      "region": "Italy",
+      "role": "Speedster",
+      "evoId": "gino_evo",
+      "skill": {
+        "id": "espresso_rush",
+        "name": "Espresso Rush",
+        "type": "attack",
+        "vfx": "espresso_rush",
+        "target": "enemy",
+        "cooldown": 3,
+        "energyCost": 14,
+        "hits": 2,
+        "baseMultiplier": 0.68,
+        "evoMultiplier": 0.75,
+        "effect": {
+          "status": "self_spd_up",
+          "value": 0.15,
+          "duration": 2
+        },
+        "desc": "Double-strike dealing 2\u00d768% ATK (2\u00d775% Evo) and boosting Speed by +15%.",
+        "icon": "icons/skills/gino_skill.png",
+        "vfxSheet": "vfx/espresso_rush_vfx_sheet.png",
+        "vfxGif": "vfx/espresso_rush_vfx.gif",
+        "vfxFrames": 8,
+        "vfxFrameSize": [
+          192,
+          192
+        ],
+        "vfxFps": 12
+      },
+      "talent": {
+        "id": "barista_boost",
+        "name": "Barista Boost",
+        "trigger": "on_skill_use",
+        "stat": "energyRefund",
+        "baseValue": 4,
+        "evoValue": 6,
+        "desc": "Refunds 4 battle energy (6 Evo) whenever an Active Skill is used.",
+        "icon": "icons/talents/gino_talent.png"
+      },
+      "passive": {
+        "id": "caffeinated",
+        "name": "Caffeinated",
+        "stat": "workCooldownReductionPct",
+        "baseValue": 0.03,
+        "evoValue": 0.05,
+        "desc": "-3% Work cooldown time (-5% when Evo unlocked).",
+        "icon": "icons/passives/gino_passive.png"
+      }
+    },
+    {
+      "id": "dragon",
+      "name": "Dragon",
+      "region": "Legend",
+      "role": "Legend",
+      "evoId": null,
+      "skill": {
+        "id": "inferno_breath",
+        "name": "Inferno Breath",
+        "type": "attack",
+        "vfx": "inferno_breath",
+        "target": "enemy",
+        "cooldown": 4,
+        "energyCost": 18,
+        "baseMultiplier": 1.55,
+        "evoMultiplier": 1.55,
+        "effect": {
+          "status": "burn",
+          "tickAtkPct": 0.25,
+          "chance": 0.75,
+          "duration": 2
+        },
+        "desc": "Unleashes a roaring flame wave for 155% ATK with 75% chance to Burn for 2 turns.",
+        "icon": "icons/skills/dragon_skill.png",
+        "vfxSheet": "vfx/inferno_breath_vfx_sheet.png",
+        "vfxGif": "vfx/inferno_breath_vfx.gif",
+        "vfxFrames": 8,
+        "vfxFrameSize": [
+          192,
+          192
+        ],
+        "vfxFps": 12
+      },
+      "talent": {
+        "id": "dragon_scales",
+        "name": "Dragon Scales",
+        "trigger": "passive_battle",
+        "stat": "debuffResistPct",
+        "baseValue": 0.35,
+        "bonusAtkPct": 0.08,
+        "desc": "+35% Debuff/Stun Resistance and +8% Battle ATK.",
+        "icon": "icons/talents/dragon_talent.png"
+      },
+      "passive": {
+        "id": "mythic_blessing",
+        "name": "Mythic Blessing",
+        "stat": "multi",
+        "bonuses": {
+          "maxEnergyFlat": 5,
+          "maxHappinessFlat": 5,
+          "arenaAtkPct": 0.03
+        },
+        "desc": "+5 Max Energy, +5 Max Happiness, and +3% Arena ATK (balanced Legend perk).",
+        "icon": "icons/passives/dragon_passive.png"
+      }
+    }
+  ]
+}

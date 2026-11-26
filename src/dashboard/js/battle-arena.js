@@ -130,6 +130,7 @@
       this.inBattle = false;
       this.battleTimer = null;
       this.tickInterval = null;
+      this.bt = null;
 
       this._startClock();
     }
@@ -177,6 +178,7 @@
     exitArena() {
       this.inArena = false;
       this.inBattle = false;
+      this.bt = null;
       clearTimeout(this.battleTimer);
       if (this.stageMount) this.stageMount.classList.add("jb-arena-hidden");
       if (this.homeElement) this.homeElement.classList.remove("jb-arena-hidden");
@@ -264,11 +266,29 @@
 
       const player = this.getPlayer();
       const enemy = { ...this.selectedMonster };
-      let pHp = player.maxHp || player.hp || 60;
-      let eHp = enemy.hp;
+      const kit = player.kit || null;
+      const talentValue = (stat) => (kit && kit.talent && kit.talent.stat === stat ? Number(kit.talent.value) || 0 : 0);
 
+      const bt = {
+        player, enemy, kit,
+        pHp: player.maxHp || player.hp || 60,
+        eHp: enemy.hp,
+        energy: 30,
+        skillCd: 0,
+        round: 0,
+        pShield: 0,
+        pStatuses: {},
+        eStatuses: {},
+        surviveUsed: false,
+        emergencyUsed: false,
+        critChance: 0.05 + talentValue("critChancePct"),
+        evasionBase: talentValue("evasionPct"),
+        healRecv: talentValue("healingReceivedPct"),
+        atkBonusPct: talentValue("bonusAtkPct"),
+      };
+      this.bt = bt;
       this.inBattle = true;
-      this._setLog(`⚔️ Battle started against ${enemy.name} (Lv ${enemy.lv})!`);
+      this._setLog(`\u2694\ufe0f Battle started against ${enemy.name} (Lv ${enemy.lv})!`);
       const fightBtn = this.stageMount?.querySelector("#jb-fight-btn");
       if (fightBtn) fightBtn.disabled = true;
 
@@ -276,67 +296,358 @@
       const eEl = this.stageMount?.querySelector(".jb-fighter.enemy");
       const eSprite = eEl?.querySelector(".jb-sprite-box");
 
-      // Switch monster to walk animation during engagement
       if (eSprite) {
         eSprite.style.backgroundImage = `url("${this.assetBase}/monsters/${enemy.id}/walk_sheet.png")`;
       }
 
-      const runRound = () => {
-        if (!this.inBattle) return;
+      const startShieldPct = talentValue("startShieldPct");
+      if (startShieldPct > 0) {
+        bt.pShield = Math.round((player.maxHp || 60) * startShieldPct);
+        this._floatText(pEl, `\uD83D\uDEE1\uFE0F +${bt.pShield} Shield`, "shield");
+        this._setLog(`\uD83D\uDEE1\uFE0F ${player.name} starts with a ${bt.pShield} HP shield (${kit.talent.name})!`);
+      }
 
-        // Player attacks
-        const pDmg = Math.max(2, Math.round((player.atk || 10) * (0.85 + Math.random() * 0.35)));
-        eHp = Math.max(0, eHp - pDmg);
+      this._updateSkillBtn();
+
+      const runRound = () => {
+        if (!this.inBattle || !this.bt) return;
+        bt.round += 1;
+        bt.energy = Math.min(100, bt.energy + 7);
+        if (bt.skillCd > 0) bt.skillCd -= 1;
+        this._updateSkillBtn();
+
+        if (kit && kit.talent && kit.talent.trigger === "every_n_turns" && bt.round % (kit.talent.everyTurns || 3) === 0) {
+          const heal = Math.round((player.maxHp || 60) * (Number(kit.talent.value) || 0));
+          if (heal > 0 && bt.pHp < (player.maxHp || 60)) {
+            bt.pHp = Math.min(player.maxHp || 60, bt.pHp + heal);
+            this._floatText(pEl, `\uD83D\uDC9A +${heal}`, "heal");
+            this._updateHpBars(bt.pHp, player.maxHp || 60, bt.eHp, enemy.hp);
+          }
+        }
+
+        const regenPct = talentValue("regenHpPct");
+        if (regenPct > 0 && bt.pHp < (player.maxHp || 60)) {
+          const regen = Math.max(1, Math.round((player.maxHp || 60) * regenPct));
+          bt.pHp = Math.min(player.maxHp || 60, bt.pHp + regen);
+          this._floatText(pEl, `\uD83D\uDC9A +${regen}`, "heal");
+          this._updateHpBars(bt.pHp, player.maxHp || 60, bt.eHp, enemy.hp);
+        }
+
+        let dotTotal = 0;
+        for (const st of Object.values(bt.eStatuses)) {
+          if (st.tickDamage) dotTotal += st.tickDamage;
+        }
+        if (dotTotal > 0) {
+          bt.eHp = Math.max(0, bt.eHp - dotTotal);
+          this._floatText(eEl, `\u2620\uFE0F -${dotTotal}`, "dot");
+          this._updateHpBars(bt.pHp, player.maxHp || 60, bt.eHp, enemy.hp);
+          if (bt.eHp <= 0) { this._victory(); return; }
+        }
+
+        const pAtk = this._playerAttackDamage();
+        bt.eHp = Math.max(0, bt.eHp - pAtk.total);
         pEl?.classList.add("attack-right");
         eEl?.classList.add("hit-flash");
-        this._updateHpBars(pHp, player.maxHp || 60, eHp, enemy.hp);
-        this._setLog(`💥 ${player.name} hits ${enemy.name} for ${pDmg} DMG!`);
+        this._updateHpBars(bt.pHp, player.maxHp || 60, bt.eHp, enemy.hp);
+        this._floatText(eEl, `-${pAtk.total}`, pAtk.crit ? "crit" : "dmg");
+        this._setLog(pAtk.crit
+          ? `\uD83D\uDCA5 CRIT! ${player.name} hits ${enemy.name} for ${pAtk.total} DMG!`
+          : `\uD83D\uDCA5 ${player.name} hits ${enemy.name} for ${pAtk.total} DMG!`);
+
+        if (pAtk.crit && kit && kit.talent && kit.talent.trigger === "on_crit") {
+          const procChance = kit.isEvo && kit.talent.evoProcChance != null ? kit.talent.evoProcChance : (kit.talent.procChance || 0);
+          if (Math.random() < procChance && bt.skillCd > 0) {
+            bt.skillCd -= 1;
+            this._floatText(pEl, "\u23F1\uFE0F CD -1", "buff");
+            this._updateSkillBtn();
+          }
+        }
 
         setTimeout(() => {
           pEl?.classList.remove("attack-right");
           eEl?.classList.remove("hit-flash");
 
-          if (eHp <= 0) {
-            // Victory!
-            this.inBattle = false;
-            const goldGain = Math.floor(enemy.goldMin + Math.random() * (enemy.goldMax - enemy.goldMin + 1));
-            this.addReward({ gold: goldGain, xp: enemy.xp, monster: enemy });
-            if (eSprite) {
-              eSprite.style.backgroundImage = `url("${this.assetBase}/monsters/${enemy.id}/idle_sheet.png")`;
-            }
-            this._setLog(`🏆 Victory! Earned +${goldGain} Gold & +${enemy.xp} XP!`);
-            if (fightBtn) fightBtn.disabled = false;
+          if (bt.eHp <= 0) { this._victory(); return; }
+
+          const stunned = "stun" in bt.eStatuses || "freeze_slow" in bt.eStatuses;
+          const blind = bt.eStatuses.blind ? bt.eStatuses.blind.value : 0;
+          const evasion = (bt.evasionBase || 0) + (bt.pStatuses.self_spd_up ? bt.pStatuses.self_spd_up.value : 0);
+          const dodged = !stunned && Math.random() < (evasion || 0);
+
+          if (stunned || dodged || Math.random() < (blind || 0)) {
+            if (stunned) this._setLog(`\uD83D\uDCAB ${enemy.name} is stunned and loses the turn!`);
+            else if (dodged) this._setLog(`\uD83C\uDF00 ${player.name} dodged ${enemy.name}'s attack!`);
+            else this._setLog(`\uD83C\uDF2B\uFE0F ${enemy.name}'s attack missed (blinded)!`);
+            this._tickStatusesEnd();
+            this.battleTimer = setTimeout(runRound, 650);
             return;
           }
 
-          // Enemy counter-attacks
           const rawEnemyDmg = Math.max(2, enemy.atk - Math.floor((player.def || 4) * 0.35));
-          const eDmg = Math.max(2, Math.round(rawEnemyDmg * (0.85 + Math.random() * 0.3)));
-          pHp = Math.max(0, pHp - eDmg);
+          const atkDown = bt.eStatuses.atk_down ? bt.eStatuses.atk_down.value : 0;
+          const eDmg = Math.max(2, Math.round(rawEnemyDmg * (1 - atkDown) * (0.85 + Math.random() * 0.3)));
           eEl?.classList.add("attack-left");
           pEl?.classList.add("hit-flash");
-          this._updateHpBars(pHp, player.maxHp || 60, eHp, enemy.hp);
-          this._setLog(`🔥 ${enemy.name} strikes back for ${eDmg} DMG!`);
+          this._setLog(`\uD83D\uDD25 ${enemy.name} strikes back for ${eDmg} DMG!`);
 
           setTimeout(() => {
             eEl?.classList.remove("attack-left");
             pEl?.classList.remove("hit-flash");
-
-            if (pHp <= 0) {
-              // Defeat -> Pet dies!
-              this.inBattle = false;
-              // If player already died 2+ times before (this is 3rd+ death) -> Tombstone full death, else Ghost!
-              const isFullDeath = this.deathState.deathCount >= 2;
-              this.triggerPetDeath(isFullDeath);
-              return;
-            }
-
+            const died = this._playerTakeDamage(eDmg);
+            if (died) return;
+            this._tickStatusesEnd();
             this.battleTimer = setTimeout(runRound, 650);
           }, 320);
         }, 320);
       };
 
       this.battleTimer = setTimeout(runRound, 400);
+    }
+
+    /** Compute one basic-attack damage roll, applying talents & statuses */
+    _playerAttackDamage() {
+      const bt = this.bt;
+      const player = bt.player;
+      const talent = bt.kit && bt.kit.talent;
+      let base = player.atk || 10;
+      const atkUp = bt.pStatuses.self_atk_up ? bt.pStatuses.self_atk_up.value : 0;
+      base *= 1 + atkUp + (bt.atkBonusPct || 0);
+      if (talent && talent.trigger === "on_turn_1" && bt.round === 1) base *= 1 + (Number(talent.value) || 0);
+      if (talent && talent.trigger === "on_attack" && talent.condition === "enemy_hp_below_50" && bt.eHp < bt.enemy.hp * 0.5) {
+        base *= 1 + (Number(talent.value) || 0);
+      }
+      if (bt.eStatuses.def_down) base *= 1 + bt.eStatuses.def_down.value;
+      const crit = Math.random() < (bt.critChance || 0.05);
+      if (crit) base *= 1.5;
+      let dmg = Math.max(2, Math.round(base * (0.85 + Math.random() * 0.35)));
+      if (bt.eStatuses.spd_down || bt.eStatuses.freeze_slow) {
+        dmg += Math.max(1, Math.round((player.atk || 10) * 0.5));
+      }
+      return { total: dmg, crit };
+    }
+
+    /** Apply damage to the player (shield absorb, talents, survive-once); returns true if the pet died */
+    _playerTakeDamage(raw) {
+      const bt = this.bt;
+      const player = bt.player;
+      let dmg = raw;
+      if (bt.kit && bt.kit.talent && bt.kit.talent.trigger === "on_hit_taken" && bt.kit.talent.stat === "damageReductionPct") {
+        dmg *= 1 - (Number(bt.kit.talent.value) || 0);
+      }
+      dmg = Math.max(0, Math.round(dmg));
+      if (bt.pShield > 0 && dmg > 0) {
+        const absorbed = Math.min(bt.pShield, dmg);
+        bt.pShield -= absorbed;
+        dmg -= absorbed;
+        if (absorbed > 0) this._floatText(this.stageMount?.querySelector(".jb-fighter.player"), `\uD83D\uDEE1\uFE0F -${absorbed}`, "shield");
+      }
+      bt.pHp = Math.max(0, bt.pHp - dmg);
+      if (dmg > 0) this._floatText(this.stageMount?.querySelector(".jb-fighter.player"), `-${dmg}`, "dmg");
+      this._updateHpBars(bt.pHp, player.maxHp || 60, bt.eHp, bt.enemy.hp);
+
+      if (!bt.emergencyUsed && bt.kit && bt.kit.talent && bt.kit.talent.stat === "emergencyHealPct"
+          && bt.pHp > 0 && bt.pHp < (player.maxHp || 60) * 0.3) {
+        bt.emergencyUsed = true;
+        const heal = Math.round((player.maxHp || 60) * (Number(bt.kit.talent.value) || 0));
+        bt.pHp = Math.min(player.maxHp || 60, bt.pHp + heal);
+        this._floatText(this.stageMount?.querySelector(".jb-fighter.player"), `\uD83D\uDC3B +${heal}`, "heal");
+        this._updateHpBars(bt.pHp, player.maxHp || 60, bt.eHp, bt.enemy.hp);
+      }
+
+      if (bt.pHp <= 0 && !bt.surviveUsed && bt.kit && bt.kit.talent && bt.kit.talent.stat === "surviveOnceHpPct") {
+        bt.surviveUsed = true;
+        bt.pHp = Math.max(1, Math.round((player.maxHp || 60) * (Number(bt.kit.talent.value) || 0)));
+        this._floatText(this.stageMount?.querySelector(".jb-fighter.player"), "\u2728 SURVIVED!", "heal");
+        this._setLog(`\uD83D\uDC31 Nine Lives! ${player.name} survives with ${bt.pHp} HP!`);
+      }
+
+      if (bt.pHp <= 0) {
+        this.inBattle = false;
+        this._updateSkillBtn();
+        const isFullDeath = this.deathState.deathCount >= 2;
+        this.triggerPetDeath(isFullDeath);
+        this.bt = null;
+        return true;
+      }
+      return false;
+    }
+
+    /** Victory handler shared by basic attacks and Active Skill kills */
+    _victory() {
+      const bt = this.bt;
+      this.inBattle = false;
+      const talent = bt.kit && bt.kit.talent;
+      const goldBonus = talent && talent.stat === "arenaGoldBonusPct" ? (Number(talent.value) || 0) : 0;
+      const baseGold = Math.floor(bt.enemy.goldMin + Math.random() * (bt.enemy.goldMax - bt.enemy.goldMin + 1));
+      const goldGain = Math.round(baseGold * (1 + goldBonus));
+      const eSprite = this.stageMount?.querySelector(".jb-fighter.enemy .jb-sprite-box");
+      if (eSprite) {
+        eSprite.style.backgroundImage = `url("${this.assetBase}/monsters/${bt.enemy.id}/idle_sheet.png")`;
+      }
+      this.addReward({ gold: goldGain, xp: bt.enemy.xp, monster: bt.enemy });
+      this._setLog(`\uD83C\uDFC6 Victory! Earned +${goldGain} Gold & +${bt.enemy.xp} XP!${goldBonus > 0 ? ` (${talent.name} +${Math.round(goldBonus * 100)}%)` : ""}`);
+      const fightBtn = this.stageMount?.querySelector("#jb-fight-btn");
+      if (fightBtn) fightBtn.disabled = false;
+      this.bt = null;
+      this._updateSkillBtn();
+    }
+
+    /** Decrement status durations at the end of a full round */
+    _tickStatusesEnd() {
+      const bt = this.bt;
+      if (!bt) return;
+      for (const dict of [bt.eStatuses, bt.pStatuses]) {
+        for (const [key, st] of Object.entries(dict)) {
+          st.turns -= 1;
+          if (st.turns <= 0) delete dict[key];
+        }
+      }
+      this._updateSkillBtn();
+    }
+
+    /** Use the Active Skill (energy cost + cooldown + VFX + effects) */
+    useSkill() {
+      if (!this.inBattle || !this.bt) return;
+      const bt = this.bt;
+      const kit = bt.kit;
+      if (!kit || !kit.skill) return;
+      if (bt.skillCd > 0 || bt.energy < (kit.skill.energyCost || 0)) return;
+
+      bt.energy -= kit.skill.energyCost || 0;
+      bt.skillCd = kit.skill.cooldown || 1;
+      const pEl = this.stageMount?.querySelector(".jb-fighter.player");
+      const eEl = this.stageMount?.querySelector(".jb-fighter.enemy");
+
+      if (kit.talent && kit.talent.trigger === "on_skill_use") {
+        const refund = Number(kit.talent.value) || 0;
+        bt.energy = Math.min(100, bt.energy + refund);
+        this._floatText(pEl, `\u26A1 +${refund}`, "buff");
+      }
+
+      this._setLog(`\u2728 ${bt.player.name} uses ${kit.skill.name}!`);
+      this._updateSkillBtn();
+
+      if (kit.skill.type === "heal") {
+        const heal = Math.round((bt.player.maxHp || 60) * (kit.skill.healPct || 0) * (1 + (bt.healRecv || 0)));
+        bt.pHp = Math.min(bt.player.maxHp || 60, bt.pHp + heal);
+        this._floatText(pEl, `\uD83D\uDC9A +${heal}`, "heal");
+        this._updateHpBars(bt.pHp, bt.player.maxHp || 60, bt.eHp, bt.enemy.hp);
+        this._playVfx(pEl, kit.skill);
+        this._setLog(`\uD83E\uDEB7 ${kit.skill.name} restores ${heal} HP!`);
+        return;
+      }
+
+      this._playVfx(eEl, kit.skill);
+      const hits = Math.max(1, kit.skill.hits || 1);
+      let total = 0;
+      let anyCrit = false;
+      for (let i = 0; i < hits; i++) {
+        let dmg = (bt.player.atk || 10) * (kit.skill.multiplier || 1);
+        dmg *= 0.9 + Math.random() * 0.25;
+        const atkUp = bt.pStatuses.self_atk_up ? bt.pStatuses.self_atk_up.value : 0;
+        dmg *= 1 + atkUp + (bt.atkBonusPct || 0);
+        if (bt.eStatuses.def_down) dmg *= 1 + bt.eStatuses.def_down.value;
+        const critChance = (bt.critChance || 0.05) + (kit.skill.bonusCritChance || 0);
+        if (Math.random() < critChance) { dmg *= 1.5; anyCrit = true; }
+        total += Math.max(2, Math.round(dmg));
+      }
+      bt.eHp = Math.max(0, bt.eHp - total);
+      eEl?.classList.add("hit-flash");
+      this._floatText(eEl, `-${total}${anyCrit ? " \uD83D\uDCA5" : ""}`, "dmg");
+      this._updateHpBars(bt.pHp, bt.player.maxHp || 60, bt.eHp, bt.enemy.hp);
+      this._setLog(`\u2728 ${kit.skill.name} hits ${bt.enemy.name} for ${total} DMG${hits > 1 ? ` (${hits} hits)` : ""}!`);
+
+      const effect = kit.skill.effect || {};
+      const status = effect.status;
+      const effValue = kit.isEvo && effect.evoValue != null ? effect.evoValue : effect.value;
+      const effChance = kit.isEvo && effect.evoChance != null ? effect.evoChance : effect.chance;
+
+      if (status === "self_atk_up") {
+        bt.pStatuses.self_atk_up = { value: effValue || 0, turns: effect.duration || 2 };
+        this._floatText(pEl, "\u2B06\uFE0F ATK UP", "buff");
+      } else if (status === "self_shield_pct") {
+        bt.pShield += Math.round((bt.player.maxHp || 60) * (effValue || 0));
+        this._floatText(pEl, "\uD83D\uDEE1\uFE0F SHIELD", "shield");
+      } else if (status === "self_spd_up") {
+        bt.pStatuses.self_spd_up = { value: effValue || 0, turns: effect.duration || 2 };
+        this._floatText(pEl, "\uD83D\uDCA8 SPEED UP", "buff");
+      } else if (status && status !== "none" && Math.random() < (effChance != null ? effChance : 1)) {
+        const tickDamage = status === "poison"
+          ? Math.max(1, Math.round((bt.enemy.hp || 100) * (effect.tickPctMaxHp || 0)))
+          : (status === "bleed" || status === "burn")
+            ? Math.max(1, Math.round((bt.enemy.atk || 10) * (effect.tickAtkPct || 0)))
+            : 0;
+        bt.eStatuses[status] = { value: effValue || 0, turns: effect.duration || 2, tickDamage };
+        this._floatText(eEl, status.replace(/_/g, " ").toUpperCase(), "debuff");
+      }
+
+      if (kit.skill.type === "attack_heal") {
+        const selfHeal = kit.isEvo && kit.skill.evoSelfHealPct != null ? kit.skill.evoSelfHealPct : kit.skill.selfHealPct;
+        const heal = Math.round((bt.player.maxHp || 60) * (selfHeal || 0) * (1 + (bt.healRecv || 0)));
+        bt.pHp = Math.min(bt.player.maxHp || 60, bt.pHp + heal);
+        this._floatText(pEl, `\uD83D\uDC9A +${heal}`, "heal");
+      }
+
+      this._updateHpBars(bt.pHp, bt.player.maxHp || 60, bt.eHp, bt.enemy.hp);
+
+      setTimeout(() => {
+        eEl?.classList.remove("hit-flash");
+        if (bt.eHp <= 0) { this._victory(); return; }
+        this._updateSkillBtn();
+      }, 500);
+    }
+
+    /** Play the 8-frame 192px VFX sheet over a fighter */
+    _playVfx(targetEl, skill) {
+      if (!targetEl || !skill || !skill.vfxUrl) return;
+      const vfx = document.createElement("div");
+      vfx.className = "jb-vfx-overlay";
+      vfx.style.backgroundImage = `url('${skill.vfxUrl}')`;
+      const frames = skill.vfxFrames || 8;
+      const fps = skill.vfxFps || 12;
+      vfx.style.setProperty("--vfx-frames", String(frames));
+      vfx.style.animationDuration = `${(frames / fps).toFixed(2)}s`;
+      targetEl.appendChild(vfx);
+      setTimeout(() => vfx.remove(), (frames / fps) * 1000 + 100);
+    }
+
+    /** Floating combat text over a fighter */
+    _floatText(fighterEl, text, kind) {
+      if (!fighterEl) return;
+      const span = document.createElement("span");
+      span.className = `jb-float-text ${kind || ""}`.trim();
+      span.textContent = text;
+      span.style.left = `${25 + Math.random() * 50}%`;
+      fighterEl.appendChild(span);
+      setTimeout(() => span.remove(), 1000);
+    }
+
+    /** Sync the Active Skill button, energy bar and cooldown badge */
+    _updateSkillBtn() {
+      const btn = this.stageMount?.querySelector("#jb-skill-btn");
+      const bar = this.stageMount?.querySelector("#jb-energy-bar");
+      const txt = this.stageMount?.querySelector("#jb-energy-txt");
+      const cd = this.stageMount?.querySelector("#jb-skill-cd");
+      const bt = this.bt;
+      const energy = bt ? bt.energy : 0;
+      if (bar) bar.style.width = `${Math.max(0, Math.min(100, energy))}%`;
+      if (txt) txt.textContent = `\u26A1 ${energy}/100`;
+      if (!btn) return;
+      if (!bt || !bt.kit || !bt.kit.skill) {
+        btn.disabled = true;
+        btn.title = "No Active Skill \u2014 hatch a pet with a battle kit!";
+        if (cd) cd.classList.add("hidden");
+        return;
+      }
+      const kit = bt.kit;
+      const onCd = bt.skillCd > 0;
+      const noEnergy = energy < (kit.skill.energyCost || 0);
+      btn.disabled = !this.inBattle || onCd || noEnergy;
+      if (cd) {
+        cd.textContent = String(bt.skillCd);
+        cd.classList.toggle("hidden", !onCd);
+      }
+      btn.title = `${kit.skill.name} \u2014 ${kit.skill.desc}`;
     }
 
     /** Render the Battle Arena Stage HTML */
@@ -346,6 +657,7 @@
 
       const player = this.getPlayer();
       const enemy = this.selectedMonster;
+      const kit = player.kit || null;
       const petSprite = this.getActivePetSpriteOverride("idle") || player.sheetUrl || player.spriteUrl;
       const enemySprite = `${this.assetBase}/monsters/${enemy.id}/${walkInEnemy ? "walk_sheet" : "idle_sheet"}.png`;
 
@@ -411,6 +723,18 @@
 
           <div class="jb-arena-log">
             <span id="jb-log-text">Choose an enemy below and click Fight!</span>
+            <div class="jb-skill-controls">
+              <div class="jb-energy-wrap" title="Battle Energy (charges +7 per round)">
+                <div class="jb-energy-fill" id="jb-energy-bar" style="width:30%"></div>
+                <span id="jb-energy-txt">\u26a1 30/100</span>
+              </div>
+              <button class="jb-skill-btn" id="jb-skill-btn" type="button" ${kit && kit.skill ? "" : "disabled"}>
+                ${kit && kit.skill ? `<img src="${this.assetBase}/battle/${kit.skill.iconUrl}" alt="" />` : "\ud83d\udc3e"}
+                <span class="jb-skill-label">${kit && kit.skill ? kit.skill.name : "No Skill"}</span>
+                ${kit && kit.skill ? `<span class="jb-skill-cost">\u26a1${kit.skill.energyCost}</span>` : ""}
+                <span class="jb-skill-cd hidden" id="jb-skill-cd">0</span>
+              </button>
+            </div>
             <button class="jb-arena-btn danger" id="jb-fight-btn" ${this.isLockedOut() ? "disabled" : ""}>⚔️ Fight ${enemy.name}</button>
           </div>
 
@@ -438,6 +762,8 @@
       // Wire buttons
       this.stageMount.querySelector("#jb-back-home")?.addEventListener("click", () => this.exitArena());
       this.stageMount.querySelector("#jb-fight-btn")?.addEventListener("click", () => this.startBattle());
+      this.stageMount.querySelector("#jb-skill-btn")?.addEventListener("click", () => this.useSkill());
+      this._updateSkillBtn();
       this.stageMount.querySelector("#jb-shop-btn")?.addEventListener("click", () => this.openReviveShopModal());
       this.stageMount.querySelector("#jb-open-revive-shop")?.addEventListener("click", () => this.openReviveShopModal());
     }

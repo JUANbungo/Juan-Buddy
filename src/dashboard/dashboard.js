@@ -371,6 +371,7 @@ function render(snapshot) {
   safeRender('foods', () => renderFoods(s, d));
   safeRender('activities', () => renderActivities(s, d));
   safeRender('buddyPicker', () => renderBuddyPicker(s));
+  safeRender('battleProfile', () => renderBattleProfile(d));
   if (toast) showToast(toast);
 }
 
@@ -726,6 +727,63 @@ function renderBuddyPicker(s) {
   }
 }
 
+const COLLECTION_STAT_LABELS = {
+  coinBonusPct: (v) => `+${Math.round(v * 100)}% Work Coins`,
+  xpBonusPct: (v) => `+${Math.round(v * 100)}% XP gain`,
+  energyCostReductionPct: (v) => `-${Math.round(v * 100)}% Energy cost`,
+  decayReductionPct: (v) => `-${Math.round(v * 100)}% Meter decay`,
+  recoverySpeedPct: (v) => `+${Math.round(v * 100)}% Recovery speed`,
+  maxEnergyFlat: (v) => `+${Math.round(v)} Max Energy`,
+  maxHappinessFlat: (v) => `+${Math.round(v)} Max Happiness`,
+  arenaAtkPct: (v) => `+${Math.round(v * 100)}% Arena ATK`,
+  arenaHpPct: (v) => `+${Math.round(v * 100)}% Arena HP`,
+  workCooldownReductionPct: (v) => `-${Math.round(v * 100)}% Activity cooldown`,
+  hatchSpeedPct: (v) => `+${Math.round(v * 100)}% Hatch speed`,
+};
+
+function renderBattleProfile(d) {
+  const wrap = el('battle-profile');
+  if (!wrap) return;
+  const col = d && d.collection ? d.collection : null;
+  if (!col) { wrap.innerHTML = ''; return; }
+  const battleBase = '../../assets/battle/';
+  const kit = col.activeKit;
+  const kitHtml = kit ? `
+    <div class="jb-bp-kit">
+      ${[['Active Skill', kit.skill, 'skill'], ['Battle Talent', kit.talent, 'talent'], ['Collection Passive', kit.passive, 'passive']].map(([label, item, cls]) => `
+        <div class="jb-bp-item ${cls} ${kit.isEvo ? 'evo' : ''}" title="${item ? (item.desc || '').replace(/"/g, '&quot;') : ''}">
+          <img src="${battleBase}${item.iconUrl}" alt="${item.name}" draggable="false" />
+          <div class="jb-bp-item-txt">
+            <span class="jb-bp-label">${label}</span>
+            <span class="jb-bp-name">${item.name}${kit.isEvo ? ' ⭐ Evo' : ''}</span>
+          </div>
+        </div>`).join('')}
+    </div>`
+    : (col.eggCharm ? `
+    <div class="jb-bp-kit">
+      <div class="jb-bp-item passive egg" title="${col.eggCharm.passive.desc}">
+        <span class="jb-bp-emoji">🥚</span>
+        <div class="jb-bp-item-txt">
+          <span class="jb-bp-label">Egg Charm</span>
+          <span class="jb-bp-name">${col.eggCharm.passive.name}</span>
+        </div>
+      </div>
+    </div>` : '');
+  const bonusEntries = Object.entries(col.totals || {})
+    .filter(([stat, v]) => COLLECTION_STAT_LABELS[stat] && v > 0)
+    .map(([stat, v]) => `<span class="jb-bp-bonus">${COLLECTION_STAT_LABELS[stat](v)}</span>`);
+  const bonusHtml = bonusEntries.length
+    ? bonusEntries.join('')
+    : '<span class="jb-bp-bonus none">Hatch & collect more buddies to unlock passive bonuses!</span>';
+  wrap.innerHTML = `
+    <h3>⚔️ Battle Profile ${kit ? `— ${kit.isEvo ? 'Evo' : ''} ${kit.source.charAt(0).toUpperCase() + kit.source.slice(1)} kit` : ''} <small class="muted">• ${col.count} buddy${col.count === 1 ? '' : 'ies'} collected</small></h3>
+    ${kitHtml}
+    <div class="jb-bp-bonuses">
+      <span class="jb-bp-bonus-title">Active Collection Bonuses:</span>
+      ${bonusHtml}
+    </div>`;
+}
+
 const BRAND_FACE_PAW = '../../assets/sprites/ui/hud_icons/icons_1x_native/icon_paw.png';
 function updateBrandFace(s) {
   const face = el('brand-face');
@@ -1072,27 +1130,44 @@ function initArena() {
     homeElement: document.querySelector('.card.playground'),
     getPlayer() {
       const s = latest && latest.state;
-      const rpg = latest && latest.derived ? latest.derived.rpg : null;
+      const derived = latest && latest.derived ? latest.derived : null;
+      const rpg = derived && derived.rpg ? derived.rpg : null;
       const bs = rpg && rpg.battle ? rpg.battle : {};
       const level = s && s.pet ? s.pet.level : 1;
-      const maxHp = 40 + (bs.def || 2) * 4 + level * 6;
+      const totals = derived && derived.collection ? derived.collection.totals : {};
+      const arenaAtkMul = 1 + (totals.arenaAtkPct || 0);
+      const arenaHpMul = 1 + (totals.arenaHpPct || 0);
+      const maxHp = Math.round((40 + (bs.def || 2) * 4 + level * 6) * arenaHpMul);
       const species = s && s.pet && s.pet.species ? sprites.normalizeSpeciesId(s.pet.species) : null;
       const evolved = !!(s && s.pet && s.pet.evolved);
       const sheetPetId = species && evolved ? `${species}_evo` : species;
       const sheetInfo = sheetPetId ? sprites.petSheetInfo(sheetPetId, 'idle') : null;
       const sheetUrl = sheetInfo ? sprites.petSheetUrl(sheetPetId, 'idle') : (species ? sprites.petSheetUrl(species, 'idle') : null);
+      const kitRaw = derived && derived.collection ? derived.collection.activeKit : null;
+      const battleBase = `${this.assetBase}/battle/`;
+      const kit = kitRaw ? {
+        ...kitRaw,
+        skill: kitRaw.skill ? {
+          ...kitRaw.skill,
+          iconUrl: kitRaw.skill.iconUrl ? battleBase + kitRaw.skill.iconUrl : null,
+          vfxUrl: kitRaw.skill.vfxSheetUrl ? battleBase + kitRaw.skill.vfxSheetUrl : null,
+        } : null,
+        talent: kitRaw.talent ? { ...kitRaw.talent, iconUrl: kitRaw.talent.iconUrl ? battleBase + kitRaw.talent.iconUrl : null } : null,
+        passive: kitRaw.passive ? { ...kitRaw.passive, iconUrl: kitRaw.passive.iconUrl ? battleBase + kitRaw.passive.iconUrl : null } : null,
+      } : null;
       return {
         name: (s && s.pet && s.pet.name) || 'Buddy',
         level,
         maxHp,
         hp: maxHp,
-        atk: bs.atk || 5,
+        atk: Math.round((bs.atk || 5) * arenaAtkMul),
         def: bs.def || 2,
         spd: bs.spd || 3,
         gold: (s && s.coins) || 0,
         sheetFrames: sheetInfo ? sheetInfo.frames : 0,
         sheetUrl,
         spriteUrl: (species && PET_PREVIEW_PNG[species]) || `${this.assetBase}/monsters/guard_slime/idle_sheet.png`,
+        kit,
       };
     },
     setGold() { /* gold is engine-authoritative */ },

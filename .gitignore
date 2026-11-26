@@ -18,6 +18,7 @@ dist/
 !assets/pets/**/*.png
 !mobile/pets/**/*.png
 !assets/arena/**/*.png
+!assets/battle/**/*
 !assets/monsters/**/*.png
 !assets/death/**/*.png
 !assets/items/**/*.png

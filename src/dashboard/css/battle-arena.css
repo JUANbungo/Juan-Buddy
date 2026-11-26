@@ -410,3 +410,219 @@
   color: #fff;
   letter-spacing: 1px;
 }
+
+/* ===== Battle Skills: energy + Active Skill button ===== */
+.jb-skill-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.jb-energy-wrap {
+  position: relative;
+  width: 110px;
+  height: 16px;
+  background: #241d2e;
+  border: 2px solid #5c4438;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.jb-energy-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2fbf71, #7ce8a8);
+  transition: width 0.25s ease;
+}
+.jb-energy-wrap span {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 1px 1px 0 #14301f;
+}
+.jb-skill-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(180deg, #ffb64d, #e08a1f);
+  border: 2px solid #8a5410;
+  border-radius: 8px;
+  padding: 4px 10px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  text-shadow: 1px 1px 0 rgba(90, 50, 0, 0.6);
+  overflow: visible;
+}
+.jb-skill-btn:disabled {
+  filter: grayscale(0.75) brightness(0.75);
+  cursor: not-allowed;
+}
+.jb-skill-btn:not(:disabled):hover {
+  filter: brightness(1.08);
+}
+.jb-skill-btn img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.jb-skill-cost {
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 6px;
+  padding: 1px 5px;
+}
+.jb-skill-cd {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(12, 8, 20, 0.72);
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 900;
+  color: #ffd76e;
+}
+.jb-skill-cd.hidden {
+  display: none;
+}
+
+/* ===== VFX overlay (8-frame 192px horizontal sheet @ 12fps) ===== */
+.jb-vfx-overlay {
+  position: absolute;
+  width: 192px;
+  height: 192px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -58%);
+  z-index: 30;
+  pointer-events: none;
+  image-rendering: pixelated;
+  background-repeat: no-repeat;
+  background-size: calc(var(--vfx-frames, 8) * 100%) 100%;
+  animation: jbVfxSteps 0.67s steps(8, end) forwards;
+}
+@keyframes jbVfxSteps {
+  from { background-position: 0% 0; }
+  to { background-position: 100% 0; }
+}
+
+/* ===== Floating combat text ===== */
+.jb-float-text {
+  position: absolute;
+  top: 18%;
+  z-index: 32;
+  font-size: 15px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 1px 1px 0 #2a1400, -1px 1px 0 #2a1400, 1px -1px 0 #2a1400, -1px -1px 0 #2a1400;
+  pointer-events: none;
+  animation: jbFloatRise 1s ease-out forwards;
+  white-space: nowrap;
+}
+.jb-float-text.dmg { color: #ffd76e; }
+.jb-float-text.crit { color: #ff7b4d; font-size: 19px; }
+.jb-float-text.heal { color: #7ce8a8; }
+.jb-float-text.dot { color: #b07be0; }
+.jb-float-text.debuff { color: #e07bb0; font-size: 12px; }
+.jb-float-text.buff { color: #7cc7e8; font-size: 13px; }
+.jb-float-text.shield { color: #cfd8ff; }
+@keyframes jbFloatRise {
+  0% { transform: translateY(0); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translateY(-46px); opacity: 0; }
+}
+
+/* ===== Buddy Guide: Battle Profile ===== */
+.battle-profile {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: #fff9ec;
+  border: 2px solid #d9c39e;
+  border-radius: 10px;
+}
+.battle-profile h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #6b4a2f;
+}
+.jb-bp-kit {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.jb-bp-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f4e8cf;
+  border: 2px solid #c9b183;
+  border-radius: 8px;
+  padding: 5px 10px;
+  cursor: help;
+}
+.jb-bp-item img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.jb-bp-item.evo {
+  border-color: #b8860b;
+  background: #fff3d6;
+}
+.jb-bp-item-txt {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+.jb-bp-label {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #9a7b4f;
+}
+.jb-bp-name {
+  font-size: 12px;
+  font-weight: 800;
+  color: #4a3418;
+}
+.jb-bp-emoji {
+  font-size: 24px;
+  width: 32px;
+  text-align: center;
+}
+.jb-bp-bonuses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.jb-bp-bonus-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #6b4a2f;
+}
+.jb-bp-bonus {
+  font-size: 11px;
+  font-weight: 700;
+  background: #e8f6ec;
+  color: #1f7a3c;
+  border: 1px solid #9fd8b4;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.jb-bp-bonus.none {
+  background: #f4f0e6;
+  color: #8a7a5f;
+  border-color: #d9cbb0;
+}
