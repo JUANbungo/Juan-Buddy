@@ -1038,12 +1038,6 @@ header .title-row.secondary { margin-top: 5px; }
 /* ===== Cozy warm-cream pixel HUD (evolution UI pack) ===== */
 .pixelated { image-rendering: pixelated; }
 
-header.topbar {
-  background-image: url('../../assets/sprites/ui/hud_icons/sprites_4x/header_bar_tile.png');
-  background-size: auto 100%;
-  background-repeat: repeat-x;
-}
-
 .hud-img { width: 22px; height: 22px; }
 .coin-ico { width: 13px; height: 13px; object-fit: contain; vertical-align: -2px; margin: 0 2px; }
 button .coin-ico { width: 14px; height: 14px; }
@@ -1642,12 +1636,19 @@ header.topbar { padding-right: 262px; }
   color: #ffe9c9;
   border: 2px solid #3d2f1e;
   border-radius: 10px;
-  padding: 10px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  flex: 0 0 auto;
+  height: 46px;
+  padding: 0 12px;
   font-weight: 800;
-  font-size: 13px;
+  font-size: 12px;
   letter-spacing: 0.3px;
+  white-space: nowrap;
   cursor: pointer;
-  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.45);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
   transition: transform 0.1s ease, filter 0.1s ease;
 }
 .btn-title-screen:hover { filter: brightness(1.25); transform: translateY(-2px); }

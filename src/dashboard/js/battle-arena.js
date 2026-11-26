@@ -772,6 +772,10 @@
     renderEnemySelector() {
       if (!this.selectorMount) return;
       this.selectorMount.innerHTML = `
+        <div class="jb-selector-topbar">
+          <button class="jb-arena-btn secondary" id="jb-selector-back" type="button">\u2190 Back to Home</button>
+          <span class="jb-selector-title">\u2694\ufe0f Choose your opponent</span>
+        </div>
         <div class="jb-enemy-grid">
           ${MONSTERS.map((m) => `
             <div class="jb-enemy-card ${this.selectedMonster.id === m.id ? "selected" : ""}" data-monster="${m.id}">
@@ -786,6 +790,7 @@
         </div>
       `;
 
+      this.selectorMount.querySelector("#jb-selector-back")?.addEventListener("click", () => this.exitArena());
       this.selectorMount.querySelectorAll(".jb-enemy-card").forEach((card) => {
         card.addEventListener("click", () => this.selectEnemy(card.dataset.monster));
         const m = MONSTERS.find((mo) => mo.id === card.dataset.monster);

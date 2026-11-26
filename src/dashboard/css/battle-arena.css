@@ -206,6 +206,20 @@
   z-index: 9;
 }
 
+/* Enemy Selection Topbar (Back to Home always visible) */
+.jb-selector-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.jb-selector-title {
+  font-weight: 800;
+  font-size: 14px;
+  color: #ffe28a;
+  letter-spacing: 0.3px;
+}
+
 /* Enemy Selection Grid */
 .jb-enemy-grid {
   display: grid;
