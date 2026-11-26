@@ -494,7 +494,7 @@
       {
         id: 'nila', name: 'Nila', country: 'India', region: 'India', flag: '🇮🇳',
         species: 'Royal Indian Peacock', favoriteFood: 'butter_chicken', greeting: 'Namaste!',
-        skillName: 'Peacock Feather Storm', skillEmoji: '🦚', speed: 40,
+        skillName: 'Peacock Feather Storm', skillEmoji: '🦚', speed: 40, shopOnly: true,
         dialogues: ['Namaste!', 'Masala Chai time!', 'Watch my royal plume!', 'Bahut badhiya!'],
         drawFrame(g, state, f, wardrobe) {
           const isSleep = state === 'SLEEP', isHappy = state === 'HAPPY', isEat = state === 'EAT';
