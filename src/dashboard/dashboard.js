@@ -1780,6 +1780,18 @@ const PET_ANCHORS = {
   uwak: { Head: { fx: 0.0, fy: 0.02, w: 0.42, snug: 0.06 } },
   ahas: { Head: { fx: 0.06, fy: 0.18, w: 0.4, snug: 0.05 } },
   dragon: { Head: { fx: 0.0, fy: 0.03, w: 0.5, snug: 0.08 } },
+  kala: { Head: { fx: 0.0, fy: 0.04, w: 0.48, snug: 0.06 } },
+  bantay: { Head: { fx: 0.0, fy: 0.05, w: 0.46, snug: 0.06 } },
+  tala: { Head: { fx: 0.0, fy: 0.05, w: 0.46, snug: 0.06 } },
+  chai: { Head: { fx: 0.0, fy: 0.03, w: 0.5, snug: 0.06 } },
+  linh: { Head: { fx: 0.0, fy: 0.03, w: 0.44, snug: 0.05 } },
+  bara: { Head: { fx: 0.0, fy: 0.03, w: 0.48, snug: 0.06 } },
+  rimau: { Head: { fx: 0.0, fy: 0.05, w: 0.46, snug: 0.06 } },
+  merli: { Head: { fx: 0.0, fy: 0.02, w: 0.48, snug: 0.05 } },
+  raja: { Head: { fx: 0.0, fy: 0.04, w: 0.5, snug: 0.06 } },
+  mochi: { Head: { fx: 0.0, fy: 0.05, w: 0.46, snug: 0.06 } },
+  misha: { Head: { fx: 0.0, fy: 0.03, w: 0.48, snug: 0.05 } },
+  gino: { Head: { fx: 0.0, fy: 0.04, w: 0.44, snug: 0.05 } },
 };
 
 const contentBoxCache = new WeakMap();
@@ -1835,7 +1847,17 @@ function drawEquippedOnPet(now) {
       const img = overlayImg(`../../assets/sprites/items/${o.pngId.startsWith('cos_') ? 'cosmetics' : 'equipment'}/${o.pngId}.png`);
       if (img) {
         stageCtx.imageSmoothingEnabled = false;
-        stageCtx.drawImage(img, x - iw / 2, y - iw / 2, iw, iw);
+        const pcb = contentBoxOf(img);
+        let dy = y - iw / 2;
+        if (o.slot === 'Head' && o.pngId === 'cos_shades') {
+          dy = (info.topY + ch * a.fy + ch * 0.14) - iw * (pcb.top + pcb.bottom) / 2;
+        } else if (o.slot === 'Head') {
+          const headLine = info.topY + ch * a.fy + ch * (a.snug === undefined ? 0.07 : a.snug);
+          dy = headLine - iw * pcb.bottom;
+        } else {
+          dy = y - iw * (pcb.top + pcb.bottom) / 2;
+        }
+        stageCtx.drawImage(img, x - iw / 2, dy, iw, iw);
         continue;
       }
     }
