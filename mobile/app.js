@@ -4,6 +4,7 @@ const engine = window.JBEngine;
 const sprites = window.JBSprites;
 const sfx = window.JBSfx;
 if (sprites && sprites.setSheetRoots) sprites.setSheetRoots(['pets/', 'assets/pets/']);
+const COIN_ICON_HTML = '<img class="coin-ico pixelated" src="coin_gold_leaf.png" alt="" draggable="false">';
 
 const SAVE_KEY = 'juanbuddy-mobile-save';
 
@@ -408,7 +409,7 @@ function drawPet(now) {
 
   const anim = petStateFor();
   const stageDef = engine.stageOf(state);
-  const boxSize = Math.round(224 * (stageDef ? stageDef.scale : 1));
+  const boxSize = Math.round(224 * (stageDef ? stageDef.scale : 1) * (state.pet.evolved ? 0.8 : 1));
   const petLeft = 120 - boxSize / 2;
   const petTop = 214 - boxSize + (anim === 'HAPPY' || anim === 'WALK' ? Math.round(Math.sin(now / 260) * 4) : 0);
   petCtx.imageSmoothingEnabled = false;
@@ -555,7 +556,7 @@ function renderFoods() {
     card._els.name.textContent = `${del.flag || ''} ${del.name}`;
     card._els.meta.textContent = `🍖${del.hunger} · 💖${del.happy}${del.energy ? ` · ⚡${del.energy}` : ''}${del.buff ? ` · ${del.buff.label}` : ''} · ${del.country}`;
     card._els.fav.textContent = isFav ? `★ ${favDef.name}'s favorite!` : '';
-    card._els.btn.textContent = del.cost === 0 ? 'FREE' : `🪙${del.cost}`;
+    card._els.btn.innerHTML = del.cost === 0 ? 'FREE' : `${COIN_ICON_HTML}${del.cost}`;
     card._els.btn.disabled = state.flags.sleeping || state.coins < del.cost || state.meters.hunger >= 99;
   }
 }
@@ -583,7 +584,7 @@ function renderActivities(d) {
     }
     row.querySelector('.a-name').textContent = `${a.icon} ${a.name}`;
     row.querySelector('.a-desc').textContent = a.desc;
-    row.querySelector('.a-rewards').textContent = `⚡${a.energy} · 🪙${a.coins[0]}–${a.coins[1]} · +${a.xp} XP · ${a.duration}s`;
+    row.querySelector('.a-rewards').innerHTML = `⚡${a.energy} · ${COIN_ICON_HTML}${a.coins[0]}–${a.coins[1]} · +${a.xp} XP · ${a.duration}s`;
     const btn = row.querySelector('.a-btn');
     if (a.active) {
       btn.disabled = true;

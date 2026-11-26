@@ -19,6 +19,10 @@ fs.mkdirSync(path.join(mobile, 'sprites'), { recursive: true });
 fs.cpSync(path.join(root, 'assets', 'sprites'), path.join(mobile, 'sprites'), { recursive: true });
 fs.cpSync(path.join(root, 'assets', 'bgm'), path.join(mobile, 'bgm'), { recursive: true });
 fs.cpSync(path.join(root, 'assets', 'pets'), path.join(mobile, 'pets'), { recursive: true });
+fs.copyFileSync(
+  path.join(root, 'src', 'dashboard', 'assets', 'icons', 'coin_gold_leaf.png'),
+  path.join(mobile, 'coin_gold_leaf.png')
+);
 
 const icon = decodePNG(Buffer.from(require(path.join(root, 'assets', 'icons.js')).ICON_PNG_BASE64, 'base64'));
 for (const size of [180, 192, 512]) {

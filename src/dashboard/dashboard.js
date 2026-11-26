@@ -120,6 +120,8 @@ function maybeShowNameModal() {
   }
 }
 
+const COIN_ICON_HTML = '<img class="coin-ico pixelated" src="assets/icons/coin_gold_leaf.png" alt="" draggable="false">';
+
 let perkKeyShown = null;
 
 const PERK_ICONS_PNG = {
@@ -501,6 +503,44 @@ function renderFoodFilters() {
   }
 }
 
+const petShopTiles = {};
+function renderPetShop(d) {
+  const wrap = el('pet-shop');
+  if (!wrap || !d.petShop) return;
+  for (const pt of d.petShop) {
+    let card = petShopTiles[pt.id];
+    if (!card) {
+      card = document.createElement('div');
+      card.className = 'pet-shop-card';
+      card.dataset.shoppet = pt.id;
+      const img = document.createElement('img');
+      img.className = 'pixelated petshop-ico';
+      img.alt = pt.name;
+      img.src = PET_PREVIEW_PNG[pt.id] || '';
+      const body = document.createElement('div');
+      body.innerHTML = '<div class="b-name"></div><div class="b-bonus small muted"></div>';
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-violet b-btn';
+      card.appendChild(img);
+      card.appendChild(body);
+      card.appendChild(btn);
+      card._els = { name: body.querySelector('.b-name'), desc: body.querySelector('.b-bonus'), btn };
+      wrap.appendChild(card);
+      petShopTiles[pt.id] = card;
+    }
+    card._els.name.textContent = `${pt.icon} ${pt.name}`;
+    card._els.desc.textContent = pt.desc;
+    const btn = card._els.btn;
+    if (pt.owned) {
+      btn.textContent = '\u2713 Adopted!';
+      btn.disabled = true;
+    } else {
+      btn.innerHTML = `${COIN_ICON_HTML}${pt.cost.toLocaleString('en-US')}`;
+      btn.disabled = d.coins < pt.cost;
+    }
+  }
+}
+
 function renderFoods(s, d) {
   const grid = el('food-grid');
   const fav = sprites.getPetById(s.pet.species);
@@ -558,7 +598,7 @@ function renderFoods(s, d) {
     card._els.meta.textContent = `🍖${del.hunger} · 💖${del.happy}${del.energy ? ` · ⚡${del.energy}` : ''}${del.buff ? ` · ${del.buff.label}` : ''}`;
     card._els.favTag.textContent = isFav ? '★ ' + fav.name + "'s favorite!" : '';
     const afford = s.coins >= del.cost;
-    card._els.btn.textContent = del.cost === 0 ? 'FREE' : `💰${del.cost}`;
+    card._els.btn.innerHTML = del.cost === 0 ? 'FREE' : `${COIN_ICON_HTML}${del.cost}`;
     card._els.btn.disabled = s.flags.sleeping || !afford || s.meters.hunger >= 99;
   }
 }
@@ -588,7 +628,7 @@ function renderActivities(s, d) {
     row.querySelector('.a-name').textContent = `${a.icon} ${a.name}`;
     row.querySelector('.a-desc').textContent = a.desc;
     row.querySelector('.a-rewards').textContent =
-      `⚡${a.energy} · 💰${a.coins[0]}–${a.coins[1]} · +${a.xp} XP · ${a.duration}s · CD ${a.cooldown}s`;
+      `⚡${a.energy} · ${COIN_ICON_HTML}${a.coins[0]}–${a.coins[1]} · +${a.xp} XP · ${a.duration}s · CD ${a.cooldown}s`;
     const btn = row.querySelector('.a-btn');
     const anyActive = d.activities.some((x) => x.active);
     if (a.active) {
@@ -731,7 +771,7 @@ function renderShop(s, d) {
     card.querySelector('.desc').textContent = meta.desc;
     const btn = card.querySelector('.buy-btn');
     btn.disabled = maxed || s.coins < cost;
-    btn.textContent = maxed ? 'Maxed out' : `Upgrade — 💰${cost}`;
+    btn.innerHTML = maxed ? 'Maxed out' : `Upgrade — ${COIN_ICON_HTML}${cost}`;
   }
 }
 
@@ -2134,7 +2174,8 @@ function drawStagePet(now) {
   const st = petWalk.moving ? 'WALK' : st0;
   const stageScale = d.stage ? d.stage.scale : 1;
   const depthF = (petWalk.y - WALK_Y_MIN) / (WALK_Y_MAX - WALK_Y_MIN);
-  const boxSize = Math.round(264 * stageScale * (0.8 + 0.28 * depthF));
+  const evoShrink = s.pet.evolved ? 0.8 : 1;
+  const boxSize = Math.round(264 * stageScale * evoShrink * (0.8 + 0.28 * depthF));
   petDraw = { cx: petWalk.x, gy: petWalk.y, size: boxSize, dir: petWalk.dir };
   // keep petDrawInfo from the previous frame — the back-layer cosmetics pass
   // renders before this frame's sprite is measured (1-frame staleness is invisible)
@@ -2625,7 +2666,7 @@ function renderExtras(d) {
     nm.textContent = sk.name;
     const btn = document.createElement('button');
     btn.className = 'btn f-feed';
-    btn.textContent = sk.equipped ? '✓ Equipped' : sk.owned ? 'Equip' : sk.gachaOnly ? '🎰 Gacha only' : `💰 ${sk.cost}`;
+    btn.innerHTML = sk.equipped ? '✓ Equipped' : sk.owned ? 'Equip' : sk.gachaOnly ? '🎰 Gacha only' : `${COIN_ICON_HTML}${sk.cost}`;
     btn.disabled = sk.equipped || (!!sk.gachaOnly && !sk.owned);
     btn.addEventListener('click', async () => {
       const res = await api.action(sk.owned ? 'setSkin' : 'buySkin', { skinId: sk.id });
@@ -2771,7 +2812,7 @@ async function pullGacha(times) {
   const coinLine = document.createElement('div');
   coinLine.className = 'gacha-reward';
   const totalCoins = (res.results || []).reduce((sum, r) => sum + (r.coins || 0), 0);
-  coinLine.textContent = times === 10 ? `${best.name} best of 10 — +${totalCoins} coins total` : `+${best.coins} coins`;
+  coinLine.textContent = times === 10 ? `${best.name} best of 10 — +${totalCoins} ${COIN_ICON_HTML} total` : `+${best.coins} ${COIN_ICON_HTML}`;
   const iconLine = document.createElement('div');
   iconLine.className = 'gacha-icon';
   iconLine.textContent = best.icon || '🎰';
@@ -3078,7 +3119,7 @@ function renderRpg(d) {
       }
       card.querySelector('.mo-name').textContent = mo.name;
       card.querySelector('.mo-lvl').textContent = `Lv ${mo.lvl} monster`;
-      card.querySelector('.mo-stats').textContent = `HP ${mo.hp} \u00b7 ATK ${mo.atk} \u00b7 \ud83e\ude99${mo.coins[0]}-${mo.coins[1]} +${mo.xp}xp \u00b7 \u26a1${mo.energy}`;
+      card.querySelector('.mo-stats').innerHTML = `HP ${mo.hp} \u00b7 ATK ${mo.atk} \u00b7 ${COIN_ICON_HTML}${mo.coins[0]}-${mo.coins[1]} +${mo.xp}xp \u00b7 \u26a1${mo.energy}`;
       const btn = card.querySelector('.mo-btn');
       btn.disabled = !mo.canFight || rpg.cooldownMs > 0;
       btn.textContent = rpg.cooldownMs > 0
@@ -3158,7 +3199,7 @@ function renderExplore(d) {
     card.querySelector('.ex-ico').textContent = a.icon;
     card.querySelector('.ex-name').textContent = a.name;
     card.querySelector('.ex-desc').textContent = a.desc;
-    card.querySelector('.ex-meta').textContent = `${a.duration}s \u00b7 \u26a1${a.energy} \u00b7 \ud83e\ude99${a.coins[0]}-${a.coins[1]} \u00b7 +${a.xp}xp \u00b7 cd ${a.cooldown}s`;
+    card.querySelector('.ex-meta').innerHTML = `${a.duration}s \u00b7 \u26a1${a.energy} \u00b7 ${COIN_ICON_HTML}${a.coins[0]}-${a.coins[1]} \u00b7 +${a.xp}xp \u00b7 cd ${a.cooldown}s`;
     const btn = card.querySelector('.ex-btn');
     btn.disabled = a.active || d.dead;
     btn.textContent = a.active ? `\u23f3 Out exploring... ${Math.max(0, Math.ceil((a.endsAt - Date.now()) / 1000))}s` : a.cooldownRemainingMs > 0 ? `\u23f3 ${Math.ceil(a.cooldownRemainingMs / 1000)}s` : '\ud83c\udf10 Explore';
@@ -3333,7 +3374,7 @@ function renderQuestsPop() {
       btn.disabled = true;
       btn.textContent = '\u2705 Claimed';
     } else {
-      btn.textContent = `+${q.rewardCoins || 40} coins`;
+      btn.textContent = `+${q.rewardCoins || 40} ${COIN_ICON_HTML}`;
       btn.disabled = !def.done;
       btn.addEventListener('click', async () => {
         const res = await act('claimQuest', { questId: def.id });
@@ -3462,7 +3503,7 @@ function renderCalendar() {
   el('checkin-streak').textContent = `${daily.streak}-day streak \u00b7 best ${daily.best}`;
   el('checkin-preview').textContent = daily.claimedToday
     ? '\u2705 Checked in today \u2014 next reward tomorrow!'
-    : `Today's reward: +${daily.nextReward} coins`;
+    : `Today's reward: +${daily.nextReward} ${COIN_ICON_HTML}`;
   const btn = el('checkin-claim');
   btn.disabled = daily.claimedToday;
   btn.textContent = daily.claimedToday ? '\u2705 Come back tomorrow!' : '\u{1F331} Check In & Claim';
