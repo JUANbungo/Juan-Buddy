@@ -108,7 +108,7 @@ function maybeShowNameModal() {
   const modal = el('name-modal');
   if (!modal || namedAlready() || !latest) return;
   const s = latest.state;
-  if (s && s.pet && s.pet.name === 'Buddy' && s.pet.stage === 'egg') {
+  if (s && s.pet && s.pet.name === 'Buddy' && s.pet.stage === 'egg' && modal.classList.contains('hidden')) {
     modal.classList.remove('hidden');
     const input = el('name-input');
     if (input) {
@@ -2809,7 +2809,8 @@ if (nameModal && nameInput) {
   const submitName = async () => {
     const name = (nameInput.value || '').trim().slice(0, 16);
     if (!name) { showToast('Nickname is too short! 🥺'); return; }
-    const res = await api.action('rename', { name });
+    let res = null;
+    try { res = await api.action('rename', { name }); } catch (err) { /* never block the modal */ }
     closeNameModal();
     if (sfx) sfx.play('happy');
     showToast((res && res.message) || '. ..');
@@ -2976,6 +2977,26 @@ const monsterCards = {};
 const gearShopCards = {};
 const exploreCards = {};
 let gearGachaBusy = false;
+function monsterPortraitCandidates(id) {
+  return [
+    `../../assets/sprites/battle/monsters/${id}/frames_4x/idle/${id}_idle_01.png`,
+    `../../assets/sprites/battle/monsters/${id}/${id}_static.png`,
+    `../../assets/sprites/battle/monsters/${id}/frames/${id}_frame_01.png`,
+  ];
+}
+function setMonsterPortrait(icoEl, mo, candidates, idx) {
+  icoEl.innerHTML = '';
+  const img = document.createElement('img');
+  img.className = 'pixelated mo-sprite';
+  img.alt = mo.name;
+  img.draggable = false;
+  img.addEventListener('error', () => {
+    if (idx + 1 < candidates.length) setMonsterPortrait(icoEl, mo, candidates, idx + 1);
+    else icoEl.textContent = mo.icon;
+  });
+  img.src = candidates[idx];
+  icoEl.appendChild(img);
+}
 
 function rpgUnlock(d, id) {
   return (d.rpg && d.rpg.unlocks.find((u) => u.id === id)) || { unlocked: false, daysLeft: 99, day: 99, icon: '', name: '', desc: '' };
@@ -3014,17 +3035,10 @@ function renderRpg(d) {
       const card = monsterCards[mo.id];
       card.classList.toggle('locked', !mo.canFight);
       const icoEl = card.querySelector('.mo-ico');
-      const spriteSrc = `../../assets/sprites/battle/monsters/${mo.id}/${mo.id}_static.png`;
-      if (icoEl.dataset.imgSrc !== spriteSrc) {
-        icoEl.dataset.imgSrc = spriteSrc;
-        icoEl.innerHTML = '';
-        const img = document.createElement('img');
-        img.className = 'pixelated mo-sprite';
-        img.alt = mo.name;
-        img.draggable = false;
-        img.addEventListener('error', () => { icoEl.textContent = mo.icon; });
-        img.src = spriteSrc;
-        icoEl.appendChild(img);
+      const pidKey = `${mo.id}:0`;
+      if (icoEl.dataset.portrait !== pidKey) {
+        icoEl.dataset.portrait = pidKey;
+        setMonsterPortrait(icoEl, mo, monsterPortraitCandidates(mo.id), 0);
       }
       card.querySelector('.mo-name').textContent = mo.name;
       card.querySelector('.mo-lvl').textContent = `Lv ${mo.lvl} monster`;
