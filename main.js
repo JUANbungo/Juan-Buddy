@@ -132,6 +132,12 @@ function runAction(action, payload) {
       result = { ok: true, message: msg };
       break;
     }
+    case 'adminAddGold':
+      result = engine.adminAddGold(state);
+      break;
+    case 'adminAddExp':
+      result = engine.adminAddExp(state);
+      break;
     case 'reset':
       result = resetState();
       break;

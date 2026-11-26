@@ -89,6 +89,15 @@ body.eco-polished img,
   image-rendering: crisp-edges;
 }
 
+.bag-coin-icon {
+  width: 16px;
+  height: 16px;
+  vertical-align: -3px;
+}
+.b-btn .bag-coin-icon {
+  pointer-events: none;
+}
+
 /* Bamboo / Parchment Panels & Modals */
 .eco-panel,
 body.eco-polished .card,

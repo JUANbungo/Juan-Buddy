@@ -238,9 +238,9 @@ const GEAR_GACHA = {
   pool: {
     mythic: ['void_saber', 'cosmic_aegis', 'starfall_charm'],
     legendary: ['phoenix_blade', 'sunforged_plate'],
-    epic: ['storm_lance', 'tide_scale'],
-    rare: ['wind_bow', 'shadow_cloak'],
-    common: [],
+    epic: ['storm_lance', 'tide_scale', 'sun_lance', 'dragon_mail', 'star_brooch'],
+    rare: ['wind_bow', 'shadow_cloak', 'kris', 'samurai_plate', 'moon_ring'],
+    common: ['wood_sword', 'bamboo_katana', 'straw_hat', 'barong_vest', 'dream_charm'],
   },
 };
 
@@ -569,12 +569,20 @@ function buyGear(state, gearId) {
   if (!rpgUnlocked(state, 'gear')) return { ok: false, message: '\ud83d\udee1\ufe0f Gear Forge unlocks at 14 days played!' };
   const g = gearDef(gearId);
   if (!g) return { ok: false, message: 'Unknown gear.' };
-  if (g.gachaOnly) return { ok: false, message: '\ud83c\udfb0 This gear is gacha-only \u2014 try the Equipment Wish!' };
   if (state.gearOwned.includes(g.id)) return { ok: false, message: 'Already owned \u2014 equip it in the Gear tab!' };
-  if (state.coins < g.cost) return { ok: false, message: `\ud83e\ude99 Not enough coins \u2014 ${g.name} costs ${g.cost}.` };
-  state.coins -= g.cost;
-  state.gearOwned.push(g.id);
-  return { ok: true, message: `\ud83d\udee1\ufe0f Bought ${g.icon} ${g.name}! Equip it sa Gear tab.` };
+  return { ok: false, message: '\ud83c\udfaf Gear is no longer bought \u2014 win it in the Equipment Wish gacha!' };
+}
+
+function adminAddGold(state) {
+  state.coins += 1000;
+  state.stats.coinsEarned += 1000;
+  return { ok: true, message: '\ud83d\udedb\ufe0f ADMIN: +1,000 coins added (testing).' };
+}
+
+function adminAddExp(state) {
+  state.pet.xp += 100;
+  applyLevelUps(state);
+  return { ok: true, message: `\ud83d\udedb\ufe0f ADMIN: +100 EXP added (testing) \u2014 Lv ${state.pet.level}.` };
 }
 
 function equipGear(state, gearId) {
@@ -1630,7 +1638,7 @@ function itemsStats(state) {
     evolved: !!state.pet.evolved,
     evolveAt: EVOLVE_LEVEL,
     slots: ITEM_SLOTS,
-    shop: ITEMS.map((it) => ({
+    shop: ITEMS.filter((it) => it.kind !== 'equipment').map((it) => ({
       ...it,
       rarity: itemRarityOf(it),
       owned: inv.owned.includes(it.id),
@@ -1664,7 +1672,7 @@ function rpgStats(state) {
       owned: [...state.gearOwned],
       bonus: gb,
     },
-    gearShop: GEAR.filter((g) => !g.gachaOnly).map((g) => ({
+    gearShop: GEAR.map((g) => ({
       ...g,
       owned: state.gearOwned.includes(g.id),
       equipped: state.gear[g.slot] === g.id,
@@ -1710,6 +1718,8 @@ return {
   claimQuest,
   buyShopPet,
   pullGacha,
+  adminAddGold,
+  adminAddExp,
   buySkin,
   setSkin,
   saveCode,

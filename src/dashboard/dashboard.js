@@ -804,6 +804,16 @@ on('btn-admin-day','click', async () => {
   await act('adminAddDay');
 });
 
+on('btn-admin-gold','click', async () => {
+  if (sfx) sfx.play('click');
+  await act('adminAddGold');
+});
+
+on('btn-admin-exp','click', async () => {
+  if (sfx) sfx.play('click');
+  await act('adminAddExp');
+});
+
 // ==== Splash / loading screen ====
 let splashReadyShown = false;
 function splashSetup() {
@@ -1713,16 +1723,8 @@ const COSMETIC_PNG = new Set([
   'cos_witch_hat', 'cos_salakot', 'cos_sakura_crown', 'cos_gold_crown', 'cos_ushanka', 'cos_shades',
   'cos_red_scarf', 'cos_bell_collar', 'cos_bowtie', 'cos_angel_wings', 'cos_lantern', 'cos_parol_aura',
 ]);
-const GEAR_PNG = {
-  wood_sword: 'eq_bamboo_staff', bamboo_katana: 'eq_bamboo_staff', kris: 'eq_kampilan_sword',
-  sun_lance: 'eq_kampilan_sword', storm_lance: 'eq_kampilan_sword', phoenix_blade: 'eq_kampilan_sword',
-  void_saber: 'eq_kampilan_sword', wind_bow: 'eq_bamboo_staff',
-  straw_hat: 'eq_rattan_shield', barong_vest: 'eq_rattan_shield', samurai_plate: 'eq_rattan_shield',
-  dragon_mail: 'eq_rattan_shield', cosmic_aegis: 'eq_rattan_shield', sunforged_plate: 'eq_rattan_shield',
-  tide_scale: 'eq_rattan_shield', shadow_cloak: 'eq_rattan_shield',
-  dream_charm: 'eq_agimat_amulet', moon_ring: 'eq_promise_ring', star_brooch: 'eq_agimat_amulet',
-  starfall_charm: 'eq_agimat_amulet',
-};
+// Gear (weapons/armor/charms) adds stat bonuses but no longer renders on the pet —
+// only cosmetics (cos_*) wear on the buddy.
 
 function equippedOverlays(d2) {
   if (!latest || !latest.state) return [];
@@ -1749,9 +1751,7 @@ function equippedOverlays(d2) {
   const out = [];
   const listOf = (iconFn, id, slot) => {
     if (!id || !iconFn(id)) return;
-    let pngId = null;
-    if (COSMETIC_PNG.has(id)) pngId = id;
-    else if (GEAR_PNG[id]) pngId = GEAR_PNG[id];
+    const pngId = COSMETIC_PNG.has(id) ? id : null;
     out.push({ slot, emo: iconFn(id), pngId });
   };
   listOf(iconOf, eq.Head, 'Head');
@@ -1763,7 +1763,7 @@ function equippedOverlays(d2) {
   listOf(gearIconOf, ge.weapon, 'Weapon');
   listOf(gearIconOf, ge.armor, 'Armor');
   listOf(gearIconOf, ge.charm, 'Relic');
-  return out.filter((o) => o.pngId || o.emo);
+  return out.filter((o) => o.pngId);
 }
 
 const PET_ANCHORS = {
@@ -1822,8 +1822,10 @@ function contentBoxOf(img) {
   return out;
 }
 
-function drawEquippedOnPet(now) {
-  const overlays = equippedOverlays();
+function drawEquippedOnPet(now, layer) {
+  const all = equippedOverlays();
+  if (!all.length) return;
+  const overlays = layer === 'back' ? all.filter((o) => o.slot === 'Back') : all.filter((o) => o.slot !== 'Back');
   if (!overlays.length) return;
   const info = petDrawInfo || { cx: petWalk.x, topY: petWalk.y - 56, contentH: 52, yOff: 0, dir: petWalk.dir || 1 };
   const dir = info.dir;
@@ -1835,7 +1837,8 @@ function drawEquippedOnPet(now) {
   stageCtx.save();
   for (const o of overlays) {
     const a = anchors[o.slot] || anchors.Relic;
-    const iw = Math.max(14, Math.round(ch * a.w));
+    const isShades = o.slot === 'Head' && o.pngId === 'cos_shades';
+    const iw = Math.max(12, Math.round(ch * a.w * (isShades ? 0.9 : 1)));
     const x = cx + dir * ch * a.fx;
     let y;
     if (o.slot === 'Head') {
@@ -1850,7 +1853,7 @@ function drawEquippedOnPet(now) {
         const pcb = contentBoxOf(img);
         let dy = y - iw / 2;
         if (o.slot === 'Head' && o.pngId === 'cos_shades') {
-          dy = (info.topY + ch * a.fy + ch * 0.14) - iw * (pcb.top + pcb.bottom) / 2;
+          dy = (info.topY + ch * a.fy + ch * 0.17) - iw * (pcb.top + pcb.bottom) / 2;
         } else if (o.slot === 'Head') {
           const headLine = info.topY + ch * a.fy + ch * (a.snug === undefined ? 0.07 : a.snug);
           dy = headLine - iw * pcb.bottom;
@@ -2138,7 +2141,8 @@ function drawStagePet(now) {
   const depthF = (petWalk.y - WALK_Y_MIN) / (WALK_Y_MAX - WALK_Y_MIN);
   const boxSize = Math.round(264 * stageScale * (0.8 + 0.28 * depthF));
   petDraw = { cx: petWalk.x, gy: petWalk.y, size: boxSize, dir: petWalk.dir };
-  petDrawInfo = null;
+  // keep petDrawInfo from the previous frame — the back-layer cosmetics pass
+  // renders before this frame's sprite is measured (1-frame staleness is invisible)
 
   stageCtx.save();
   stageCtx.globalAlpha = 0.22;
@@ -2164,6 +2168,7 @@ function drawStagePet(now) {
   }
 
   if (st === 'EAT') drawFoodBowl(petWalk.x + 42 * petWalk.dir, petWalk.y, now);
+  drawEquippedOnPet(now, 'back');
 
   const phaseTint = d.phase && d.phase.tint;
   const wTint = weatherOverlay(d.weather ? d.weather.id : 'clear');
@@ -2280,7 +2285,7 @@ function drawStagePet(now) {
     if (petWalk.moving && Math.random() < 0.09) spawnFx('spark', petWalk.x - petWalk.dir * boxSize * 0.3, petWalk.y - 4, { vy: -0.15, size: 10 });
   }
 
-  drawEquippedOnPet(now);
+  drawEquippedOnPet(now, 'front');
   drawBattleFx(now);
 
   for (let i = stageFx.length - 1; i >= 0; i -= 1) {
@@ -3113,8 +3118,8 @@ function renderRpg(d) {
       } else if (rpg.gear.owned.includes(g.id)) {
         btn.textContent = '\ud83e\uddf3 Equip';
       } else {
-        btn.textContent = `\ud83e\ude99 ${g.cost}`;
-        btn.disabled = d.coins < g.cost;
+        btn.textContent = '\ud83c\udfaf From Equipment Wish';
+        btn.disabled = true;
       }
     }
   }
@@ -3424,7 +3429,7 @@ function renderBag(d) {
     card._els.slot.textContent = `${rlabel ? rlabel + ' \u00b7 ' : ''}${it.kind === 'cosmetic' ? `Cosmetic \u00b7 ${it.slot}` : `${it.type}${it.kind === 'special' ? ' \u00b7 keepsake' : ''}`}`;
     const btn = card._els.btn;
     if (!it.owned) {
-      btn.textContent = `\ud83e\ude99${it.cost}`;
+      btn.innerHTML = `<img class="eco-pixel bag-coin-icon" src="assets/icons/coin_gold_leaf.png" alt="" draggable="false"> ${it.cost}`;
       btn.disabled = !!latest.state.dead || latest.state.coins < it.cost;
     } else if (it.equipped) {
       btn.textContent = 'Unequip';

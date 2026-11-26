@@ -157,6 +157,12 @@
         result = { ok: true, message: msg };
         break;
       }
+      case 'adminAddGold':
+        result = engine.adminAddGold(state);
+        break;
+      case 'adminAddExp':
+        result = engine.adminAddExp(state);
+        break;
       case 'reset': {
         const fresh = engine.defaultState();
         Object.keys(state).forEach((key) => { delete state[key]; });
