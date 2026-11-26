@@ -153,18 +153,6 @@ const ITEMS = [
   { id: 'eq_hermes_boots', kind: 'equipment', type: 'Relic', icon: '\ud83d\udc62', name: 'Swift Wind Boots', cost: 1150, agi: 5 },
   { id: 'eq_evo_stone', kind: 'special', type: 'Special', icon: '\ud83d\udd2e', name: 'Ascension Evo Stone', cost: 1500 },
   { id: 'eq_promise_ring', kind: 'special', type: 'Special', icon: '\ud83d\udc8d', name: 'Couple Promise Ring', cost: 2000 },
-  { id: 'cos_witch_hat', kind: 'cosmetic', slot: 'Head', icon: '\ud83e\uddd9', name: 'Mini Witch Hat', cost: 420, mag: 2, luk: 1 },
-  { id: 'cos_salakot', kind: 'cosmetic', slot: 'Head', icon: '\ud83c\udffa', name: 'Golden Salakot', cost: 380, def: 2, luk: 1 },
-  { id: 'cos_sakura_crown', kind: 'cosmetic', slot: 'Head', icon: '\ud83c\udf38', name: 'Sakura Crown', cost: 420, agi: 2, luk: 1 },
-  { id: 'cos_gold_crown', kind: 'cosmetic', slot: 'Head', icon: '\ud83d\udc51', name: 'Royal Gold Crown', cost: 760, str: 2, mag: 2 },
-  { id: 'cos_ushanka', kind: 'cosmetic', slot: 'Head', icon: '\ud83e\udde2', name: 'Cozy Ushanka', cost: 380, def: 2, str: 1 },
-  { id: 'cos_shades', kind: 'cosmetic', slot: 'Head', icon: '\ud83d\ude0e', name: 'Cool Pixel Shades', cost: 400, agi: 2, str: 1 },
-  { id: 'cos_red_scarf', kind: 'cosmetic', slot: 'Neck', icon: '\ud83e\uddf0', name: 'Hero Red Scarf', cost: 360, str: 2, def: 1 },
-  { id: 'cos_bell_collar', kind: 'cosmetic', slot: 'Neck', icon: '\ud83d\dd14', name: 'Gold Bell Collar', cost: 360, luk: 2, agi: 1 },
-  { id: 'cos_bowtie', kind: 'cosmetic', slot: 'Neck', icon: '\ud83c\udf73', name: 'Dapper Bowtie', cost: 340, agi: 2, luk: 1 },
-  { id: 'cos_angel_wings', kind: 'cosmetic', slot: 'Back', icon: '\ud83d\udc7c', name: 'Angel Wings', cost: 820, agi: 2, def: 2 },
-  { id: 'cos_lantern', kind: 'cosmetic', slot: 'Back', icon: '\ud83c\udfee', name: 'Floating Lantern', cost: 780, mag: 2, luk: 2 },
-  { id: 'cos_parol_aura', kind: 'cosmetic', slot: 'Back', icon: '\u2b50', name: 'Parol Star Aura', cost: 900, luk: 3, mag: 1 },
 ];
 const ITEM_SLOTS = ['Head', 'Neck', 'Back', 'Weapon', 'Armor', 'Relic'];
 
@@ -476,7 +464,7 @@ function equipItem(state, itemId) {
   const it = ITEMS.find((x) => x.id === itemId);
   if (!it) return { ok: false, message: 'Unknown item.' };
   if (!state.items.owned.includes(it.id)) return { ok: false, message: 'Not owned yet.' };
-  const key = it.kind === 'cosmetic' ? it.slot : it.type;
+  const key = it.type;
   if (!ITEM_SLOTS.includes(key)) return { ok: false, message: '\ud83d\udd2e Use this stone from the Bag tab instead!' };
   if (state.items.equipped[key] === it.id) {
     state.items.equipped[key] = null;
@@ -1623,7 +1611,7 @@ function cleanWaste(state, index) {
 }
 
 function slotKeyOf(it) {
-  return it.kind === 'cosmetic' ? it.slot : it.type;
+  return it.type;
 }
 
 function itemsStats(state) {
