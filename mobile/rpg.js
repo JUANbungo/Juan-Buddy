@@ -1,5 +1,5 @@
 
-// ===== RPG layer: battle, gear, explore, path, waste =====
+// ===== RPG layer: battle, explore, path, waste (Gear & Cozy Bag disabled for rework) =====
 
 function rpgUnlockInfo(d, id) {
   return d.rpg.unlocks.find((u) => u.id === id);
@@ -90,94 +90,6 @@ function renderBattle(d) {
     grid.appendChild(row);
   }
   record.textContent = `Battle log: ${r.battle.wins} wins, ${r.battle.losses} losses \u2014 20s rest between fights.`;
-}
-
-const gearShopCards = {};
-
-function gearStars(rarity) {
-  return { common: 1, rare: 2, epic: 3, legendary: 5, mythic: 6 }[rarity] || 1;
-}
-
-function renderGear(d) {
-  const r = d.rpg;
-  const lock = $('m-gear-lock');
-  const unlock = rpgUnlockInfo(d, 'gear');
-  const slots = $('m-gear-slots');
-  const kit = $('m-gear-gacha-kit');
-  const shop = $('m-gear-shop');
-  if (!unlock.unlocked) {
-    lock.classList.remove('hidden');
-    lock.textContent = `${unlock.icon} ${unlock.name} unlocks after ${unlock.day} days of play \u2014 ${unlock.daysLeft} day${unlock.daysLeft === 1 ? '' : 's'} to go!`;
-    slots.classList.add('hidden');
-    kit.classList.add('hidden');
-    shop.innerHTML = '';
-    return;
-  }
-  lock.classList.add('hidden');
-  slots.classList.remove('hidden');
-  kit.classList.remove('hidden');
-  const eq = r.gear.equipped;
-  const gearById = (id) => engine.GEAR.find((g) => g.id === id);
-  const slotLine = (emoji, key) => {
-    const g = eq[key] ? gearById(eq[key]) : null;
-    return `${emoji} ${g ? g.icon + ' ' + g.name : 'empty'}`;
-  };
-  slots.innerHTML = `<div class="m-gear-slot">${slotLine('\u{1F5E1}\uFE0F', 'weapon')}</div>` +
-    `<div class="m-gear-slot">${slotLine('\u{1F6E1}\uFE0F', 'armor')}</div>` +
-    `<div class="m-gear-slot">${slotLine('\U0001F4AB', 'charm')}</div>` +
-    `<div class="m-gear-slot">Bonus: \u2694\uFE0F+${r.gear.bonus.atk} \u{1F6E1}\uFE0F+${r.gear.bonus.def} \u{1F4A8}+${r.gear.bonus.spd}</div>`;
-  const gr = r.gearGacha;
-  $('m-gear-gacha-rates').textContent = `Rates: ${gr.rates.map((g) => `${'\u2b50'.repeat(g.stars)} ${g.name} ${g.rate < 1 ? g.rate : g.rate + '%'}`).join(' \u00b7 ')}`;
-  $('m-gear-gacha-stats').textContent = `Pulls: ${gr.pulls} \u00b7 Legendary: ${gr.fiveStars} \u00b7 Mythic: ${gr.mythics} \u00b7 pool: ${gr.poolPreview.length} gacha-only gear`;
-  shop.innerHTML = '';
-  for (const g of r.gearShop) {
-    let row = gearShopCards[g.id] || document.createElement('div');
-    if (!gearShopCards[g.id]) {
-      row.className = 'activity-item';
-      row.innerHTML = `
-        <div>
-          <div class="a-name"></div>
-          <div class="a-desc"></div>
-          <div class="a-rewards"></div>
-        </div>
-        <button class="btn a-btn"></button>`;
-      row.querySelector('.a-btn').addEventListener('click', () => {
-        if (!g.owned) run('buyGear', { gearId: g.id });
-        else run('equipGear', { gearId: g.id });
-      });
-      gearShopCards[g.id] = row;
-    }
-    row.querySelector('.a-name').textContent = `${g.icon} ${g.name} (${g.slot})`;
-    row.querySelector('.a-desc').textContent = `${'\u2b50'.repeat(gearStars(g.rarity))} ${'ATK +' + (g.atk || 0)} ${'DEF +' + (g.def || 0)} ${'SPD +' + (g.spd || 0)}`.replace(/\s+/g, ' ').trim();
-    row.querySelector('.a-rewards').textContent = '';
-    const btn = row.querySelector('.a-btn');
-    if (!g.owned) {
-      btn.disabled = state.dead || state.coins < g.cost;
-      btn.textContent = `\u{1F4B0}${g.cost}`;
-    } else if (g.equipped) {
-      btn.disabled = false;
-      btn.textContent = 'Unequip';
-    } else {
-      btn.disabled = state.dead;
-      btn.textContent = 'Equip';
-    }
-    shop.appendChild(row);
-  }
-}
-
-let gearWishBusy = false;
-
-async function mPullGear(times) {
-  if (gearWishBusy) return;
-  gearWishBusy = true;
-  if (sfx) sfx.play('click');
-  const res = await run('pullGearGacha', { times });
-  await new Promise((r) => setTimeout(r, 700));
-  if (res && res.ok !== false && res.best && sfx) sfx.playGacha(res.best.rarity);
-  if (res && res.ok !== false && res.best && res.best.stars >= 5) {
-    showToast(`\u{1F308} ${res.best.rarity.toUpperCase()} GEAR!! ${res.best.gearUnlocked || res.best.name} \u2014 galing!! \u{1F389}`, 6000);
-  }
-  gearWishBusy = false;
 }
 
 const exploreCards = {};
@@ -295,11 +207,6 @@ if (wasteBtn) wasteBtn.addEventListener('click', () => {
   render(engine.derivedStats(state));
 });
 
-const gG1 = $('m-gear-gacha-1');
-if (gG1) gG1.addEventListener('click', () => mPullGear(1));
-const gG10 = $('m-gear-gacha-10');
-if (gG10) gG10.addEventListener('click', () => mPullGear(10));
-
 const pathCards = $('m-path-cards');
 if (pathCards) pathCards.addEventListener('click', (e) => {
   const btn = e.target.closest('button[data-path]');
@@ -315,7 +222,6 @@ render = function wrappedRender(d) {
   try {
     renderWasteUi(d);
     renderBattle(d);
-    renderGear(d);
     renderExplore(d);
     renderPath(d);
   } catch (err) {
@@ -324,62 +230,6 @@ render = function wrappedRender(d) {
 };
 
 render(engine.derivedStats(state));
-
-// ===== Cozy Bag (mobile): PNG-iconed cosmetics & equipment =====
-const itemCards = {};
-
-function itemBonusLabel(it) {
-  const parts = [];
-  if (it.str) parts.push(`+${it.str} STR`);
-  if (it.def) parts.push(`+${it.def} DEF`);
-  if (it.agi) parts.push(`+${it.agi} AGI`);
-  if (it.mag) parts.push(`+${it.mag} MAG`);
-  if (it.luk) parts.push(`+${it.luk} LUK`);
-  return parts.length ? parts.join(' ') : 'Keepsake';
-}
-
-function renderItems(d) {
-  const inv = d.rpg.items;
-  const list = $('m-items');
-  if (!list) return;
-  list.innerHTML = '';
-  for (const it of inv.shop) {
-    let row = itemCards[it.id] || document.createElement('div');
-    if (!itemCards[it.id]) {
-      row.className = 'activity-item';
-      const ico = document.createElement('img');
-      ico.className = 'm-item-ico pixelated';
-      ico.onerror = () => { ico.replaceWith(document.createTextNode(it.icon)); };
-      ico.src = it.id.startsWith('cos_') ? `sprites/items/cosmetics/${it.id}.png` : `sprites/items/equipment/${it.id}.png`;
-      row.appendChild(ico);
-      const mid = document.createElement('div');
-      mid.innerHTML = '<div class="a-name"></div><div class="a-rewards"></div>';
-      row.appendChild(mid);
-      const btn = document.createElement('button');
-      btn.className = 'btn a-btn';
-      row.appendChild(btn);
-      row.querySelector('.a-btn').addEventListener('click', () => {
-        if (!it.owned) run('buyItem', { itemId: it.id });
-        else run('equipItem', { itemId: it.id });
-      });
-      itemCards[it.id] = row;
-    }
-    row.querySelector('.a-name').textContent = `${it.icon} ${it.name}`;
-    row.querySelector('.a-rewards').textContent = `${itemBonusLabel(it)} \u00b7 ${it.kind === 'cosmetic' ? it.slot : it.type}`;
-    const btn = row.querySelector('.a-btn');
-    if (!it.owned) {
-      btn.disabled = state.dead || state.coins < it.cost;
-      btn.textContent = `\u{1F4B0}${it.cost}`;
-    } else if (it.equipped) {
-      btn.disabled = state.dead;
-      btn.textContent = 'Unequip';
-    } else {
-      btn.disabled = state.dead;
-      btn.textContent = 'Equip';
-    }
-    list.appendChild(row);
-  }
-}
 
 // ==== Level-up perk modal ====
 let perkKeyShownMobile = null;
@@ -438,13 +288,8 @@ document.addEventListener('click', async (e) => {
 });
 
 const baseWrapped = render;
-render = function renderWithItems(d) {
+render = function renderWithPerks(d) {
   baseWrapped(d);
-  try {
-    renderItems(d);
-  } catch (err) {
-    /* keep UI alive */
-  }
   try {
     renderPerkModal(d);
   } catch (err) {
@@ -452,5 +297,4 @@ render = function renderWithItems(d) {
   }
 };
 
-renderItems(engine.derivedStats(state));
 renderPerkModal(engine.derivedStats(state));

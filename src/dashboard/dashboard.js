@@ -190,9 +190,8 @@ function playActionSound(action, res) {
     setSkin: 'happy', claimDaily: 'daily', newGame: 'hatch', startActivity: 'click',
     toggleWork: 'click', toggleSleep: 'click', exportSave: 'click', importSave: 'click',
     rename: 'click', setSpecies: 'happy',
-    battleMonster: 'happy', allocateStat: 'levelup', buyGear: 'buy', equipGear: 'happy',
-    pullGearGacha: 'coin', choosePath: 'achv', cleanWaste: 'click',
-    buyItem: 'buy', equipItem: 'happy', useEvoStone: 'evolve', choosePerk: 'levelup',
+    battleMonster: 'happy', allocateStat: 'levelup', useEvoStone: 'evolve', choosePerk: 'levelup',
+    choosePath: 'achv', cleanWaste: 'click',
   };
   sfxOnce(map[action] || 'click');
   if (action === 'feed' && cuteSfx) cuteSfx.play('munch');
@@ -350,7 +349,6 @@ function render(snapshot) {
   renderExtras(d);
   renderRpg(d);
   renderExplore(d);
-  renderBag(d);
   renderPetShop(d);
 
   if (d.rpg.items.evolved && !evoTrack.shown) {
@@ -1723,8 +1721,7 @@ const COSMETIC_PNG = new Set([
   'cos_witch_hat', 'cos_salakot', 'cos_sakura_crown', 'cos_gold_crown', 'cos_ushanka', 'cos_shades',
   'cos_red_scarf', 'cos_bell_collar', 'cos_bowtie', 'cos_angel_wings', 'cos_lantern', 'cos_parol_aura',
 ]);
-// Gear (weapons/armor/charms) adds stat bonuses but no longer renders on the pet —
-// only cosmetics (cos_*) wear on the buddy.
+// Gear (weapons/armor/charms) feature is disabled for rework — only cosmetics (cos_*) wear on the buddy.
 
 function equippedOverlays(d2) {
   if (!latest || !latest.state) return [];
@@ -1733,21 +1730,12 @@ function equippedOverlays(d2) {
   const r = latest.derived;
   const rpg = r && r.rpg;
   const shop = rpg && rpg.items ? rpg.items.shop : null;
-  const gearList = rpg && rpg.gearShop ? rpg.gearShop : null;
-  const poolList = rpg && rpg.gearGacha ? rpg.gearGacha.poolPreview || [] : [];
   const iconOf = (id) => {
     if (!id) return null;
     const it = shop ? shop.find((x) => x.id === id) : null;
     return it ? it.icon : null;
   };
-  const gearIconOf = (id) => {
-    if (!id) return null;
-    const gd = gearList ? gearList.find((x) => x.id === id) : null;
-    const pd = !gd ? poolList.find((x) => x.id === id) : null;
-    return gd ? gd.icon : (pd ? pd.icon : null);
-  };
   const eq = (st2.items && st2.items.equipped) || {};
-  const ge = (r && r.gear && r.gear.equipped) || {};
   const out = [];
   const listOf = (iconFn, id, slot) => {
     if (!id || !iconFn(id)) return;
@@ -1760,9 +1748,6 @@ function equippedOverlays(d2) {
   listOf(iconOf, eq.Armor, 'Armor');
   listOf(iconOf, eq.Relic, 'Relic');
   listOf(iconOf, eq.Weapon, 'Weapon');
-  listOf(gearIconOf, ge.weapon, 'Weapon');
-  listOf(gearIconOf, ge.armor, 'Armor');
-  listOf(gearIconOf, ge.charm, 'Relic');
   return out.filter((o) => o.pngId);
 }
 
@@ -2573,8 +2558,6 @@ function renderExtras(d) {
   if (ffb) { const on = d.rewards && d.rewards.freeFoodAvailable; ffb.disabled = !on; ffb.textContent = on ? '🎁 Free Daily Meal!' : '✅ Claimed today'; }
   const chipC = el('btn-gacha-free');
   if (chipC) { const on = d.rewards && d.rewards.freePullAvailable; chipC.disabled = !on; chipC.textContent = on ? '🎁 Free Daily Pull!' : 'Free pull used — resets at midnight'; }
-  const chipG = el('btn-gear-gacha-free');
-  if (chipG) { const on = d.rewards && d.rewards.freePullAvailable; chipG.disabled = !on; chipG.textContent = on ? '🎁 Free Daily Wish!' : 'Free wish used — resets at midnight'; }
 
   if (d.gacha && d.gacha.rates) {
     el('gacha-rates').textContent = `Rates: ${d.gacha.rates.map((g) => `${'★'.repeat(g.stars)} ${g.name} ${g.rate < 1 ? g.rate : g.rate + '%'}`).join(' · ')}`;
@@ -2979,9 +2962,7 @@ if (brandLogoEl) {
 }
 
 const monsterCards = {};
-const gearShopCards = {};
 const exploreCards = {};
-let gearGachaBusy = false;
 function monsterPortraitCandidates(id) {
   return [
     `../../assets/sprites/battle/monsters/${id}/frames_4x/idle/${id}_idle_01.png`,
@@ -3055,73 +3036,6 @@ function renderRpg(d) {
         : !mo.canFight ? `Lv ${mo.lvl} + ${mo.energy}\u26a1` : '\u2694\ufe0f Fight';
     }
     el('battle-record').textContent = `Record: ${rpg.battle.wins}W \u2014 ${rpg.battle.losses}L \u00b7 Day ${rpg.daysPlayed} of your journey`;
-  }
-
-  const gu = rpgUnlock(d, 'gear');
-  el('gear-lock').classList.toggle('hidden', gu.unlocked);
-  el('gear-body').classList.toggle('hidden', !gu.unlocked);
-  if (!gu.unlocked) {
-    el('gear-lock').textContent = `${gu.icon || '\ud83d\udee1\ufe0f'} ${gu.name} opens in ${gu.daysLeft} more day${gu.daysLeft === 1 ? '' : 's'} (${rpg.daysPlayed}/14 days)`;
-  } else {
-    const slots = el('gear-slots');
-    if (slots.childElementCount === 0) {
-      for (const sl of rpg.gear.slots) {
-        const sdiv = document.createElement('div');
-        sdiv.className = 'gear-slot';
-        sdiv.innerHTML = `<div class="gs-ico"></div><div class="gs-kind muted small">${sl.name}</div><div class="gs-name"></div><div class="gs-stats small muted"></div>`;
-        slots.appendChild(sdiv);
-      }
-    }
-    const slotDivs = slots.querySelectorAll('.gear-slot');
-    const bonusTxt = (g) => {
-      const parts = [];
-      if (g.atk) parts.push(`\u2694\ufe0f+${g.atk}`);
-      if (g.def) parts.push(`\ud83d\udee1\ufe0f+${g.def}`);
-      if (g.spd) parts.push(`\ud83d\udca8+${g.spd}`);
-      return parts.join(' ');
-    };
-    const equippedIds = [];
-    rpg.gear.slots.forEach((sl, i) => {
-      const sdiv = slotDivs[i];
-      const equippedId = rpg.gear.equipped[sl.id];
-      const def = equippedId ? rpg.gearShop.find((g) => g.id === equippedId) || (rpg.gearGacha && rpg.gearGacha.poolPreview || []).find((g) => g.id === equippedId) || null : null;
-      if (equippedId) equippedIds.push(equippedId);
-      sdiv.querySelector('.gs-ico').textContent = def ? def.icon : '\u2795';
-      sdiv.querySelector('.gs-name').textContent = def ? def.name : 'Empty';
-      sdiv.querySelector('.gs-stats').textContent = def ? bonusTxt(def) : '';
-      sdiv.classList.toggle('filled', !!def);
-    });
-    el('gear-gacha-rates').textContent = `Rates: ${rpg.gearGacha.rates.map((g) => `${'\u2605'.repeat(g.stars)} ${g.name} ${g.rate < 1 ? g.rate : g.rate + '%'}`).join(' \u00b7 ')}`;
-    el('gear-gacha-stats').textContent = `Wishes: ${rpg.gearGacha.pulls} \u00b7 Legendaries: ${rpg.gearGacha.fiveStars} \u00b7 \ud83c\udfaf Mythics: ${rpg.gearGacha.mythics} \u2014 strongest weapons live here! \ud83c\udf40`;
-    const shop = el('gear-shop');
-    if (shop.childElementCount === 0) {
-      for (const g of rpg.gearShop) {
-        const card = document.createElement('div');
-        card.className = `gear-card gr-${g.rarity}`;
-        card.innerHTML = `<div class="gc-ico"></div><div class="gc-name"></div><div class="gc-stats small muted"></div><button class="btn btn-amber gc-btn"></button>`;
-        const btn = card.querySelector('.gc-btn');
-        btn.dataset.gearbuy = g.id;
-        btn.dataset.gearequip = g.id;
-        shop.appendChild(card);
-        gearShopCards[g.id] = card;
-      }
-    }
-    for (const g of rpg.gearShop) {
-      const card = gearShopCards[g.id];
-      card.querySelector('.gc-ico').textContent = g.icon;
-      card.querySelector('.gc-name').textContent = g.name;
-      card.querySelector('.gc-stats').textContent = bonusTxt(g) || '\u2014';
-      const btn = card.querySelector('.gc-btn');
-      btn.disabled = false;
-      if (equippedIds.includes(g.id)) {
-        btn.textContent = '\u2713 Unequip';
-      } else if (rpg.gear.owned.includes(g.id)) {
-        btn.textContent = '\ud83e\uddf3 Equip';
-      } else {
-        btn.textContent = '\ud83c\udfaf From Equipment Wish';
-        btn.disabled = true;
-      }
-    }
   }
 
   const pu = rpgUnlock(d, 'path');
@@ -3227,34 +3141,6 @@ on('monster-grid','click', async (e) => {
   showToast((res && res.message) || '. ..', 2800);
 });
 
-on('gear-shop','click', async (e) => {
-  const buyBtn = e.target.closest('button[data-gearbuy]');
-  const eqBtn = e.target.closest('button[data-gearequip]');
-  if (buyBtn && !eqBtn) {
-    const res = await api.action('buyGear', { gearId: buyBtn.dataset.gearbuy });
-    showToast((res && res.message) || '. ..', 2400);
-  } else if (eqBtn) {
-    const res = await api.action('equipGear', { gearId: eqBtn.dataset.gearequip });
-    showToast((res && res.message) || '. ..', 2400);
-  }
-});
-
-on('gear-slots','click', async (e) => {
-  const sdiv = e.target.closest('.gear-slot');
-  if (!sdiv) return;
-  const idx = Array.from(sdiv.parentElement.children).indexOf(sdiv);
-  const rpg = latest && latest.derived && latest.derived.rpg;
-  if (!rpg) return;
-  const slotId = ['weapon', 'armor', 'charm'][idx];
-  const equipped = rpg.gear.equipped[slotId];
-  if (!equipped) {
-    showToast('\ud83d\uddee Empty slot! Buy or win gear in the list below, then tap Equip.', 2400);
-    return;
-  }
-  const res = await api.action('equipGear', { gearId: equipped });
-  showToast((res && res.message) || '. ..', 2000);
-});
-
 let pathPending = null;
 on('path-cards','click', async (e) => {
   const card = e.target.closest('button[data-choosepath]');
@@ -3278,167 +3164,9 @@ on('explore-grid','click', async (e) => {
   showToast((res && res.message) || '. ..', 2400);
 });
 
-async function pullGearWish(times) {
-  if (gearGachaBusy) return;
-  gearGachaBusy = true;
-  const frame = el('gear-gacha-frame');
-  const resultEl = el('gear-gacha-result');
-  frame.classList.add('spinning');
-  const res = await api.action('pullGearGacha', { times });
-  frame.classList.remove('spinning');
-  if (!res || !res.ok) {
-    sfxOnce('error');
-    showToast((res && res.message) || '. ..', 2200);
-    gearGachaBusy = false;
-    return;
-  }
-  if (cuteSfx) cuteSfx.play('chime');
-  await runWishReveal(res, times);
-  gearGachaBusy = false;
-  const best = res.best || {};
-  sfxOnce(best.rarity === 'mythic' ? 'levelup' : 'coin');
-  if (best.stars >= 4) spawnConfetti(frame, best.stars);
-  resultEl.className = `gacha-result r-${best.rarity}`;
-  resultEl.innerHTML = `<div class="gacha-icon">${best.gearIcon || best.icon || '🎰'}</div><div class="gacha-stars">${'\u2b50'.repeat(best.stars)}</div><div class="gacha-rarity">${best.rarity.toUpperCase()}</div><div class="gacha-reward">${best.gearUnlocked ? `\ud83d\udee1\ufe0f NEW GEAR: ${best.gearUnlocked}<br>` : ''}+\ud83e\ude99${best.coins}</div>`;
-  resultEl.classList.remove('hidden');
-  setTimeout(() => resultEl.classList.add('hidden'), 3400);
-}
 
-on('btn-gear-gacha-free','click', () => pullGearWish(1));
-on('btn-gear-gacha-1','click', () => pullGearWish(1));
-on('btn-gear-gacha-10','click', () => pullGearWish(10));
-
-// ===== Cozy Bag: cosmetics & equipment inventory with PNG item icons =====
+// ===== Evo popup tracking (Cozy Bag feature is disabled for rework) =====
 const evoTrack = { shown: false };
-const bagCards = {};
-
-function itemIconNode(itemId, fallbackEmoji) {
-  const folder = itemId.startsWith('cos_') ? 'cosmetics' : 'equipment';
-  const img = new Image();
-  img.className = 'bag-ico pixelated';
-  img.onerror = () => {
-    const fb = document.createElement('span');
-    fb.className = 'bag-ico';
-    fb.textContent = fallbackEmoji;
-    if (img.parentNode) img.parentNode.replaceChild(fb, img);
-  };
-  img.src = `../../assets/sprites/items/${folder}/${itemId}.png`;
-  return img;
-}
-
-function bonusText(it) {
-  const parts = [];
-  if (it.str) parts.push(`+${it.str} STR`);
-  if (it.def) parts.push(`+${it.def} DEF`);
-  if (it.agi) parts.push(`+${it.agi} AGI`);
-  if (it.mag) parts.push(`+${it.mag} MAG`);
-  if (it.luk) parts.push(`+${it.luk} LUK`);
-  return parts.length ? parts.join(' ') : (it.id === 'eq_evo_stone' ? 'Unlocks Stage 2 Evolution' : 'Keepsake');
-}
-
-const petShopTiles = {};
-function renderPetShop(d) {
-  const wrap = el('pet-shop');
-  if (!wrap || !d.petShop) return;
-  for (const pt of d.petShop) {
-    let card = petShopTiles[pt.id] || document.createElement('div');
-    if (!petShopTiles[pt.id]) {
-      card.className = 'pet-shop-card';
-      card.dataset.shoppet = pt.id;
-      const img = document.createElement('img');
-      const anim = PET_PREVIEW_PNG[pt.id];
-      img.className = 'pixelated petshop-ico';
-      img.src = anim || '';
-      const body = document.createElement('div');
-      body.innerHTML = '<div class="b-name"></div><div class="b-bonus small muted"></div>';
-      const btn = document.createElement('button');
-      btn.className = 'btn btn-violet b-btn';
-      card.appendChild(img);
-      card.appendChild(body);
-      card.appendChild(btn);
-      card._els = { name: body.querySelector('.b-name'), desc: body.querySelector('.b-bonus'), btn };
-      wrap.appendChild(card);
-      petShopTiles[pt.id] = card;
-    }
-    card._els.name.textContent = `${pt.icon} ${pt.name}`;
-    card._els.desc.textContent = pt.desc;
-    const btn = card._els.btn;
-    if (pt.owned) { btn.textContent = '\u2713 Adopted!'; btn.disabled = true; }
-    else {
-      btn.textContent = `\ud83e\ude99${pt.cost.toLocaleString('en-US')}`;
-      btn.disabled = d.coins < pt.cost;
-    }
-  }
-}
-
-on('pet-shop', 'click', async (e) => {
-  const card = e.target.closest('[data-shoppet]');
-  if (!card) return;
-  const btn = card.querySelector('button');
-  if (btn && btn.disabled) return;
-  await act('buyShopPet', { petId: card.dataset.shoppet });
-});
-
-function renderBag(d) {
-  const r = d.rpg;
-  const lock = el('bag-lock');
-  const body = el('bag-body');
-  const unlock = (r.unlocks || []).find((u) => u.id === 'items');
-  if (!unlock || !unlock.unlocked) {
-    lock.classList.remove('hidden');
-    lock.textContent = unlock
-      ? `${unlock.icon} ${unlock.name} unlocks after ${unlock.day} days of play \u2014 ${unlock.daysLeft} day${unlock.daysLeft === 1 ? '' : 's'} to go!`
-      : 'The Cozy Bag is still locked.';
-    body.classList.add('hidden');
-    return;
-  }
-  lock.classList.add('hidden');
-  body.classList.remove('hidden');
-  const b = r.items.bonus;
-  el('bag-bonus').textContent = `Bag bonus \u00b7 STR +${b.str} \u00b7 DEF +${b.def} \u00b7 AGI +${b.agi} \u00b7 MAG +${b.mag} \u00b7 LUK +${b.luk}${r.items.evolved ? ' \u00b7 \u2b50 Stage 2 (+25%)' : ''}`;
-  const stone = el('bag-evostone');
-  if (r.items.evolutionNote !== false) {
-    stone.textContent = r.items.evoStoneCount > 0
-      ? `\ud83d\udd2e ${r.items.evoStoneCount} Evo Stone${r.items.evoStoneCount === 1 ? '' : 's'} in your bag${r.items.evolved ? ' \u2014 already Stage 2!' : ' \u2014 evolve anytime, or wait for Level 10!'}`
-      : (r.items.evolved ? '\u2728 Stage 2 achieved \u2014 bathala-level style!' : `\ud83d\udd2e Evo Stone auto-evolves at Level ${r.items.evolveAt}`);
-  }
-  const grid = el('bag-grid');
-  grid.innerHTML = '';
-  for (const it of r.items.shop) {
-    let card = bagCards[it.id] || document.createElement('div');
-    if (!bagCards[it.id]) {
-      card.className = 'bag-card';
-      card.dataset.item = it.id;
-      card.appendChild(itemIconNode(it.id, it.icon));
-      const mid = document.createElement('div');
-      mid.innerHTML = '<div class="b-name"></div><div class="b-bonus"></div><div class="b-slot"></div>';
-      const btn = document.createElement('button');
-      btn.className = 'btn b-btn';
-      card.appendChild(mid);
-      card.appendChild(btn);
-      card._els = {
-        name: mid.querySelector('.b-name'),
-        bonus: mid.querySelector('.b-bonus'),
-        slot: mid.querySelector('.b-slot'),
-        btn,
-      };
-    }
-    card._els.name.textContent = `${it.icon} ${it.name}`;
-    card._els.bonus.textContent = bonusText(it);
-    const rlabel = it.rarity ? it.rarity.charAt(0).toUpperCase() + it.rarity.slice(1) : '';
-    card._els.slot.textContent = `${rlabel ? rlabel + ' \u00b7 ' : ''}${it.kind === 'cosmetic' ? `Cosmetic \u00b7 ${it.slot}` : `${it.type}${it.kind === 'special' ? ' \u00b7 keepsake' : ''}`}`;
-    const btn = card._els.btn;
-    if (!it.owned) {
-      btn.innerHTML = `<img class="eco-pixel bag-coin-icon" src="assets/icons/coin_gold_leaf.png" alt="" draggable="false"> ${it.cost}`;
-      btn.disabled = !!latest.state.dead || latest.state.coins < it.cost;
-    } else if (it.equipped) {
-      btn.textContent = 'Unequip';
-    } else {
-      btn.textContent = 'Equip';
-    }
-    grid.appendChild(card);
-  }
-}
 
 function showEvoPopup(speciesId) {
   const popup = el('evo-popup');
