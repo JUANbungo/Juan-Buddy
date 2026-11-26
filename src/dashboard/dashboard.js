@@ -786,6 +786,9 @@ function splashSetup() {
   }, 95);
   if (start) start.addEventListener('click', () => {
     splash.classList.add('hidden');
+    const cm = el('credits-modal');
+    if (cm) cm.classList.add('hidden');
+    if (creditsBox) creditsBox.classList.add('hidden');
     startBgmOnGesture();
     if (sfx) sfx.play('happy');
   });
@@ -797,14 +800,21 @@ function splashSetup() {
   const creditsBox = el('splash-credits');
   const creditsBtn = el('btn-splash-credits');
   const creditsBack = el('btn-splash-credits-back');
+  const creditsModal = el('credits-modal');
   const openCredits = () => {
-    const modal = el('credits-modal');
-    if (modal) modal.classList.remove('hidden');
+    if (creditsModal) creditsModal.classList.remove('hidden');
     else if (creditsBox) creditsBox.classList.remove('hidden');
     if (sfx) sfx.play('click');
   };
+  const closeCredits = () => {
+    if (creditsModal) creditsModal.classList.add('hidden');
+    if (creditsBox) creditsBox.classList.add('hidden');
+  };
   if (creditsBtn) creditsBtn.addEventListener('click', openCredits);
-  if (creditsBox && creditsBack) creditsBack.addEventListener('click', () => creditsBox.classList.add('hidden'));
+  if (creditsBox && creditsBack) creditsBack.addEventListener('click', closeCredits);
+  if (creditsModal) creditsModal.addEventListener('click', (e) => {
+    if (e.target === creditsModal) closeCredits();
+  });
   const updatesBtn = el('btn-splash-updates');
   if (updatesBtn) updatesBtn.addEventListener('click', () => {
     const url = 'https://github.com/JUANbungo/Juan-Buddy/releases/latest';

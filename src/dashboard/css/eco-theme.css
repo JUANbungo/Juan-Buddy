@@ -405,3 +405,27 @@ body.eco-polished .modal-content {
 @media (prefers-reduced-motion: reduce) {
   .perk-card, .perk-choice.epic, #perk-modal::before { animation: none !important; }
 }
+
+/* ===== Credits modal: strictly hidden by default + always above title screen ===== */
+#credits-modal {
+  z-index: 4000;
+}
+#credits-modal.hidden,
+#credits-modal[hidden] {
+  display: none !important;
+}
+#credits-modal .credits-card {
+  pointer-events: auto;
+}
+#splash-credits.hidden {
+  display: none;
+}
+.splash-links {
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
+}
+.splash-links .link {
+  pointer-events: auto;
+  cursor: pointer;
+}
