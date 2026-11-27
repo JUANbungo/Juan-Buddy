@@ -71,6 +71,9 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Verify signing keystore
+        run: keytool -list -keystore android/app/juanbuddy.keystore -storetype PKCS12 -storepass JBquack2026stable -alias juanbuddy > /dev/null && echo "keystore OK"
+
       - name: Prepare mobile web app
         run: node scripts/prep-mobile.js
 
