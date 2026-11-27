@@ -52,9 +52,11 @@ header.topbar {
   position: sticky;
   top: 0;
   z-index: 30;
-  background: rgba(21, 24, 36, 0.95);
+  background: var(--bg) url('../../assets/wallpapers/juan_buddy_paw_06_peach.png') repeat;
+  background-size: 606px 1016px;
+  background-position: 0 0;
+  background-attachment: fixed;
   border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(8px);
   padding: 10px 20px;
 }
 
@@ -1516,6 +1518,7 @@ body.rain-active .playground-wrap::after {
 body {
   background: var(--bg) url('../../assets/wallpapers/juan_buddy_paw_06_peach.png') repeat;
   background-size: 606px 1016px;
+  background-attachment: fixed;
 }
 body.theme-mint { background-image: url('../../assets/wallpapers/juan_buddy_paw_04_mint_green.png'); }
 body.theme-sky { background-image: url('../../assets/wallpapers/juan_buddy_paw_02_sky_blue.png'); }
@@ -2143,3 +2146,31 @@ body { background-attachment: fixed; }
 }
 .bp-rename-row { display: flex; gap: 8px; align-items: center; }
 .bp-rename-row .name-input { flex: 1; min-width: 0; }
+
+/* ==== Mobile / narrow-viewport adjustments (Desktop wide-screen layout untouched) ==== */
+@media (max-width: 768px) {
+  html, body { overflow-x: hidden; }
+
+  header.topbar { padding: 7px 10px; }
+  .topbar-row { gap: 6px; }
+  .brand { gap: 6px; padding: 3px 7px; }
+  .hud-center { min-width: 0; flex: 1 1 100%; order: 3; }
+  .hud-pills { flex-wrap: wrap; gap: 5px; }
+
+  .layout { gap: 10px; }
+  .card { padding: 10px; border-radius: 12px; }
+
+  .play-top { flex-wrap: wrap; gap: 6px; }
+  .play-actions { gap: 4px; padding: 8px 8px 9px; }
+  .btn-graphic img { height: 38px; }
+  .btn-title-screen img { height: 30px; }
+
+  .arena-lock-badge { max-width: calc(100% - 128px); gap: 6px; padding: 3px 8px; }
+  .arena-lock-badge .arena-lock-msg { font-size: 9px; }
+
+  .stage-menu-btn { font-size: 11px; padding: 5px 9px; }
+  .stage-menu { max-width: calc(100vw - 24px); }
+
+  .toast, #toast { max-width: calc(100vw - 24px); }
+  .jb-ad-bottom { width: 100%; }
+}

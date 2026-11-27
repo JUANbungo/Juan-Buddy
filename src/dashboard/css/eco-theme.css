@@ -516,3 +516,13 @@ body.wallpaw-periwinkle .eco-hud-header { background-image: url('../../assets/wa
   border-color: rgba(255, 233, 185, 0.3);
 }
 .eco-hud-header .brand-logo { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35)); }
+
+/* Subtle ink tint over the header wallpaper so badges/pills stay readable on light & dark WallPaws */
+.eco-hud-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(20, 16, 10, 0.20);
+  pointer-events: none;
+}
