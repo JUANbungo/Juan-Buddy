@@ -258,9 +258,12 @@ function pct(v) {
   return `${Math.round(v)}%`;
 }
 
+const CONFIRM_ACTIONS = new Set(['buySkin', 'buyItem', 'buyUpgrade', 'buyShopPet', 'homeAction', 'farmAction', 'useEvoStone']);
+
 async function act(action, payload) {
   const res = await api.action(action, payload);
   playActionSound(action, res);
+  if (res && res.ok && CONFIRM_ACTIONS.has(action)) playWavSafe(WAV.confirm, 0.5);
   showToast(res && res.message);
   return res;
 }
@@ -345,7 +348,8 @@ function render(snapshot) {
   if (questsPopOpen) renderQuestsPop();
 
   const metersNow = s.meters || {};
-  el('danger-banner').classList.toggle('hidden', !s.dead && !(metersNow.hunger <= 15 || metersNow.energy <= 10));
+  const careLow = metersNow.hunger <= 15 || metersNow.energy <= 10;
+  el('danger-banner').classList.toggle('hidden', !!(s.dead || (s.flags && s.flags.sleeping) || !careLow));
   el('death-overlay').classList.toggle('hidden', !s.dead);
   if (s.dead) {
     el('death-title').textContent = `${s.pet.name} passed away...`;
@@ -1316,6 +1320,26 @@ const WALK_Y_MAX = 348;
 
 const petWalk = { x: STAGE_CX, y: 312, dir: 1, target: null, moving: false };
 let petSwimActive = false;
+const WAV = {
+  button: 'wav_8bit/ui_movement/ui_button_click.wav',
+  tab: 'wav_8bit/ui_movement/ui_tab_pop.wav',
+  confirm: 'wav_8bit/ui_movement/ui_confirm_chime.wav',
+  step: 'wav_8bit/ui_movement/pet_walk_step.wav',
+  flap: 'wav_8bit/ui_movement/pet_fly_flap.wav',
+  tap: 'wav_8bit/ui_movement/pet_tap_pat.wav',
+};
+const FLYING_PETS = new Set(['banog', 'banog_evo', 'gagak', 'gagak_evo', 'dragon', 'dragon_evo']);
+let lastPetCryAt = 0;
+let farmDrawerOpen = false;
+
+function playWavSafe(rel, vol) {
+  if (sfx && sfx.playWav) sfx.playWav(rel, vol);
+}
+
+function walkBounds() {
+  if (stageScene === 'farm') return { x0: 44, x1: STAGE_W - 44, y0: 192, y1: 345 };
+  return { x0: 56, x1: STAGE_W - 56, y0: WALK_Y_MIN, y1: WALK_Y_MAX };
+}
 let eggExciteUntil = 0;
 const stageFx = [];
 let lastStageNow = 0;
@@ -2008,6 +2032,7 @@ try {
 
 function setScene(scene) {
   stageScene = scene === 'farm' || scene === 'park' ? scene : 'home';
+  playWavSafe(WAV.tab, 0.5);
   if (stageScene !== 'home') {
     homeEditMode = false;
     layoutDraft = null;
@@ -2276,8 +2301,15 @@ function updateHomeFarmBars() {
   }
   const editBar = el('edit-home-bar');
   if (editBar) editBar.classList.toggle('hidden', !(homeEditMode && stageScene === 'home'));
-  const farmBar = el('farm-bar');
-  if (farmBar) farmBar.classList.toggle('hidden', stageScene !== 'farm');
+  const topBar = el('farm-topbar');
+  if (topBar) topBar.classList.toggle('hidden', stageScene !== 'farm');
+  const plusTab = el('farm-plus-tab');
+  if (plusTab) plusTab.classList.toggle('hidden', stageScene !== 'farm');
+  if (stageScene !== 'farm') {
+    farmDrawerOpen = false;
+    const drawer = el('farm-plus-drawer');
+    if (drawer) drawer.classList.add('hidden');
+  }
 }
 
 function openPortalModal() {
@@ -3181,8 +3213,9 @@ function drawStagePet(now) {
       if (Math.abs(dx) > 2) petWalk.dir = dx > 0 ? 1 : -1;
       const len = Math.hypot(dx, dy) || 1;
       const speed = 95 * dt;
-      petWalk.x = Math.max(56, Math.min(STAGE_W - 56, petWalk.x + (dx / len) * speed));
-      petWalk.y = Math.max(WALK_Y_MIN, Math.min(WALK_Y_MAX, petWalk.y + (dy / len) * speed));
+      const wb = walkBounds();
+      petWalk.x = Math.max(wb.x0, Math.min(wb.x1, petWalk.x + (dx / len) * speed));
+      petWalk.y = Math.max(wb.y0, Math.min(wb.y1, petWalk.y + (dy / len) * speed));
       petWalk.moving = true;
     } else {
       petWalk.target = null;
@@ -3192,14 +3225,15 @@ function drawStagePet(now) {
     petWalk.moving = false;
   }
   if (st0 === 'IDLE' && !petWalk.target && !s.flags.working && !s.activity && Math.random() < 0.004) {
-    petWalk.target = { x: 110 + Math.random() * 260, y: WALK_Y_MIN + Math.random() * (WALK_Y_MAX - WALK_Y_MIN) };
+    const wb = walkBounds();
+    petWalk.target = { x: wb.x0 + Math.random() * (wb.x1 - wb.x0), y: wb.y0 + Math.random() * (wb.y1 - wb.y0) };
   }
 
   const st = petWalk.moving ? 'WALK' : st0;
   const stageScale = d.stage ? d.stage.scale : 1;
   const depthF = (petWalk.y - WALK_Y_MIN) / (WALK_Y_MAX - WALK_Y_MIN);
   const evoShrink = s.pet.evolved ? 0.8 : 1;
-  const boxSize = Math.round(264 * stageScale * evoShrink * (0.8 + 0.28 * depthF));
+  const boxSize = Math.round(264 * stageScale * evoShrink);
   petDraw = { cx: petWalk.x, gy: petWalk.y, size: boxSize, dir: petWalk.dir };
   const stageSpeciesKey = sprites.normalizeSpeciesId(s.pet.species || 'kala');
   if (stageV2Key !== stageSpeciesKey) {
@@ -3595,7 +3629,14 @@ petStageCanvas.addEventListener('click', async (e) => {
     if (cuteSfx) cuteSfx.play('chirp');
     try {
       const sid2 = latest && latest.state && latest.state.pet ? latest.state.pet.species : null;
-      if (sfx && sfx.petVoice) sfx.petVoice(sid2 || 'kala');
+      if (sfx && sfx.playWav) {
+        sfx.playWav(WAV.tap, 0.55);
+        const cryNow = performance.now();
+        if (cryNow - lastPetCryAt > 1500) {
+          lastPetCryAt = cryNow;
+          sfx.playWav(sfx.cryFor(sid2 || 'kala'), 0.6);
+        }
+      } else if (sfx && sfx.petVoice) sfx.petVoice(sid2 || 'kala');
     } catch (err) { /* voice unavailable */ }
     const res = await api.action('pat');
     showToast((res && res.message) || 'hehe~', 1500);
@@ -3605,9 +3646,10 @@ petStageCanvas.addEventListener('click', async (e) => {
     showToast('Shhh... your buddy is sleeping! \u{1F4A4}', 1600);
     return;
   }
+  const wbClick = walkBounds();
   petWalk.target = {
-    x: Math.max(70, Math.min(STAGE_W - 70, x)),
-    y: Math.max(WALK_Y_MIN, Math.min(WALK_Y_MAX, y)),
+    x: Math.max(wbClick.x0 + 14, Math.min(wbClick.x1 - 14, x)),
+    y: Math.max(wbClick.y0, Math.min(wbClick.y1, y)),
   };
   if (cuteSfx) cuteSfx.play('plop');
 });
@@ -3621,6 +3663,7 @@ function activateTab(name) {
     panel.classList.add('panel-anim');
     panel.classList.remove('hidden');
   }
+  playWavSafe(WAV.tab, 0.5);
   if (cuteSfx) cuteSfx.play('rustle');
   document.querySelectorAll('#stage-menu .stage-menu-item').forEach((b) => {
     b.classList.toggle('on', b.dataset && b.dataset.menuTab === name);
@@ -3706,6 +3749,13 @@ on('btn-buy-beehive', 'click', () => act('farmAction', { op: 'buyBeehive' }));
 on('btn-eat-snack', 'click', () => act('farmAction', { op: 'eatSnack' }));
 on('btn-portal-close', 'click', () => closePortalModal());
 
+on('farm-plus-tab', 'click', () => {
+  farmDrawerOpen = !farmDrawerOpen;
+  const drawer = el('farm-plus-drawer');
+  if (drawer) drawer.classList.toggle('hidden', !farmDrawerOpen);
+  playWavSafe(WAV.tab, 0.5);
+});
+
 const portalModalEl = el('portal-modal');
 if (portalModalEl) {
   portalModalEl.addEventListener('click', (e) => {
@@ -3769,10 +3819,14 @@ let eatMunchAt = 0;
 (function stageLoop() {
   const stageNow = performance.now();
   drawStagePet(stageNow);
-  if (petWalk.moving && (!latest || !latest.state || (!latest.state.dead && !arenaPetDead())) && stageNow - lastStepAt > 240) {
+  const stepSpecies = latest && latest.state && latest.state.pet ? sprites.normalizeSpeciesId(latest.state.pet.species || 'kala') : 'kala';
+  const stepEvo = latest && latest.state && latest.state.pet && latest.state.pet.evolved;
+  const stepFlying = FLYING_PETS.has(stepEvo ? `${stepSpecies}_evo` : stepSpecies);
+  if (petWalk.moving && !petSwimActive && (!latest || !latest.state || (!latest.state.dead && !arenaPetDead())) && stageNow - lastStepAt > (stepFlying ? 450 : 380)) {
     lastStepAt = stageNow;
-    if (cuteSfx) cuteSfx.play('step');
-    if (Math.random() < 0.45) spawnFx('crumb', petWalk.x - 14 * petWalk.dir, petWalk.y + 2, { vy: -0.12, size: 8 });
+    if (sfx && sfx.playWav) sfx.playWav(stepFlying ? WAV.flap : WAV.step, stepFlying ? 0.32 : 0.28);
+    else if (cuteSfx) cuteSfx.play('step');
+    if (!flyNow && Math.random() < 0.45) spawnFx('crumb', petWalk.x - 14 * petWalk.dir, petWalk.y + 2, { vy: -0.12, size: 8 });
   }
   const nowState = stageStateFor();
   if (nowState === 'EAT' && stageNow - eatMunchAt > 520) {
@@ -4187,6 +4241,12 @@ if (ecoThemePicks) {
 }
 
 document.addEventListener('pointerdown', startBgmOnGesture);
+
+document.addEventListener('click', (e) => {
+  const b = e.target && e.target.closest ? e.target.closest('button') : null;
+  if (!b || b.disabled) return;
+  playWavSafe(WAV.button, 0.45);
+}, true);
 document.addEventListener('keydown', startBgmOnGesture);
 
 on('btn-credits-close','click', () => {

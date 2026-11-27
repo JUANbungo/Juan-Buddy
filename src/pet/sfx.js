@@ -19,6 +19,65 @@
     enabled = true;
   }
 
+  let SFX_BASE = '';
+  try {
+    const cs = (typeof document !== 'undefined' && document.currentScript) ? document.currentScript : null;
+    if (cs && cs.src && /^(https?|file):/i.test(cs.src) && cs.src.indexOf('blob:') !== 0) SFX_BASE = cs.src;
+  } catch (err) { SFX_BASE = ''; }
+
+  function pageRelativeFirst() {
+    try {
+      if (typeof root.location !== 'undefined' && /^(https?):/i.test(root.location.href)) return true;
+    } catch (err) { /* ignore */ }
+    return false;
+  }
+
+  function wavUrls(rel) {
+    const urls = [];
+    if (SFX_BASE) {
+      try { urls.push(new URL('../../assets/sfx/' + rel, SFX_BASE).href); } catch (err) { /* ignore */ }
+    }
+    urls.push('assets/sfx/' + rel);
+    return pageRelativeFirst() ? urls.slice().reverse() : urls;
+  }
+
+  const CRY_IDS = ['banog', 'bantay', 'bao', 'bara', 'chai', 'dragon', 'egg', 'gagak', 'gino', 'kala', 'linh', 'merli', 'misha', 'mochi', 'muning', 'raja', 'ran', 'rimau', 'tala'];
+  const CRY_FALLBACK = { nila: 'raja' };
+
+  function cryFor(speciesId) {
+    let id = String(speciesId || 'kala').replace(/_evo$/, '');
+    if (CRY_IDS.indexOf(id) === -1) id = CRY_FALLBACK[id] || 'kala';
+    return `wav_8bit/pet_cries/cry_${id}.wav`;
+  }
+
+  const wavCache = {};
+
+  function playWav(rel, vol) {
+    if (!enabled || typeof root.Audio !== 'function' || !rel) return false;
+    let rec = wavCache[rel];
+    if (!rec) {
+      rec = { audio: null, urls: wavUrls(rel), idx: 0 };
+      wavCache[rel] = rec;
+    }
+    try {
+      if (!rec.audio) {
+        rec.audio = new root.Audio();
+        rec.audio.preload = 'auto';
+        rec.audio.src = rec.urls[0];
+        rec.audio.onerror = () => {
+          rec.idx += 1;
+          if (rec.audio && rec.idx < rec.urls.length) rec.audio.src = rec.urls[rec.idx];
+        };
+      }
+      const v = Math.max(0, Math.min(1, (vol === undefined ? 0.5 : vol) * 1.4 * volume));
+      rec.audio.volume = v;
+      try { rec.audio.currentTime = 0; } catch (err) { /* ignore */ }
+      const q = rec.audio.play();
+      if (q && typeof q.catch === 'function') q.catch(() => { /* autoplay guard */ });
+      return true;
+    } catch (err) { return false; }
+  }
+
   function isEnabled() {
     return enabled;
   }
@@ -330,5 +389,5 @@
 
   function getRain() { return rain ? rain.mode : 'off'; }
 
-  return { play, playGacha, isEnabled, setEnabled, setVolume, getVolume, setRain, getRain, petVoice, PET_VOICES };
+  return { play, playGacha, playWav, cryFor, isEnabled, setEnabled, setVolume, getVolume, setRain, getRain, petVoice, PET_VOICES };
 });

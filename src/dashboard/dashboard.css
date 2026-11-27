@@ -260,21 +260,31 @@ header h1:hover { color: #fff; }
   pointer-events: none;
 }
 
-.danger-banner {
+.care-marquee {
   position: absolute;
-  top: 9px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 6px;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  background: transparent;
+  pointer-events: none;
+  z-index: 80;
+  white-space: nowrap;
+}
+.care-marquee.hidden { display: none; }
+.marquee-track {
+  display: inline-block;
+  padding-left: 100%;
   font-size: 11px;
   font-weight: 700;
-  color: #fecdd3;
-  background: rgba(159, 18, 57, 0.88);
-  border: 1px solid rgba(251, 113, 133, 0.6);
-  border-radius: 999px;
-  padding: 4px 13px;
-  pointer-events: none;
-  animation: pulse 1.1s ease-in-out infinite;
-  white-space: nowrap;
+  letter-spacing: 1px;
+  color: #00ff41;
+  text-shadow: 0 0 7px rgba(0, 255, 65, 0.75), 0 0 2px rgba(0, 255, 65, 0.9);
+  animation: care-marquee-scroll 11s linear infinite;
+}
+@keyframes care-marquee-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
 }
 
 .care-grid {
@@ -1810,9 +1820,7 @@ h2 img.eco-pixel { width: 20px; height: 20px; vertical-align: -4px; margin-right
 .evo-banner img.eco-pixel { width: 18px; height: 18px; vertical-align: -3px; margin-right: 4px; }
 .evo-banner { display: flex; align-items: center; justify-content: center; gap: 4px; }
 
-#danger-banner { display: flex; align-items: center; }
-#danger-banner.hidden { display: none; }
-#danger-banner img.eco-pixel { width: 16px; height: 16px; margin-right: 6px; flex: 0 0 auto; }
+
 
 .phase-ico { width: 14px; height: 14px; vertical-align: -2px; margin-right: 3px; }
 .streak-ico { width: 14px; height: 14px; vertical-align: -2px; margin-right: 3px; }
@@ -2224,23 +2232,60 @@ body { background-attachment: fixed; }
 .edit-home-bar.hidden { display: none; }
 .edit-home-bar .btn { padding: 3px 10px; font-size: 11px; }
 
-.farm-bar {
+.farm-topbar {
   position: absolute;
-  bottom: 40px;
+  top: 8px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 60;
   display: flex;
-  flex-direction: column;
-  gap: 5px;
+  gap: 6px;
   align-items: center;
-  padding: 7px 10px;
+  padding: 6px 10px;
   background: rgba(20, 16, 10, 0.78);
   border: 1px solid rgba(255, 214, 102, 0.45);
   border-radius: 11px;
   max-width: calc(100% - 20px);
 }
-.farm-bar.hidden { display: none; }
+.farm-topbar.hidden { display: none; }
+.farm-plus-tab {
+  position: absolute;
+  top: 48px;
+  right: 10px;
+  z-index: 60;
+  width: 34px;
+  height: 34px;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+  color: #2c2418;
+  background: linear-gradient(180deg, #ffe08a, #f5c34d);
+  border: 1px solid #a3782c;
+  border-radius: 9px;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #a8895a;
+}
+.farm-plus-tab:hover { transform: translateY(-1px); }
+.farm-plus-tab.hidden { display: none; }
+.farm-plus-drawer {
+  position: absolute;
+  top: 88px;
+  right: 10px;
+  z-index: 61;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: stretch;
+  padding: 8px 10px;
+  background: rgba(20, 16, 10, 0.88);
+  border: 1px solid rgba(255, 214, 102, 0.45);
+  border-radius: 11px;
+  width: 216px;
+  max-width: calc(100% - 20px);
+}
+.farm-plus-drawer.hidden { display: none; }
+.farm-plus-drawer .farm-row { justify-content: flex-start; }
 .farm-row {
   display: flex;
   gap: 5px;
@@ -2266,8 +2311,8 @@ body { background-attachment: fixed; }
   color: #2c2418;
   border-color: #a3782c;
 }
-.farm-bar .btn { padding: 3px 9px; font-size: 10.5px; }
-.farm-bar .chip { font-size: 10.5px; padding: 2.5px 8px; }
+.farm-plus-drawer .btn { padding: 3px 9px; font-size: 10.5px; }
+.farm-plus-drawer .chip { font-size: 10.5px; padding: 2.5px 8px; }
 
 .portal-modal {
   position: fixed;
@@ -2343,8 +2388,9 @@ body { background-attachment: fixed; }
 @media (max-width: 768px) {
   .scene-nav { max-width: calc(100% - 96px); gap: 4px; }
   .scene-btn { font-size: 10px; padding: 3px 7px; }
-  .farm-bar { bottom: 36px; padding: 6px 7px; }
-  .farm-tool, .farm-crop, .farm-bar .btn, .farm-bar .chip { font-size: 9.5px; padding: 2.5px 6px; }
+  .farm-topbar { top: 6px; padding: 5px 7px; }
+  .farm-plus-drawer { top: 80px; right: 8px; width: 190px; padding: 6px 8px; }
+  .farm-tool, .farm-crop, .farm-plus-drawer .btn, .farm-plus-drawer .chip { font-size: 9.5px; padding: 2.5px 6px; }
   .portal-destinations { grid-template-columns: 1fr; }
 }
 .farm-tool-ico { height: 16px; width: auto; vertical-align: -3px; }

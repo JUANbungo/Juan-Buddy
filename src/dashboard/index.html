@@ -137,12 +137,13 @@
             <button id="btn-save-layout" class="btn btn-amber">Save Layout</button>
             <button id="btn-cancel-layout" class="btn">Cancel</button>
           </div>
-          <div id="farm-bar" class="farm-bar hidden">
-            <div class="farm-row">
-              <button class="farm-tool on" data-farm-tool="plant" title="Plant selected crop">🌱 Plant</button>
-              <button class="farm-tool" data-farm-tool="water" title="Water a plot (2x growth)"><img class="pixelated farm-tool-ico" src="../../assets/stardew/farm/tool_watering_can.png" alt="" draggable="false"> Water</button>
-              <button class="farm-tool" data-farm-tool="fertilize" title="Use fertilizer (instant ready)"><img class="pixelated farm-tool-ico" src="../../assets/stardew/farm/tool_fertilizer.png" alt="" draggable="false"> Fertilizer (<span id="farm-fert-count">0</span>)</button>
-            </div>
+          <div id="farm-topbar" class="farm-topbar hidden">
+            <button class="farm-tool on" data-farm-tool="plant" title="Plant selected crop">🌱 Plant</button>
+            <button class="farm-tool" data-farm-tool="water" title="Water a plot (2x growth)"><img class="pixelated farm-tool-ico" src="../../assets/stardew/farm/tool_watering_can.png" alt="" draggable="false"> Water</button>
+            <button class="farm-tool" data-farm-tool="fertilize" title="Use fertilizer (instant ready)"><img class="pixelated farm-tool-ico" src="../../assets/stardew/farm/tool_fertilizer.png" alt="" draggable="false"> Fertilizer (<span id="farm-fert-count">0</span>)</button>
+          </div>
+          <button id="farm-plus-tab" class="farm-plus-tab hidden" title="Seeds, fertilizer & farm shop">+</button>
+          <div id="farm-plus-drawer" class="farm-plus-drawer hidden">
             <div class="farm-row">
               <button class="farm-crop on" data-farm-crop="berry" title="Berries - 20 coin seeds">🫐 Berries (20)</button>
               <button class="farm-crop" data-farm-crop="flower" title="Flowers - 35 coin seeds">🌸 Flowers (35)</button>
@@ -151,6 +152,8 @@
             <div class="farm-row">
               <span id="farm-eco" class="chip">🌿 Eco 0</span>
               <span id="farm-snacks" class="chip">🍓 Snacks 0</span>
+            </div>
+            <div class="farm-row">
               <button id="btn-eat-snack" class="btn">Eat Snack</button>
               <button id="btn-buy-fertilizer" class="btn">+ Fertilizer (30)</button>
               <button id="btn-buy-beehive" class="btn">🐝 Beehive (400)</button>
@@ -164,7 +167,7 @@
               <button id="btn-portal-close" class="btn">Stay in Park</button>
             </div>
           </div>
-          <div id="danger-banner" class="danger-banner eco-care-warning hidden"><img class="eco-pixel" src="assets/icons/warning_wilted_leaf.png" alt="" draggable="false"> ⚠️ Your buddy needs care NOW — feed them or let them sleep!</div>
+          <div id="danger-banner" class="care-marquee hidden"><span class="marquee-track">⚠️ YOUR BUDDY NEEDS CARE — FEED THEM OR LET THEM SLEEP! · FEED THEM OR LET THEM SLEEP! · ⚠️ YOUR BUDDY NEEDS CARE — FEED THEM OR LET THEM SLEEP! · FEED THEM OR LET THEM SLEEP! · </span></div>
         </div>
         <div class="care-grid">
           <div class="care">
