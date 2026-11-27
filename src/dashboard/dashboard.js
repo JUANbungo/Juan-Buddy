@@ -102,6 +102,7 @@ function clearNamedFlag() {
   try {
     if (typeof localStorage !== 'undefined') localStorage.removeItem('juanbuddy-named');
   } catch (err) { /* ignore */ }
+  clearEvoPopupFlags();
 }
 
 function maybeShowNameModal() {
@@ -358,7 +359,10 @@ function render(snapshot) {
 
   if (d.rpg.items.evolved && !evoTrack.shown) {
     evoTrack.shown = true;
-    showEvoPopup(s.pet.species);
+    if (!evoPopupAlreadyShown(s.pet.species)) {
+      markEvoPopupShown(s.pet.species);
+      showEvoPopup(s.pet.species);
+    }
   } else if (!d.rpg.items.evolved) {
     evoTrack.shown = false;
   }
@@ -1169,14 +1173,6 @@ function drawDeathPet(now, status) {
     const bob = isGhost ? Math.round(Math.sin(now / 500) * 3) : Math.round(Math.sin(now / 700) * 1.5);
     stageCtx.drawImage(fr, STAGE_CX - h / 2, 312 - h + bob, h, h);
   }
-  stageCtx.restore();
-  const snap = latest && latest.derived ? latest.derived.arena : null;
-  const remain = snap ? (isGhost ? snap.lockoutRemainingMs : snap.resetRemainingMs) : 0;
-  stageCtx.save();
-  stageCtx.font = '11px sans-serif';
-  stageCtx.textAlign = 'center';
-  stageCtx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-  stageCtx.fillText(isGhost ? `👻 dead... revives in ${fmtArenaClock(remain)}` : `🪦 full death... reset in ${fmtArenaClock(remain)}`, STAGE_CX, 330);
   stageCtx.restore();
 }
 
@@ -3595,6 +3591,31 @@ on('explore-grid','click', async (e) => {
 
 // ===== Evo popup tracking (Cozy Bag feature is disabled for rework) =====
 const evoTrack = { shown: false };
+const EVO_POPUP_KEY_PREFIX = 'juanbuddy-evo-popup-';
+
+function evoPopupAlreadyShown(speciesId) {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem(EVO_POPUP_KEY_PREFIX + speciesId) === '1';
+  } catch (err) { return false; }
+}
+
+function markEvoPopupShown(speciesId) {
+  try {
+    if (typeof localStorage !== 'undefined') localStorage.setItem(EVO_POPUP_KEY_PREFIX + speciesId, '1');
+  } catch (err) { /* storage unavailable */ }
+}
+
+function clearEvoPopupFlags() {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    const doomed = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (key && key.indexOf(EVO_POPUP_KEY_PREFIX) === 0) doomed.push(key);
+    }
+    for (const key of doomed) localStorage.removeItem(key);
+  } catch (err) { /* ignore */ }
+}
 
 function showEvoPopup(speciesId) {
   const popup = el('evo-popup');

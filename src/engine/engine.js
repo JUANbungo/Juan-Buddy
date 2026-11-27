@@ -1215,8 +1215,10 @@ function arenaResult(state, payload) {
       : `👻 ${state.pet.name} died fighting ${mon.name}! Ghost mode for 1 hour — buy a Reincarnation Stone (1,000 gold) in the Shop to revive instantly.`;
     return { ok: true, arena: arenaSnapshot(state), message: msg };
   }
-  const gold = Math.max(0, Math.min(Math.round(Number(payload.gold) || 0), mon.coins[1]));
-  const xp = Math.max(0, Math.min(Math.round(Number(payload.xp) || 0), mon.xp));
+  const goldFloor = Math.max(1, Math.round(mon.coins[0] * 0.25));
+  const xpFloor = Math.max(1, Math.round(mon.xp * 0.25));
+  const gold = Math.max(goldFloor, Math.min(Math.round(Number(payload.gold) || 0), mon.coins[1]));
+  const xp = Math.max(xpFloor, Math.min(Math.round(Number(payload.xp) || 0), mon.xp));
   const preLevel = state.pet.level;
   if (state.pet.stage !== 'egg') state.pet.xp += xp * currentXpMul(state);
   state.coins += gold;

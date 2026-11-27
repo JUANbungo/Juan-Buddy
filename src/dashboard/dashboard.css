@@ -320,13 +320,13 @@ header h1:hover { color: #fff; }
 
 .play-actions {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: center;
   justify-items: center;
-  gap: 6px 10px;
+  gap: 6px 8px;
   background: var(--card2);
   border-top: 1px solid var(--border);
-  padding: 9px 14px 10px;
+  padding: 9px 12px 10px;
 }
 
 /* Chunky retro RPG buttons */
@@ -1622,7 +1622,7 @@ header.topbar { padding-right: 262px; }
   transition: transform 0.1s ease;
   cursor: pointer;
 }
-.btn-graphic img { display: block; height: 46px; width: auto; }
+.btn-graphic img { display: block; height: 46px; width: auto; max-width: 100%; }
 .btn-graphic:hover { transform: translateY(-2px); filter: brightness(1.08); }
 .btn-graphic:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35); }
 .btn-graphic.on { outline: 3px solid #ffd54a; outline-offset: 1px; }
@@ -1640,11 +1640,10 @@ header.topbar { padding-right: 262px; }
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  grid-column: 1 / -1;
-  justify-self: center;
+  min-width: 0;
   image-rendering: pixelated;
 }
-.btn-title-screen img { display: block; height: 46px; width: auto; object-fit: contain; }
+.btn-title-screen img { display: block; height: 40px; width: auto; max-width: 100%; object-fit: contain; }
 .btn-title-screen:hover img { content: url('../../assets/sprites/ui/buttons/return_title_btn_hover.png'); }
 .btn-title-screen:active img { content: url('../../assets/sprites/ui/buttons/return_title_btn_pressed.png'); }
 
