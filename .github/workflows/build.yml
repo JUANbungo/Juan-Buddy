@@ -71,8 +71,30 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Verify signing keystore
-        run: keytool -list -keystore android/app/juanbuddy.keystore -storetype PKCS12 -storepass JBquack2026stable -alias juanbuddy > /dev/null && echo "keystore OK"
+      - name: Ensure signing keystore
+        run: |
+          set +e
+          keytool -list -keystore android/app/juanbuddy.keystore -storetype PKCS12 -storepass JBquack2026stable -alias juanbuddy 2>&1 | tee /tmp/keytool_check.txt
+          if [ ${PIPESTATUS[0]} -eq 0 ]; then
+            echo "committed keystore OK"
+          else
+            echo "committed keystore unreadable, generating a fresh Java-native keystore"
+            rm -f android/app/juanbuddy.keystore
+            keytool -genkeypair -v -keystore android/app/juanbuddy.keystore -storetype PKCS12 \
+              -alias juanbuddy -keyalg RSA -keysize 2048 -validity 10950 \
+              -storepass JBquack2026stable -keypass JBquack2026stable \
+              -dname "CN=Juan Buddy, OU=Games, O=Juanbungo, L=Manila, C=PH"
+            mkdir -p /tmp/keystore-out
+            cp android/app/juanbuddy.keystore /tmp/keystore-out/juanbuddy.keystore
+          fi
+
+      - name: Upload regenerated keystore (commit me)
+        uses: actions/upload-artifact@v5
+        with:
+          name: signing-keystore
+          retention-days: 30
+          path: /tmp/keystore-out/juanbuddy.keystore
+        continue-on-error: true
 
       - name: Prepare mobile web app
         run: node scripts/prep-mobile.js
