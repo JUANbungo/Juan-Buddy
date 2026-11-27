@@ -38,7 +38,7 @@ jobs:
           CI: true
 
       - name: Upload build
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: Juan-Buddy-${{ matrix.os }}
           retention-days: 30
@@ -89,7 +89,7 @@ jobs:
           fi
 
       - name: Upload regenerated keystore (commit me)
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: signing-keystore
           retention-days: 30
@@ -106,7 +106,7 @@ jobs:
         run: cd android && chmod +x gradlew && ./gradlew assembleRelease -PversionCode=${{ github.run_number }} -PversionName="${{ github.ref_name }}"
 
       - name: Upload APK
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: Juan-Buddy-android
           retention-days: 30
@@ -131,12 +131,12 @@ jobs:
         run: node scripts/prep-mobile.js
 
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
         with:
           enablement: true
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: pages
 
@@ -145,4 +145,4 @@ jobs:
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
