@@ -195,14 +195,14 @@ const ITEM_GACHA_POOL = {
 
 
 const MONSTERS = [
-  { id: 'slime', name: 'Guard Slime', icon: '\ud83d\udfe2', lvl: 1, hp: 26, atk: 7, def: 2, energy: 8, coins: [12, 20], xp: 6 },
-  { id: 'bat', name: 'Cave Bat', icon: '\ud83e\udd87', lvl: 4, hp: 40, atk: 12, def: 5, energy: 12, coins: [22, 34], xp: 12 },
-  { id: 'boar', name: 'Wild Boar', icon: '\ud83d\udc17', lvl: 8, hp: 62, atk: 19, def: 9, energy: 16, coins: [38, 55], xp: 20 },
-  { id: 'wolf', name: 'Ridge Wolf', icon: '\ud83d\udc3a', lvl: 13, hp: 90, atk: 28, def: 14, energy: 20, coins: [55, 80], xp: 32 },
-  { id: 'kumiho', name: 'Kumiho', icon: '\ud83e\udd8a', lvl: 18, hp: 120, atk: 38, def: 20, energy: 26, coins: [80, 115], xp: 48 },
-  { id: 'oni', name: 'Oni Brute', icon: '\ud83d\udc79', lvl: 24, hp: 165, atk: 50, def: 28, energy: 32, coins: [115, 160], xp: 70 },
-  { id: 'wyvern', name: 'Ember Wyvern', icon: '\ud83d\udc09', lvl: 30, hp: 220, atk: 66, def: 38, energy: 40, coins: [160, 230], xp: 100 },
-  { id: 'titan', name: 'Void Titan', icon: '\ud83d\udc7e', lvl: 40, hp: 320, atk: 88, def: 52, energy: 50, coins: [240, 340], xp: 150 },
+  { id: 'slime', name: 'Guard Slime', icon: '\ud83d\udfe2', lvl: 1, hp: 65, atk: 7, def: 2, energy: 8, coins: [12, 20], xp: 6 },
+  { id: 'bat', name: 'Cave Bat', icon: '\ud83e\udd87', lvl: 4, hp: 115, atk: 12, def: 5, energy: 12, coins: [22, 34], xp: 12 },
+  { id: 'boar', name: 'Wild Boar', icon: '\ud83d\udc17', lvl: 8, hp: 190, atk: 19, def: 9, energy: 16, coins: [38, 55], xp: 20 },
+  { id: 'wolf', name: 'Ridge Wolf', icon: '\ud83d\udc3a', lvl: 13, hp: 290, atk: 28, def: 14, energy: 20, coins: [58, 80], xp: 32 },
+  { id: 'kumiho', name: 'Kumiho', icon: '\ud83e\udd8a', lvl: 18, hp: 420, atk: 38, def: 20, energy: 26, coins: [80, 115], xp: 48 },
+  { id: 'oni', name: 'Oni Brute', icon: '\ud83d\udc79', lvl: 24, hp: 600, atk: 50, def: 28, energy: 32, coins: [115, 160], xp: 70 },
+  { id: 'wyvern', name: 'Ember Wyvern', icon: '\ud83d\udc09', lvl: 30, hp: 850, atk: 66, def: 38, energy: 40, coins: [160, 230], xp: 100 },
+  { id: 'titan', name: 'Void Titan', icon: '\ud83d\udc7e', lvl: 40, hp: 1300, atk: 88, def: 52, energy: 50, coins: [240, 340], xp: 150 },
 ];
 
 const GEAR = [
