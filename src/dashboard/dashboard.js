@@ -302,6 +302,18 @@ function render(snapshot) {
   if (renderTextCache.level !== s.pet.level) { renderTextCache.level = s.pet.level; el('level').textContent = s.pet.level; }
   updateBrandFace(s);
 
+  const moodEl = el('pet-mood');
+  if (moodEl && s.meters) {
+    const hp = s.meters.happiness || 0;
+    const mood = s.dead ? '\uD83D\uDC80'
+      : hp >= 70 ? '\uD83D\uDE04'
+      : hp >= 40 ? '\uD83D\uDE42'
+      : hp >= 20 ? '\uD83D\uDE1F'
+      : '\uD83D\uDE22';
+    if (moodEl.textContent !== mood) moodEl.textContent = mood;
+    moodEl.title = `Mood: happiness ${Math.round(hp)}%`;
+  }
+
   const coinNum = Math.floor(s.coins);
   if (renderTextCache.coins !== coinNum) { renderTextCache.coins = coinNum; el('coins').textContent = coinNum; }
   const rateTxt = s.flags.working ? `+${d.coinRate.toFixed(1)}/s` : 'not working';
@@ -3952,3 +3964,69 @@ document.addEventListener('click', (e) => {
   if (!b || b.disabled) return;
   if (cuteSfx) cuteSfx.play('pop');
 }, true);
+
+// ===== rotating tips & promo panels =====
+const AD_TIPS = [
+  '\uD83C\uDF5A Feed your buddy world foods \u2014 the Free Daily Meal refreshes every day!',
+  '\u2694\uFE0F Kumiho pays 200\u2013290 gold per win \u2014 Ridge Wolf 145\u2013200. Battle often!',
+  '\uD83E\uDD5A Pat your egg \u2014 every pat gives +1 XP toward hatching!',
+  '\uD83D\uDD25 Keep your streak alive \u2014 14 days grows the mighty Streak Tree!',
+  '\u26A1 Skills charge +7 energy per turn \u2014 spend 30 to unleash them!',
+  '\uD83D\uDC80 Died? A Reincarnation Stone (1,000g) revives you instantly.',
+  '\u2728 Evolved buddies get +25% base stats at Level 10!',
+  '\uD83C\uDFC6 Win battles to level up \u2014 every level gives +2 ATK and a perk pick!',
+  '\uD83C\uDF81 Limited Drops are coming soon \u2014 1.5% to 5% per monster!',
+  '\uD83D\uDCB0 Void Titan pays 600\u2013850 gold \u2014 reach Lv 40 to challenge it!',
+];
+const AD_PROMOS = [
+  '\uD83C\uDF89 v0.1.13 \u2014 pixel font, RPG bars &amp; rotating tips!',
+  '\uD83D\uDC26 Juan Buddy team \u2014 more updates coming soon!',
+  '\uD83D\uDCBE Use Export Save Code (Life tab) to back up your buddy!',
+];
+const AD_ROTATORS = [
+  { id: 'rot-left', gifs: ['../../assets/ads/left_ad_care/ad_left_care.gif'], pool: AD_TIPS },
+  { id: 'rot-right', gifs: ['../../assets/ads/right_ad_life/ad_right_life.gif'], pool: AD_TIPS },
+  { id: 'rot-bottom', gifs: ['../../assets/ads/bottom_ad_promo/ad_bottom_promo.gif'], pool: AD_PROMOS.concat(AD_TIPS) },
+];
+const adRotatorState = [];
+
+function buildAdRotators() {
+  AD_ROTATORS.forEach((rot, ri) => {
+    const box = el(rot.id);
+    if (!box || box.dataset.built) return;
+    box.dataset.built = '1';
+    const slides = [];
+    rot.pool.forEach((txt) => {
+      const slide = document.createElement('div');
+      slide.className = 'ad-slide ad-tip';
+      slide.innerHTML = txt;
+      box.appendChild(slide);
+      slides.push(slide);
+    });
+    rot.gifs.forEach((src) => {
+      const slide = document.createElement('div');
+      slide.className = 'ad-slide ad-gif';
+      const img = document.createElement('img');
+      img.className = 'pixelated';
+      img.src = src;
+      img.alt = '';
+      img.draggable = false;
+      img.onerror = () => { slide.style.display = 'none'; };
+      slide.appendChild(img);
+      box.appendChild(slide);
+      slides.push(slide);
+    });
+    adRotatorState[ri] = { slides, idx: 0 };
+    if (slides.length) slides[0].classList.add('on');
+  });
+}
+
+setInterval(() => {
+  adRotatorState.forEach((st) => {
+    if (!st || st.slides.length < 2) return;
+    st.slides[st.idx].classList.remove('on');
+    st.idx = (st.idx + 1) % st.slides.length;
+    st.slides[st.idx].classList.add('on');
+  });
+}, 7000);
+buildAdRotators();

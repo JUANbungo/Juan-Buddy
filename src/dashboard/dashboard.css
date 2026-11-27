@@ -2083,3 +2083,132 @@ button:active:not(:disabled) { transform: translate3d(0, 1px, 0) scale(0.985); }
 /* ===== header responsive: shrink ticker first, hide last ===== */
 @media (max-width: 1180px) { .hud-ticker { min-width: 80px; max-width: 200px; } }
 @media (max-width: 1000px) { #hud-ticker { display: none; } }
+
+
+/* ============================ UI POLISH PACK ============================ */
+
+/* --- Pixel fonts (bundled locally, see css/fonts.css): retro headings & numbers --- */
+h1#pet-name,
+.splash-title,
+.lvl,
+.play-title,
+.state-badge {
+  font-family: 'Press Start 2P', 'Segoe UI', system-ui, sans-serif;
+  letter-spacing: 0.5px;
+}
+h1#pet-name { font-size: 14px; line-height: 1.6; }
+.splash-title { font-size: 22px; line-height: 1.6; letter-spacing: 2px; }
+.lvl { font-size: 9px; }
+.play-title { font-size: 11px; }
+.state-badge { font-size: 8px; }
+
+.card h2 {
+  font-family: 'VT323', 'Segoe UI', system-ui, sans-serif;
+  font-size: 26px;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+}
+.card h2 small {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.btn,
+.settings-select,
+.search-box {
+  font-family: 'VT323', 'Segoe UI', system-ui, sans-serif;
+  letter-spacing: 0.5px;
+}
+.btn { font-size: 18px; }
+.settings-select, .search-box { font-size: 16px; }
+.hud-pill .hud-txt b {
+  font-family: 'VT323', 'Segoe UI', system-ui, sans-serif;
+  font-size: 17px;
+  letter-spacing: 0.5px;
+}
+.hud-pill .hud-sub { font-family: 'VT323', 'Segoe UI', system-ui, sans-serif; font-size: 13px; }
+
+/* --- Mood face beside the pet name --- */
+.pet-mood {
+  font-size: 15px;
+  line-height: 1;
+  align-self: center;
+  cursor: default;
+}
+
+/* --- Segmented RPG-style progress bars (pixel notches over the fill) --- */
+.fill { position: relative; }
+.fill::after,
+.hud-exp-bar i::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg, transparent 0 7px, rgba(17, 19, 29, 0.5) 7px 9px);
+  border-radius: inherit;
+  pointer-events: none;
+}
+.hud-exp-bar i { position: relative; }
+
+/* --- Idle bob for HUD icons (subtle, staggered) --- */
+@keyframes hudBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+.hud-pills .hud-pill .hud-img { animation: hudBob 2.6s ease-in-out infinite; }
+.hud-pills .hud-pill:nth-child(2) .hud-img { animation-delay: 0.4s; }
+.hud-pills .hud-pill:nth-child(3) .hud-img { animation-delay: 0.8s; }
+.care .eco-pixel { animation: hudBob 3.2s ease-in-out infinite; }
+.care:nth-child(2) .eco-pixel { animation-delay: 0.5s; }
+.care:nth-child(3) .eco-pixel { animation-delay: 1s; }
+
+/* --- Animated button states (tactile hover glow + press) --- */
+.btn-graphic img { transition: transform 0.1s ease, filter 0.15s ease; }
+.btn-graphic:hover:not(:disabled) img {
+  transform: translateY(-2px);
+  filter: drop-shadow(0 0 6px rgba(255, 213, 74, 0.55));
+}
+.btn-graphic:active:not(:disabled) img { transform: translateY(1px); filter: none; }
+.btn { transition: transform 0.08s ease, filter 0.15s ease; }
+.btn:hover:not(:disabled) { filter: brightness(1.12); }
+.btn:active:not(:disabled) { transform: translateY(2px); }
+
+/* --- Rotating tips & promo panels (replace static GIF-only ads) --- */
+.ad-rotator { position: relative; width: 100%; height: 100%; overflow: hidden; }
+.ad-slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.ad-slide.on { opacity: 1; }
+.ad-slide.ad-gif img { width: 100%; height: 100%; object-fit: contain; }
+.ad-tip {
+  font-family: 'VT323', 'Segoe UI', system-ui, sans-serif;
+  font-size: 21px;
+  line-height: 1.3;
+  color: #ffe9c9;
+  background: rgba(20, 16, 15, 0.62);
+  border: 2px solid #4d3f2a;
+  border-radius: 12px;
+  margin: 8px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(100% - 16px);
+  height: calc(100% - 16px);
+}
+.jb-ad-bottom .ad-tip { font-size: 24px; }
+.jb-ad-bottom .ad-slide.ad-gif img { object-fit: cover; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-pills .hud-pill .hud-img,
+  .care .eco-pixel { animation: none; }
+  .ad-slide { transition: none; }
+}

@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file: blob:; media-src 'self' data: blob:; script-src 'self'" />
+  <link rel="stylesheet" href="css/fonts.css" />
   <link rel="stylesheet" href="dashboard.css" />
   <link rel="stylesheet" href="css/eco-theme.css" />
   <link rel="stylesheet" href="css/battle-arena.css" />
@@ -39,6 +40,7 @@
         <div>
           <div class="brand-row">
             <h1 id="pet-name" title="Click to rename">Buddy</h1>
+            <span id="pet-mood" class="pet-mood" title="Buddy's mood">🙂</span>
             <span class="lvl">LV <b id="level">1</b></span>
           </div>
         </div>
@@ -89,10 +91,10 @@
 
   <main class="layout">
     <aside class="jb-ad eco-bulletin-banner jb-ad-left" id="ad-left">
-      <img class="pixelated" src="../../assets/ads/left_ad_care/ad_left_care.gif" alt="Take care of someone important" draggable="false">
+      <div id="rot-left" class="ad-rotator"></div>
     </aside>
     <aside class="jb-ad eco-bulletin-banner jb-ad-right" id="ad-right">
-      <img class="pixelated" src="../../assets/ads/right_ad_life/ad_right_life.gif" alt="Life is not a race" draggable="false">
+      <div id="rot-right" class="ad-rotator"></div>
     </aside>
     <section class="col-play">
       <div id="battle-profile" class="battle-profile"></div>
@@ -159,7 +161,7 @@
         <div id="arena-selector"></div>
       </div>
       <div class="jb-ad eco-bulletin-banner jb-ad-bottom">
-        <img class="pixelated" src="../../assets/ads/bottom_ad_promo/ad_bottom_promo.gif" alt="Juan Buddy updates and team coming soon" draggable="false">
+        <div id="rot-bottom" class="ad-rotator"></div>
       </div>
     </section>
 
@@ -452,7 +454,7 @@
       <div class="wb-badge">5% Offline Rate &middot; Keep the game open for 100%!</div>
       <div class="wb-rewards">
         <div class="wb-reward"><span class="wb-ico">&#129689;</span><span id="wb-coins">+0</span><img class="coin-ico pixelated" src="assets/icons/coin_gold_leaf.png" draggable="false"></div>
-        <div class="wb-reward"><span class="wb-ico">&#11088;</span><span id="wb-xp">+0</span> XP</div>
+        <div class="wb-reward"><span class="wb-ico">&#11088;</span><span id="wb-xp">+0</span><img class="coin-ico pixelated" src="assets/icons/stat_exp_vine.png" alt="XP" draggable="false"></div>
       </div>
       <div id="wb-stats-note" class="muted small wb-note">Your buddy missed you &mdash; care meters kept draining slowly while away.</div>
       <button id="wb-collect" class="btn btn-amber">&#129689; Collect</button>

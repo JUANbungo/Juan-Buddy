@@ -767,3 +767,85 @@
   color: #8a7a5f;
   border-color: #d9cbb0;
 }
+
+/* ===== Warm-dark theme pass (match the dark navy dashboard) ===== */
+.jb-enemy-card {
+  background: #262019;
+  border-color: #4d3f2a;
+}
+.jb-enemy-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+.jb-enemy-card.selected {
+  background: #32241a;
+}
+.jb-enemy-name { color: #f0dfc0; }
+.jb-enemy-meta { color: #b9a687; }
+.jb-enemy-locked { color: #ffb84d; }
+
+.battle-profile {
+  background: #241e15;
+  border-color: #4d3f2a;
+}
+.battle-profile h3 { color: #ffd54a; }
+.jb-bp-item {
+  background: #2c2519;
+  border-color: #574728;
+}
+.jb-bp-name { color: #f0dfc0; }
+.jb-bp-bonus-title { color: #cdb98e; }
+.jb-bp-bonus {
+  background: #16301f;
+  color: #7ce8a8;
+  border-color: #2f5e42;
+}
+.jb-bp-bonus.none {
+  background: #2a2620;
+  color: #b9a687;
+  border-color: #4d4335;
+}
+
+.buddy-preview-card {
+  background: #241e15;
+  border-color: #4d3f2a;
+}
+.bp-name { color: #f0dfc0; }
+.bp-species { color: #cdb98e; }
+.bp-anim-btn {
+  background: #2c2519;
+  border-color: #574728;
+  color: #f0dfc0;
+}
+.bp-anim-btn.on {
+  background: #ffd54a;
+  color: #241e15;
+  border-color: #b8860b;
+}
+.bp-stage-wrap {
+  background: radial-gradient(circle at 50% 78%, #2a2318 0 56%, transparent 57%);
+  border-color: #4d3f2a;
+}
+
+.jb-shop-card {
+  background: #241e15;
+  border-color: #4d3f2a;
+  color: #f0dfc0;
+}
+.jb-shop-item {
+  background: #2c2519;
+  border-color: #574728;
+}
+.jb-shop-item-info p { color: #b9a687; }
+
+/* Segmented RPG-style bars (pixel notches over the fill) */
+.jb-hp-fill,
+.jb-energy-fill { position: relative; }
+.jb-hp-fill::after,
+.jb-energy-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg, transparent 0 7px, rgba(17, 19, 29, 0.5) 7px 9px);
+  border-radius: inherit;
+  pointer-events: none;
+}
