@@ -100,12 +100,19 @@ function runAction(action, payload) {
       result = engine.importSave(state, payload && payload.code);
       break;
     case 'newGame': result = engine.newGame(state); break;
-    case 'rename':
+    case 'rename': {
       if (payload && typeof payload.name === 'string' && payload.name.trim().length > 0) {
-        state.pet.name = payload.name.trim().slice(0, 16);
-        result = { ok: true, message: `Renamed to ${state.pet.name}.` };
+        const milestoneFree = !!(state.milestones && state.milestones.rename60);
+        if (!milestoneFree && state.coins < 10000) {
+          result = { ok: false, message: 'Renaming costs 10,000 gold \u2014 keep working and battling!' };
+        } else {
+          if (!milestoneFree) state.coins -= 10000;
+          state.pet.name = payload.name.trim().slice(0, 16);
+          result = { ok: true, message: milestoneFree ? `Renamed to ${state.pet.name}.` : `Renamed to ${state.pet.name} for 10,000 gold.` };
+        }
       }
       break;
+    }
     case 'setOpenAtLogin':
       app.setLoginItemSettings({ openAtLogin: !!(payload && payload.open) });
       result = { ok: true, message: payload && payload.open ? 'Will open at login.' : 'Autostart disabled.' };

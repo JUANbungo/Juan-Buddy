@@ -12,7 +12,6 @@
   <div id="splash" class="splash">
     <div class="splash-card">
       <img class="splash-logo pixelated" src="../../assets/branding/juan_buddy_logo.png" alt="Juan Buddy" />
-      <div class="splash-title">JUAN BUDDY</div>
       <div class="splash-tag">Your cozy idle pet buddy 🐾</div>
       <div class="splash-load"><div id="splash-fill"></div></div>
       <div id="splash-status" class="muted small">Loading…</div>
@@ -20,10 +19,8 @@
         <button id="btn-splash-start" class="btn btn-amber" disabled>▶ Start</button>
         <button id="btn-splash-exit" class="btn btn-danger">✖ Exit</button>
       </div>
-      <div class="splash-links">
-        <button id="btn-splash-credits" class="link">📝 Credits</button>
-        <button id="btn-splash-updates" class="link">🔄 Updates</button>
-      </div>
+        <button id="btn-splash-credits" class="btn btn-primary">📝 Credits</button>
+        <button id="btn-splash-updates" class="btn btn-gold">🔄 Updates</button>
       <div id="splash-credits" class="splash-credits hidden">
         <p><strong>Created &amp; developed by Juan Bungo</strong></p>
         <p class="muted small">John Albert Tancio Datu — a cozy idle pet RPG. Feed, play, explore, and grow together.</p>
@@ -151,7 +148,7 @@
           <button id="btn-work" class="btn-graphic" title="Work (earn coins)"><img class="pixelated" src="../../assets/sprites/ui/buttons/work.png" alt="Work"></button>
           <button id="btn-sleep" class="btn-graphic" title="Rest / Wake"><img class="pixelated" src="../../assets/sprites/ui/buttons/sleep.png" alt="Sleep"></button>
           <button id="btn-cheer" class="btn-graphic" title="Cheer Me Up"><img class="pixelated" src="../../assets/sprites/ui/buttons/cheer_me_up.png" alt="Cheer Me Up"></button>
-          <button id="btn-title-screen" class="btn-title-screen" title="Return to Title Screen">🏠 Return to Title Screen</button>
+          <button id="btn-title-screen" class="btn-title-screen" title="Return to Title Screen"><img class="pixelated" src="../../assets/sprites/ui/buttons/return_title_btn.png" alt="Return to Title Screen" draggable="false"></button>
         </div>
       </div>
       <div id="arena-place" class="arena-place hidden">
@@ -381,6 +378,14 @@
       <canvas id="evo-canvas" width="96" height="96"></canvas>
       <div class="evo-name" id="evo-name"></div>
       <div class="evo-sub" id="evo-sub">Base stats +25% · say hello to Stage 2!</div>
+    </div>
+  </div>
+
+  <div id="buddy-profile-modal" class="evo-popup hidden">
+    <div class="evo-card eco-panel buddy-profile-card">
+      <div class="evo-banner">🐾 BUDDY PROFILE</div>
+      <div id="buddy-profile-body"></div>
+      <button id="bp-close" class="btn btn-amber">✖️ Close</button>
     </div>
   </div>
 

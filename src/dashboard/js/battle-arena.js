@@ -662,7 +662,8 @@
       const player = this.getPlayer();
       const enemy = this.selectedMonster;
       const kit = player.kit || null;
-      const petSprite = this.getActivePetSpriteOverride("idle") || player.sheetUrl || player.spriteUrl;
+      const petOverride = this.getActivePetSpriteOverride("idle");
+      const petSprite = petOverride || player.sheetUrl || player.spriteUrl;
       const enemySprite = `${this.assetBase}/monsters/${enemy.id}/${walkInEnemy ? "walk_sheet" : "idle_sheet"}.png`;
 
       let deathOverlayHtml = "";
@@ -714,7 +715,7 @@
               <div class="jb-hp-label"><span>${player.name}</span><span id="jb-p-hp-txt">${player.maxHp}/${player.maxHp}</span></div>
               <div class="jb-hp-track"><div class="jb-hp-fill" id="jb-p-hp-bar" style="width:100%"></div></div>
             </div>
-            <div class="jb-sprite-box${player.sheetFrames === 8 ? " jb-sprite-8" : ""}" style="background-image:url('${petSprite}')"></div>
+            <div class="jb-sprite-box${!petOverride && player.sheetFrames === 8 ? " jb-sprite-8" : ""}" style="background-image:url('${petSprite}')"></div>
           </div>
 
           <div class="jb-fighter enemy ${walkInEnemy ? "walking-in" : ""}">

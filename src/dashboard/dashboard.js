@@ -984,10 +984,7 @@ on('btn-title-screen','click', () => {
   window.location.reload();
 });
 
-on('pet-name','click', () => {
-  const name = window.prompt('Rename your buddy:', latest ? latest.state.pet.name : 'Buddy');
-  if (name) act('rename', { name });
-});
+on('pet-name','click', () => openBuddyProfile());
 
 on('open-login','change', (e) => {
   api.action('setOpenAtLogin', { open: e.target.checked });
@@ -1262,9 +1259,15 @@ function initArena() {
       const maxHp = Math.round((40 + (bs.def || 2) * 4 + level * 6) * arenaHpMul);
       const species = s && s.pet && s.pet.species ? sprites.normalizeSpeciesId(s.pet.species) : null;
       const evolved = !!(s && s.pet && s.pet.evolved);
-      const sheetPetId = species && evolved ? `${species}_evo` : species;
+      let sheetPetId = null;
+      if (species) {
+        const evoId = `${species}_evo`;
+        if (evolved && sprites.petSheetInfo(evoId, 'idle')) sheetPetId = evoId;
+        else if (sprites.petSheetInfo(species, 'idle')) sheetPetId = species;
+        else if (sprites.petSheetInfo(evoId, 'idle')) sheetPetId = evoId;
+      }
       const sheetInfo = sheetPetId ? sprites.petSheetInfo(sheetPetId, 'idle') : null;
-      const sheetUrl = sheetInfo ? sprites.petSheetUrl(sheetPetId, 'idle') : (species ? sprites.petSheetUrl(species, 'idle') : null);
+      const sheetUrl = sheetInfo ? sprites.petSheetUrl(sheetPetId, 'idle') : null;
       const kitRaw = derived && derived.collection ? derived.collection.activeKit : null;
       const battleBase = `${this.assetBase}/battle/`;
       const kit = kitRaw ? {
@@ -3952,3 +3955,102 @@ document.addEventListener('click', (e) => {
   if (!b || b.disabled) return;
   if (cuteSfx) cuteSfx.play('pop');
 }, true);
+
+// ===== Buddy profile modal (click your buddy up top) =====
+const RENAME_COST = 10000;
+let buddyProfileEsc = null;
+
+function closeBuddyProfile() {
+  const modal = el('buddy-profile-modal');
+  if (modal) modal.classList.add('hidden');
+  if (buddyProfileEsc) { document.removeEventListener('keydown', buddyProfileEsc); buddyProfileEsc = null; }
+}
+
+function openBuddyProfile() {
+  const modal = el('buddy-profile-modal');
+  const body = el('buddy-profile-body');
+  const d = latest && latest.derived;
+  const st = latest && latest.state;
+  if (!modal || !body || !d || !st) return;
+  const pet = st.pet || {};
+  const species = sprites.normalizeSpeciesId(pet.species || 'kala');
+  const rpg = d.rpg || {};
+  const bs = rpg.battle || {};
+  const col = d.collection || {};
+  const kit = col.activeKit || null;
+  const battleBase = '../../assets/battle/';
+  const faceSrc = PET_PREVIEW_PNG[species] || '';
+  const xpNow = Math.floor(pet.xp || 0);
+  const xpNext = Math.max(1, d.nextLevelXp || 1);
+  const xpPct = Math.min(100, Math.round((xpNow / xpNext) * 100));
+  const renameFree = !!(st.milestones && st.milestones.rename60);
+  const renameLabel = renameFree ? '\u270F\uFE0F Rename (Free \u2014 60-day milestone!)' : `\u270F\uFE0F Rename \u2014 ${RENAME_COST.toLocaleString()}g`;
+
+  const kitHtml = kit
+    ? [['Active Skill', kit.skill], ['Battle Talent', kit.talent], ['Collection Passive', kit.passive]].map(([label, item]) => `
+        <div class="jb-bp-item" title="${item ? (item.desc || '').replace(/"/g, '&quot;') : ''}">
+          ${item && item.iconUrl ? `<img src="${battleBase}${item.iconUrl}" alt="" draggable="false" />` : '<span class="jb-bp-emoji">\uD83D\uDC3E</span>'}
+          <div class="jb-bp-item-txt">
+            <span class="jb-bp-label">${label}</span>
+            <span class="jb-bp-name">${item ? item.name : '\u2014'}</span>
+          </div>
+        </div>`).join('')
+    : '<div class="jb-bp-item"><span class="jb-bp-emoji">\uD83E\uDD5A</span><div class="jb-bp-item-txt"><span class="jb-bp-label">Egg Charm</span><span class="jb-bp-name">Hatch to unlock skills!</span></div></div>';
+
+  const invSlots = Array.from({ length: 8 }, () => '<div class="bp-inv-slot" title="Gear slot \u2014 coming in a future update!">\uD83D\uDD12</div>').join('');
+
+  body.innerHTML = `
+    <div class="bp-profile-head">
+      <img class="bp-face pixelated" src="${faceSrc}" alt="" draggable="false" />
+      <div class="bp-profile-id">
+        <div class="bp-profile-name">${pet.name || 'Buddy'} <span class="bp-profile-lvl">LV ${pet.level || 1}</span></div>
+        <div class="bp-profile-sub">\u23F3 ${rpg.daysPlayed || 0} day${(rpg.daysPlayed || 0) === 1 ? '' : 's'} played \u00b7 \u2694\uFE0F ${bs.wins || 0}W / ${bs.losses || 0}L \u00b7 \uD83D\uDC3E ${col.count || 1} buddy collected</div>
+      </div>
+    </div>
+    <div class="bp-section-title">\u2B50 Character Stats</div>
+    <div class="bp-stats-grid">
+      <div class="bp-stat"><span>\u2694\uFE0F ATK</span><b>${bs.atk || 0}</b></div>
+      <div class="bp-stat"><span>\uD83D\uDEE1\uFE0F DEF</span><b>${bs.def || 0}</b></div>
+      <div class="bp-stat"><span>\uD83D\uDCA8 SPD</span><b>${bs.spd || 0}</b></div>
+    </div>
+    <div class="bp-xp-row">
+      <span class="jb-bp-label">EXP Progress</span>
+      <div class="bp-xp-track"><div class="bp-xp-fill" style="width:${xpPct}%"></div></div>
+      <span class="bp-xp-num">${xpNow.toLocaleString()} / ${xpNext.toLocaleString()} (${xpPct}%)</span>
+    </div>
+    <div class="bp-section-title">\u2694\uFE0F Battle Kit</div>
+    <div class="jb-bp-kit bp-kit-grid">${kitHtml}</div>
+    <div class="bp-section-title">\uD83C\uDF92 Inventory <small class="muted">\u2014 gear slots coming soon</small></div>
+    <div class="bp-inv-grid">${invSlots}</div>
+    <div class="bp-section-title">\u270F\uFE0F Rename</div>
+    <div class="bp-rename-row">
+      <input id="bp-rename-input" class="name-input" maxlength="16" value="${(pet.name || 'Buddy').replace(/"/g, '&quot;')}" autocomplete="off" />
+      <button id="bp-rename-btn" class="btn btn-amber">${renameLabel}</button>
+    </div>
+    ${renameFree ? '' : `<p class="muted small" style="margin:6px 0 0;">\uD83D\uDCB0 Renaming costs 10,000 gold \u00b7 free forever after the 60-day milestone!</p>`}
+  `;
+
+  const renameBtn = body.querySelector('#bp-rename-btn');
+  const renameInput = body.querySelector('#bp-rename-input');
+  if (renameBtn && renameInput) {
+    renameBtn.addEventListener('click', async () => {
+      const name = (renameInput.value || '').trim();
+      if (!name) return;
+      const res = await act('rename', { name });
+      if (res && res.ok !== false) {
+        const snap = await api.getState();
+        if (snap) render(snap);
+        openBuddyProfile();
+      }
+    });
+  }
+  on('bp-close', 'click', () => closeBuddyProfile());
+
+  modal.classList.remove('hidden');
+  if (buddyProfileEsc) document.removeEventListener('keydown', buddyProfileEsc);
+  buddyProfileEsc = (e) => { if (e.key === 'Escape') closeBuddyProfile(); };
+  document.addEventListener('keydown', buddyProfileEsc);
+}
+
+const brandBadgeEl = document.querySelector('.brand-badge');
+if (brandBadgeEl) brandBadgeEl.addEventListener('click', () => openBuddyProfile());

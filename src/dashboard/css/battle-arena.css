@@ -767,3 +767,66 @@
   color: #8a7a5f;
   border-color: #d9cbb0;
 }
+
+/* ===== Battle Profile: clean 3-column grid layout ===== */
+.battle-profile {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px 12px;
+}
+.battle-profile h3 {
+  grid-column: 1 / -1;
+  text-align: center;
+  margin: 0 0 2px;
+}
+.battle-profile .jb-bp-kit { display: contents; }
+.battle-profile .jb-bp-item {
+  flex-direction: column;
+  text-align: center;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 8px 6px;
+  height: 100%;
+}
+.battle-profile .jb-bp-item .jb-bp-item-txt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+}
+.battle-profile .jb-bp-item .jb-bp-name {
+  font-size: 11px;
+  line-height: 1.3;
+}
+.battle-profile .jb-bp-item.egg { grid-column: 1 / -1; }
+.battle-profile .jb-bp-bonuses {
+  grid-column: 1 / -1;
+  margin-top: 2px;
+}
+
+/* ===== Arena player sprite: one frame at a time, Home-view scale ===== */
+.jb-fighter.player .jb-sprite-box {
+  width: 192px;
+  height: 192px;
+  animation-name: jbSprite4Frame192;
+}
+.jb-fighter.player .jb-sprite-box.jb-sprite-8 {
+  animation-name: jbSprite8Frame192;
+  background-size: 800% 100%;
+  animation-duration: 0.9s;
+}
+@keyframes jbSprite4Frame192 {
+  from { background-position: 0 0; }
+  to { background-position: -768px 0; }
+}
+@keyframes jbSprite8Frame192 {
+  from { background-position: 0 0; }
+  to { background-position: -1536px 0; }
+}
+.jb-fighter.player {
+  width: 200px;
+  left: 12%;
+}
+.jb-fighter.player .jb-hp-wrap { width: 100%; }
