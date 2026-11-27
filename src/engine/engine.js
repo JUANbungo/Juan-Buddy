@@ -49,7 +49,7 @@ const UPGRADES = {
 const ACTIVITIES = {
   walk: {
     id: 'walk', name: 'Tara, Lakwatsa!', icon: '🚶',
-    desc: 'A quick stroll around the barangay.',
+    desc: 'A quick stroll around Buddy Park.',
     duration: 20, energy: 8, coins: [10, 18], xp: 4, cooldown: 30,
   },
   cook: {
@@ -73,7 +73,7 @@ const ACTIVITIES = {
     duration: 90, energy: 25, coins: [56, 90], xp: 16, cooldown: 120, lucky: 0.15,
   },
   park: {
-    id: 'park', name: 'Barangay Park', icon: '🌳',
+    id: 'park', name: 'Buddy Park', icon: '🌳',
     desc: 'Run around the park. Fresh air + sniffy trees.',
     duration: 40, energy: 12, coins: [20, 36], xp: 9, cooldown: 60, outdoor: 'park',
   },

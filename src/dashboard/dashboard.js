@@ -372,7 +372,6 @@ function render(snapshot) {
   safeRender('foods', () => renderFoods(s, d));
   safeRender('activities', () => renderActivities(s, d));
   safeRender('buddyPicker', () => renderBuddyPicker(s));
-  safeRender('battleProfile', () => renderBattleProfile(d));
   if (toast) showToast(toast);
 }
 
@@ -847,63 +846,6 @@ function openBuddyPreview(p) {
       if (!frames) drawFallbackFrame();
     });
   });
-}
-
-const COLLECTION_STAT_LABELS = {
-  coinBonusPct: (v) => `+${Math.round(v * 100)}% Work Coins`,
-  xpBonusPct: (v) => `+${Math.round(v * 100)}% XP gain`,
-  energyCostReductionPct: (v) => `-${Math.round(v * 100)}% Energy cost`,
-  decayReductionPct: (v) => `-${Math.round(v * 100)}% Meter decay`,
-  recoverySpeedPct: (v) => `+${Math.round(v * 100)}% Recovery speed`,
-  maxEnergyFlat: (v) => `+${Math.round(v)} Max Energy`,
-  maxHappinessFlat: (v) => `+${Math.round(v)} Max Happiness`,
-  arenaAtkPct: (v) => `+${Math.round(v * 100)}% Arena ATK`,
-  arenaHpPct: (v) => `+${Math.round(v * 100)}% Arena HP`,
-  workCooldownReductionPct: (v) => `-${Math.round(v * 100)}% Activity cooldown`,
-  hatchSpeedPct: (v) => `+${Math.round(v * 100)}% Hatch speed`,
-};
-
-function renderBattleProfile(d) {
-  const wrap = el('battle-profile');
-  if (!wrap) return;
-  const col = d && d.collection ? d.collection : null;
-  if (!col) { wrap.innerHTML = ''; return; }
-  const battleBase = '../../assets/battle/';
-  const kit = col.activeKit;
-  const kitHtml = kit ? `
-    <div class="jb-bp-kit">
-      ${[['Active Skill', kit.skill, 'skill'], ['Battle Talent', kit.talent, 'talent'], ['Collection Passive', kit.passive, 'passive']].map(([label, item, cls]) => `
-        <div class="jb-bp-item ${cls} ${kit.isEvo ? 'evo' : ''}" title="${item ? (item.desc || '').replace(/"/g, '&quot;') : ''}">
-          <img src="${battleBase}${item.iconUrl}" alt="${item.name}" draggable="false" />
-          <div class="jb-bp-item-txt">
-            <span class="jb-bp-label">${label}</span>
-            <span class="jb-bp-name">${item.name}${kit.isEvo ? ' ⭐ Evo' : ''}</span>
-          </div>
-        </div>`).join('')}
-    </div>`
-    : (col.eggCharm ? `
-    <div class="jb-bp-kit">
-      <div class="jb-bp-item passive egg" title="${col.eggCharm.passive.desc}">
-        <span class="jb-bp-emoji">🥚</span>
-        <div class="jb-bp-item-txt">
-          <span class="jb-bp-label">Egg Charm</span>
-          <span class="jb-bp-name">${col.eggCharm.passive.name}</span>
-        </div>
-      </div>
-    </div>` : '');
-  const bonusEntries = Object.entries(col.totals || {})
-    .filter(([stat, v]) => COLLECTION_STAT_LABELS[stat] && v > 0)
-    .map(([stat, v]) => `<span class="jb-bp-bonus">${COLLECTION_STAT_LABELS[stat](v)}</span>`);
-  const bonusHtml = bonusEntries.length
-    ? bonusEntries.join('')
-    : '<span class="jb-bp-bonus none">Hatch & collect more buddies to unlock passive bonuses!</span>';
-  wrap.innerHTML = `
-    <h3>⚔️ Battle Profile ${kit ? `— ${kit.isEvo ? 'Evo' : ''} ${kit.source.charAt(0).toUpperCase() + kit.source.slice(1)} kit` : ''} <small class="muted">• ${col.count} buddy${col.count === 1 ? '' : 'ies'} collected</small></h3>
-    ${kitHtml}
-    <div class="jb-bp-bonuses">
-      <span class="jb-bp-bonus-title">Active Collection Bonuses:</span>
-      ${bonusHtml}
-    </div>`;
 }
 
 const BRAND_FACE_PAW = '../../assets/sprites/ui/hud_icons/icons_1x_native/icon_paw.png';

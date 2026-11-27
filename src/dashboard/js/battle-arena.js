@@ -9,6 +9,34 @@
   const ONE_HOUR_MS = 60 * 60 * 1000;
   const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
+  const HP_STORAGE_KEY = "juanBuddyArenaHpState_v1";
+  const HP_REGEN_INTERVAL_MS = 3 * 60 * 1000; // +1 HP every 3 minutes (wall-clock catch-up)
+
+  function loadHpState() {
+    try {
+      const raw = global.localStorage ? global.localStorage.getItem(HP_STORAGE_KEY) : null;
+      if (!raw) return null;
+      const v = JSON.parse(raw);
+      if (!v || typeof v !== "object") return null;
+      return {
+        currentHp: Math.max(0, Math.round(Number(v.currentHp) || 0)),
+        maxHp: Math.max(1, Math.round(Number(v.maxHp) || 0)),
+        level: Math.max(1, Math.round(Number(v.level) || 1)),
+        updatedAt: Number(v.updatedAt) || 0,
+      };
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function saveHpState(state) {
+    try {
+      if (global.localStorage) global.localStorage.setItem(HP_STORAGE_KEY, JSON.stringify(state));
+    } catch (err) {
+      // no storage available
+    }
+  }
+
   // Exact 8 Battle Arena Monsters matching Juan Buddy UI (rebalanced: higher HP)
   const MONSTERS = [
     { id: "guard_slime",  name: "Guard Slime",  lv: 1,  hp: 65,   atk: 7,  goldMin: 30,  goldMax: 50,  xp: 6,   limitedDrop: { enabled: false, comingSoon: true, chance: 1.5, itemName: "Mystery Limited Item" } },
@@ -124,6 +152,7 @@
       });
       this.onStateChange = options.onStateChange || (() => {});
 
+      this.hpState = loadHpState();
       this.deathState = loadDeathState();
       this.selectedMonster = MONSTERS[0];
       this.inArena = false;
@@ -133,6 +162,72 @@
       this.bt = null;
 
       this._startClock();
+    }
+
+    /** Sync persistent HP with wall-clock regen (+1 HP / 3 min) and level-ups */
+    _syncPlayerHp() {
+      const player = this.getPlayer();
+      const maxHp = Math.max(1, Math.round(player.maxHp || player.hp || 60));
+      const level = Math.max(1, Math.round(player.level || 1));
+      const now = Date.now();
+      let st = this.hpState;
+      if (!st || !st.updatedAt) {
+        st = this.hpState = { currentHp: maxHp, maxHp, level, updatedAt: now };
+        saveHpState(st);
+        return st;
+      }
+      if (level > st.level) {
+        st.currentHp = maxHp;
+        st.maxHp = maxHp;
+        st.level = level;
+        st.updatedAt = now;
+        saveHpState(st);
+        return st;
+      }
+      let dirty = false;
+      if (st.level !== level) { st.level = level; dirty = true; }
+      if (st.maxHp !== maxHp) { st.maxHp = maxHp; st.currentHp = Math.min(st.currentHp, maxHp); dirty = true; }
+      if (st.currentHp < st.maxHp) {
+        const elapsed = Math.max(0, now - st.updatedAt);
+        const units = Math.floor(elapsed / HP_REGEN_INTERVAL_MS);
+        if (units > 0) {
+          st.currentHp = Math.min(st.maxHp, st.currentHp + units);
+          st.updatedAt = st.currentHp >= st.maxHp ? now : st.updatedAt + units * HP_REGEN_INTERVAL_MS;
+          dirty = true;
+        }
+      } else {
+        st.updatedAt = now;
+      }
+      if (dirty) saveHpState(st);
+      return st;
+    }
+
+    /** Current HP the Buddy can fight with (never 0 outside the death system) */
+    _currentHp() {
+      const st = this._syncPlayerHp();
+      if (!this.isLockedOut() && st.currentHp <= 0) {
+        st.currentHp = st.maxHp;
+        st.updatedAt = Date.now();
+        saveHpState(st);
+      }
+      return Math.max(0, st.currentHp);
+    }
+
+    /** Persist HP after a battle ends (win, loss or mid-battle exit) — NO auto-heal */
+    _commitBattleHp(hp) {
+      const st = this.hpState || this._syncPlayerHp();
+      st.currentHp = Math.max(0, Math.min(st.maxHp, Math.round(hp)));
+      st.updatedAt = Date.now();
+      saveHpState(st);
+      return st;
+    }
+
+    /** Revive = full heal to maxHp */
+    _reviveFullHp() {
+      const st = this._syncPlayerHp();
+      st.currentHp = st.maxHp;
+      st.updatedAt = Date.now();
+      saveHpState(st);
     }
 
     /** Dynamic Reincarnation Stone price based on death count */
@@ -178,6 +273,7 @@
     exitArena() {
       this.inArena = false;
       this.inBattle = false;
+      if (this.bt) this._commitBattleHp(this.bt.pHp);
       this.bt = null;
       clearTimeout(this.battleTimer);
       if (this.stageMount) this.stageMount.classList.add("jb-arena-hidden");
@@ -234,6 +330,7 @@
       this.deathState.status = "alive";
       this.deathState.lockoutUntil = 0;
       saveDeathState(this.deathState);
+      this._reviveFullHp();
       this.renderArenaStage();
       this.onStateChange({ inArena: this.inArena, deathState: this.deathState, revived: true });
       return { ok: true, message: `Revived with Reincarnation Stone (-${price.toLocaleString()} gold)!` };
@@ -255,6 +352,7 @@
       this.deathState.resetAt = 0;
       this.deathState.lockoutUntil = 0;
       saveDeathState(this.deathState);
+      this._reviveFullHp();
       this.renderArenaStage();
       this.onStateChange({ inArena: this.inArena, deathState: this.deathState, revived: true });
       return { ok: true, message: "Miracle! Revived from Tombstone (-150,000 gold). 1-Day Reset cancelled!" };
@@ -275,7 +373,7 @@
 
       const bt = {
         player, enemy, kit,
-        pHp: player.maxHp || player.hp || 60,
+        pHp: Math.min(this._currentHp(), player.maxHp || player.hp || 60),
         eHp: enemy.hp,
         energy: 30,
         skillCd: 0,
@@ -292,7 +390,7 @@
       };
       this.bt = bt;
       this.inBattle = true;
-      this._setLog(`\u2694\ufe0f Battle started against ${enemy.name} (Lv ${enemy.lv})!`);
+      this._setLog(`\u2694\ufe0f Battle started against ${enemy.name} (Lv ${enemy.lv})! You have ${bt.pHp}/${player.maxHp || player.hp || 60} HP.`);
       const fightBtn = this.stageMount?.querySelector("#jb-fight-btn");
       if (fightBtn) fightBtn.disabled = true;
 
@@ -468,6 +566,7 @@
       if (bt.pHp <= 0) {
         this.inBattle = false;
         this._updateSkillBtn();
+        this._commitBattleHp(0);
         const isFullDeath = this.deathState.deathCount >= 2;
         this.triggerPetDeath(isFullDeath);
         this.bt = null;
@@ -489,7 +588,10 @@
         eSprite.style.backgroundImage = `url("${this.assetBase}/monsters/${bt.enemy.id}/idle_sheet.png")`;
       }
       this.addReward({ gold: goldGain, xp: bt.enemy.xp, monster: bt.enemy });
-      this._setLog(`\uD83C\uDFC6 Victory! Earned +${goldGain} Gold & +${bt.enemy.xp} XP!${goldBonus > 0 ? ` (${talent.name} +${Math.round(goldBonus * 100)}%)` : ""}`);
+      const hpSt = this._commitBattleHp(bt.pHp);
+      const hpSuffix = hpSt.currentHp < hpSt.maxHp ? ` \u2014 ${hpSt.currentHp}/${hpSt.maxHp} HP left (recovers +1 every 3 min)` : "";
+      this._updateHpBars(hpSt.currentHp, hpSt.maxHp, bt.eHp, bt.enemy.hp);
+      this._setLog(`\uD83C\uDFC6 Victory! Earned +${goldGain} Gold & +${bt.enemy.xp} XP!${hpSuffix}${goldBonus > 0 ? ` (${talent.name} +${Math.round(goldBonus * 100)}%)` : ""}`);
       const fightBtn = this.stageMount?.querySelector("#jb-fight-btn");
       if (fightBtn) fightBtn.disabled = false;
       this.bt = null;
@@ -664,6 +766,8 @@
       const kit = player.kit || null;
       const petOverride = this.getActivePetSpriteOverride("idle");
       const petSprite = petOverride || player.sheetUrl || player.spriteUrl;
+      const curHp = this._currentHp();
+      const pMaxHp = Math.max(1, Math.round(player.maxHp || player.hp || 60));
       const enemySprite = `${this.assetBase}/monsters/${enemy.id}/${walkInEnemy ? "walk_sheet" : "idle_sheet"}.png`;
 
       let deathOverlayHtml = "";
@@ -712,8 +816,8 @@
 
           <div class="jb-fighter player">
             <div class="jb-hp-wrap">
-              <div class="jb-hp-label"><span>${player.name}</span><span id="jb-p-hp-txt">${player.maxHp}/${player.maxHp}</span></div>
-              <div class="jb-hp-track"><div class="jb-hp-fill" id="jb-p-hp-bar" style="width:100%"></div></div>
+              <div class="jb-hp-label"><span>${player.name}</span><span id="jb-p-hp-txt">${curHp}/${pMaxHp}</span></div>
+              <div class="jb-hp-track"><div class="jb-hp-fill" id="jb-p-hp-bar" style="width:${Math.max(0, (curHp / pMaxHp) * 100)}%"></div></div>
             </div>
             <div class="jb-sprite-box${!petOverride && player.sheetFrames === 8 ? " jb-sprite-8" : ""}" style="background-image:url('${petSprite}')"></div>
           </div>
@@ -903,6 +1007,7 @@
         this.deathState.status = "alive";
         this.deathState.lockoutUntil = 0;
         saveDeathState(this.deathState);
+        this._reviveFullHp();
         if (this.inArena) this.renderArenaStage();
       } else if (this.deathState.status === "tombstone" && this.deathState.resetAt > 0 && now >= this.deathState.resetAt) {
         // 1-Day Tombstone timer expired -> trigger full game reset!
@@ -915,6 +1020,13 @@
     _startClock() {
       this.tickInterval = setInterval(() => {
         this._refreshDeathTimers();
+        if (this.inArena && !this.inBattle && this.deathState.status === "alive") {
+          const st = this._syncPlayerHp();
+          const pTxt = this.stageMount?.querySelector("#jb-p-hp-txt");
+          const pBar = this.stageMount?.querySelector("#jb-p-hp-bar");
+          if (pTxt) pTxt.textContent = `${st.currentHp}/${st.maxHp}`;
+          if (pBar) pBar.style.width = `${Math.max(0, (st.currentHp / st.maxHp) * 100)}%`;
+        }
         const clock = this.stageMount?.querySelector("#jb-lockout-clock");
         if (!clock) return;
         if (this.deathState.status === "ghost") {
