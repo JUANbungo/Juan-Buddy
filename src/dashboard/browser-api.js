@@ -5,6 +5,53 @@
   'use strict';
   if (window.BuddyAPI) return;
 
+  const CAP = window.Capacitor || null;
+  const CAP_PLUGINS = CAP && CAP.Plugins ? CAP.Plugins : null;
+  const isNative = () => !!(CAP && typeof CAP.isNativePlatform === 'function' && CAP.isNativePlatform());
+
+  const notifStamps = { hunger: 0, energy: 0 };
+  const NOTIF_COOLDOWN_MS = 30 * 60 * 1000;
+
+  function pushNotification(title, body) {
+    try {
+      if (isNative() && CAP_PLUGINS.LocalNotifications && CAP_PLUGINS.LocalNotifications.schedule) {
+        CAP_PLUGINS.LocalNotifications.schedule({
+          notifications: [{ id: Date.now() % 1000000000, title, body }],
+        });
+        return;
+      }
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        new Notification(title, { body });
+      }
+    } catch (err) { /* notifications unavailable on this platform */ }
+  }
+
+  function requestNotificationPermission() {
+    try {
+      if (isNative() && CAP_PLUGINS.LocalNotifications && CAP_PLUGINS.LocalNotifications.requestPermissions) {
+        CAP_PLUGINS.LocalNotifications.requestPermissions();
+        return;
+      }
+      if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    } catch (err) { /* ignore */ }
+  }
+  document.addEventListener('pointerdown', requestNotificationPermission, { once: true, passive: true });
+
+  function maybeNotify() {
+    if (state.dead) return;
+    const now = Date.now();
+    const name = state.pet.name || 'Buddy';
+    const send = (key, body) => {
+      if (now - notifStamps[key] < NOTIF_COOLDOWN_MS) return;
+      notifStamps[key] = now;
+      pushNotification('Juan Buddy', body);
+    };
+    if (state.meters.hunger < 15 && !state.flags.sleeping) send('hunger', `${name} is really hungry! Time to feed.`);
+    if (state.meters.energy < 10 && !state.flags.sleeping) send('energy', `${name} is exhausted. Let them sleep.`);
+  }
+
   const engine = window.JBEngine;
   const sprites = window.JBSprites;
   const motivation = window.JBMotivation || null;
@@ -145,12 +192,21 @@
         break;
       case 'openUrl':
         if (payload && typeof payload.url === 'string' && /^https:\/\//.test(payload.url)) {
-          window.open(payload.url, '_blank');
+          if (isNative() && CAP_PLUGINS.Browser && CAP_PLUGINS.Browser.open) {
+            CAP_PLUGINS.Browser.open({ url: payload.url });
+          } else {
+            window.open(payload.url, '_blank');
+          }
           result = { ok: true };
         }
         break;
       case 'exitApp':
-        result = { ok: true, message: 'Close the browser tab to exit.' };
+        if (isNative() && CAP_PLUGINS.App && CAP_PLUGINS.App.exitApp) {
+          CAP_PLUGINS.App.exitApp();
+          result = { ok: true };
+        } else {
+          result = { ok: true, message: 'Close the browser tab to exit.' };
+        }
         break;
       case 'adminAddDay': {
         if (!state.playdays) state.playdays = { last: null, count: 0 };
@@ -214,13 +270,37 @@
     last = now;
     const events = engine.tick(state, dt, false) || [];
     for (const ev of events) {
-      if (ev && ev.message) broadcast(ev.message);
+      if (ev && ev.message) {
+        broadcast(ev.message);
+        if (ev.message.includes('passed away') || ev.message.includes('Achievement') || ev.message.includes('evolved') || ev.message.includes('hatched')) {
+          pushNotification('Juan Buddy', ev.message);
+        }
+      }
     }
     broadcast(null);
+    maybeNotify();
     motivationCountdown -= dt;
     if (motivationCountdown <= 0) { motivationCountdown = 15 * 60; triggerMotivation('random_blessing'); }
     if (now % 30000 < 1000) saveState();
   }, 1000);
   window.addEventListener('beforeunload', saveState);
-  document.addEventListener('visibilitychange', () => { if (document.hidden) saveState(); });
+  let hiddenAt = 0;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      hiddenAt = Date.now();
+      saveState();
+      return;
+    }
+    if (hiddenAt && Date.now() - hiddenAt > 30000) {
+      hiddenAt = 0;
+      const rep = engine.addOfflineProgress(state);
+      if (rep) {
+        pendingOfflineReport = rep;
+        saveState();
+        broadcast(null);
+      }
+    } else {
+      hiddenAt = 0;
+    }
+  });
 })();

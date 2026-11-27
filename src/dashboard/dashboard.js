@@ -1286,6 +1286,11 @@ function initArena() {
 initArena();
 
 api.onState(render);
+if (api.isBrowser) {
+  const loginToggle = el('open-login');
+  const loginLabel = loginToggle && loginToggle.closest('label');
+  if (loginLabel) loginLabel.style.display = 'none';
+}
 api.getState().then((snap) => {
   if (snap) el('open-login').checked = !!snap.openAtLogin;
   render(snap);

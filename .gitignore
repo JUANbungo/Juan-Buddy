@@ -11,12 +11,10 @@ dist/
 !assets/sprites/items/**/*.png
 !assets/sprites/ui/**/*.png
 !assets/sprites/waste/*.png
-!mobile/icons/*.png
 !android/app/src/main/res/**/*.png
 !android/app/src/main/res/**/*.xml
 !assets/sheets-src/*.png
 !assets/pets/**/*.png
-!mobile/pets/**/*.png
 !assets/arena/**/*.png
 !assets/battle/**/*
 !assets/monsters/**/*.png

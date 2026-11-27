@@ -18,8 +18,10 @@
   },
   "devDependencies": {
     "@capacitor/android": "^6.2.3",
+    "@capacitor/app": "^6.0.2",
     "@capacitor/cli": "^6.2.3",
     "@capacitor/core": "^6.2.3",
+    "@capacitor/local-notifications": "^6.1.0",
     "electron": "^33.2.0",
     "electron-builder": "^25.1.8"
   },
