@@ -26,4 +26,5 @@ dist/
 !assets/wallpapers/*.png
 !src/dashboard/assets/**/*.png
 !docs/*.png
+!docs/16bit/*.png
 pages/
