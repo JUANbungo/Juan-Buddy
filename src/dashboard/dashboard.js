@@ -1301,7 +1301,7 @@ if (api.isBrowser) {
   const loginLabel = loginToggle && loginToggle.closest('label');
   if (loginLabel) loginLabel.style.display = 'none';
 }
-api.getState().then((snap) => {
+Promise.resolve(api.getState()).then((snap) => {
   if (snap) el('open-login').checked = !!snap.openAtLogin;
   render(snap);
   splashReadyShown = true;
@@ -3816,7 +3816,9 @@ petStageCanvas.addEventListener('pointercancel', endHomeDrag);
 let lastStepAt = 0;
 let eatPrevState = null;
 let eatMunchAt = 0;
+let stageLoopErrors = 0;
 (function stageLoop() {
+  try {
   const stageNow = performance.now();
   drawStagePet(stageNow);
   const stepSpecies = latest && latest.state && latest.state.pet ? sprites.normalizeSpeciesId(latest.state.pet.species || 'kala') : 'kala';
@@ -3826,7 +3828,7 @@ let eatMunchAt = 0;
     lastStepAt = stageNow;
     if (sfx && sfx.playWav) sfx.playWav(stepFlying ? WAV.flap : WAV.step, stepFlying ? 0.32 : 0.28);
     else if (cuteSfx) cuteSfx.play('step');
-    if (!flyNow && Math.random() < 0.45) spawnFx('crumb', petWalk.x - 14 * petWalk.dir, petWalk.y + 2, { vy: -0.12, size: 8 });
+    if (!stepFlying && Math.random() < 0.45) spawnFx('crumb', petWalk.x - 14 * petWalk.dir, petWalk.y + 2, { vy: -0.12, size: 8 });
   }
   const nowState = stageStateFor();
   if (nowState === 'EAT' && stageNow - eatMunchAt > 520) {
@@ -3838,6 +3840,10 @@ let eatMunchAt = 0;
     lastFed = null;
   }
   eatPrevState = nowState;
+  } catch (err) {
+    stageLoopErrors += 1;
+    if (stageLoopErrors <= 5) console.error('[Juan Buddy] stage loop error:', err && err.message);
+  }
   requestAnimationFrame(stageLoop);
 })();
 

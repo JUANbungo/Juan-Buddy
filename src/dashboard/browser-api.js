@@ -254,12 +254,12 @@
   window.__JB_SAVE__ = saveState;
 
   window.BuddyAPI = {
-    getState: () => snapshot(null),
-    action: runAction,
-    saveNow: () => { saveState(); return true; },
+    getState: () => Promise.resolve(snapshot(null)),
+    action: (name, payload) => Promise.resolve(runAction(name, payload)),
+    saveNow: () => { saveState(); return Promise.resolve(true); },
     onState: (cb) => { listeners.push(cb); },
     onEvent: () => {},
-    getEvent: () => triggerMotivation('work_break'),
+    getEvent: () => Promise.resolve(triggerMotivation('work_break')),
     isBrowser: true,
   };
 
