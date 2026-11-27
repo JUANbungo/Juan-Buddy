@@ -901,7 +901,7 @@
           g.oval(12, 10, 2.5, 2, '#ea580c'); // curry dip
         }
       },
-      { id: 'kaya_toast', name: 'Kaya Toast', country: 'Singapore', region: 'ASEAN', flag: '🇸🇬', cost: 0, hunger: 22, happy: 20, energy: 16, buff: { stat: 'AGI', val: 2, label: '+2 AGI' },
+      { id: 'kaya_toast', name: 'Kaya Toast', country: 'Singapore', region: 'ASEAN', flag: '🇸🇬', cost: 15, hunger: 22, happy: 20, energy: 16, buff: { stat: 'AGI', val: 2, label: '+2 AGI' },
         draw(g) {
           g.rect(4, 6, 8, 6, '#d97706'); g.rect(5, 7, 6, 4, '#f59e0b');
           g.rect(5, 9, 6, 2, '#65a30d'); g.rect(7, 9, 2, 2, '#fef08a');
@@ -942,7 +942,7 @@
           g.rect(11, 10, 2, 2, '#ffffff'); // coconut chutney
         }
       },
-      { id: 'samosa', name: 'Crispy Samosa', country: 'India', region: 'India', flag: '🇮🇳', cost: 0, hunger: 24, happy: 20, energy: 14, buff: { stat: 'LUK', val: 2, label: '+2 LUK' },
+      { id: 'samosa', name: 'Crispy Samosa', country: 'India', region: 'India', flag: '🇮🇳', cost: 18, hunger: 24, happy: 20, energy: 14, buff: { stat: 'LUK', val: 2, label: '+2 LUK' },
         draw(g) {
           g.rect(5, 10, 6, 3, '#d97706'); g.rect(6, 8, 4, 2, '#f59e0b'); g.rect(7, 6, 2, 2, '#fbbf24');
           g.rect(11, 11, 2, 2, '#22c55e'); // mint chutney

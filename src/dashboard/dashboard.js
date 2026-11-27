@@ -1097,12 +1097,17 @@ function arenaMenuTab(name) {
     const bu = unlocks.find((u) => u.id === 'battle');
     if (bu && bu.unlocked) {
       arena.enterArena();
+      if (bgm) bgm.playCombatMusic();
     } else if (arena.inArena) {
       arena.exitArena();
+      if (bgm) bgm.stopCombatMusic();
     }
     return;
   }
-  if (arena.inArena) arena.exitArena();
+  if (arena.inArena) {
+    arena.exitArena();
+    if (bgm) bgm.stopCombatMusic();
+  }
 }
 
 function renderArenaLock(s) {
@@ -1251,6 +1256,10 @@ function initArena() {
       if (place && place.classList) place.classList.toggle('hidden', !inArena);
       const adRight = el('ad-right');
       if (adRight && adRight.classList) adRight.classList.toggle('hidden', inArena);
+      if (bgm) {
+        if (inArena) bgm.playCombatMusic();
+        else bgm.stopCombatMusic();
+      }
     },
   });
 
@@ -1306,6 +1315,7 @@ const WALK_Y_MIN = 286;
 const WALK_Y_MAX = 348;
 
 const petWalk = { x: STAGE_CX, y: 312, dir: 1, target: null, moving: false };
+let petSwimActive = false;
 let eggExciteUntil = 0;
 const stageFx = [];
 let lastStageNow = 0;
@@ -2116,6 +2126,7 @@ function drawParkScene(now, phaseId) {
   const pcx = PORTAL_RECT.x + PORTAL_RECT.w / 2;
   const pcy = PORTAL_RECT.y + PORTAL_RECT.h / 2;
   const pulse = 0.5 + 0.5 * Math.sin(now / 420);
+  const hoverBoost = parkPortalHover ? 0.22 : 0;
   const glow = cachedGradient('portal-glow', () => {
     const rg = stageCtx.createRadialGradient(pcx, pcy, 6, pcx, pcy, 70);
     rg.addColorStop(0, 'rgba(140, 220, 255, 0.85)');
@@ -2123,7 +2134,7 @@ function drawParkScene(now, phaseId) {
     return rg;
   });
   stageCtx.save();
-  stageCtx.globalAlpha = 0.3 + 0.3 * pulse;
+  stageCtx.globalAlpha = 0.3 + 0.3 * pulse + hoverBoost;
   stageCtx.fillStyle = glow;
   stageCtx.fillRect(pcx - 70, pcy - 70, 140, 140);
   stageCtx.restore();
@@ -2133,7 +2144,7 @@ function drawParkScene(now, phaseId) {
   stageCtx.font = 'bold 12px sans-serif';
   stageCtx.textAlign = 'center';
   stageCtx.fillStyle = 'rgba(20, 16, 10, 0.78)';
-  stageCtx.fillText('Explore Asia \u2192', pcx, PORTAL_RECT.y - 8);
+  stageCtx.fillText(parkPortalHover ? 'Explore Asia Portal' : 'Explore Asia \u2192', pcx, PORTAL_RECT.y - 8);
   stageCtx.restore();
 }
 
@@ -2189,6 +2200,13 @@ function drawFarmScene(now, phaseId) {
 
 function handleHomeFarmClick(x, y) {
   if (!latest || !latest.state || homeEditMode) return false;
+  if (activeOutdoorAct()) {
+    const r = RETURN_PORTAL_RECT;
+    if (x >= r.x - 10 && x <= r.x + r.w + 10 && y >= r.y - 12 && y <= r.y + r.h + 8) {
+      exp8FlashHome();
+      return true;
+    }
+  }
   if (latest.state.dead || arenaPetDead()) return false;
   if (stageScene === 'home') {
     if (x >= DOOR_RECT.x - 6 && x <= DOOR_RECT.x + DOOR_RECT.w + 6 && y >= DOOR_RECT.y - 8 && y <= DOOR_RECT.y + DOOR_RECT.h + 22) {
@@ -2276,6 +2294,7 @@ function openPortalModal() {
       btn.innerHTML = `<span class="pd-name">${a.name || id}</span><span class="pd-meta muted small">${a.desc || ''}</span>`;
       btn.addEventListener('click', async () => {
         closePortalModal();
+        portalFlashUntil = performance.now() + PORTAL_FLASH_MS;
         const res = await act('startActivity', { activityId: id });
         if (res && res.ok) setScene('home');
       });
@@ -2355,7 +2374,230 @@ function renderHomeShop(s) {
   }
 }
 
+const EXP8_BASE = '../../assets/explore_8bit';
+const EXP8_MODE_KEY = {
+  park: '01_buddy_park',
+  baywalk: '02_manila_baywalk',
+  market: '03_floating_market',
+  temple: '04_kyoto_zen_garden',
+  terraces: '05_rice_terraces',
+  beach: '06_boracay_beach',
+};
+const EXP8_S = 0.9;
+const EXP8_OX = -48;
+const EXP8_W = 640;
+const EXP8_H = 400;
+const RETURN_PORTAL_RECT = { x: 16, y: 268, w: 56, h: 70 };
+const PORTAL_FLASH_MS = 620;
+let portalFlashUntil = 0;
+let parkPortalHover = false;
+
+const exp8Images = {};
+function exp8Image(rel) {
+  if (exp8Images[rel] !== undefined) return exp8Images[rel];
+  let img = null;
+  try {
+    img = new Image();
+    img.onerror = () => { img.bad = true; };
+    img.src = `${EXP8_BASE}/${rel}`;
+  } catch (err) { img = null; }
+  exp8Images[rel] = img;
+  return img;
+}
+function exp8Ready(img) {
+  return img && !img.bad && img.complete && img.naturalWidth > 0;
+}
+function exp8Blit(img, frames, now, x640, y640, w640, h640, flip, step) {
+  if (!exp8Ready(img) || !frames) return;
+  const fw = img.naturalWidth / frames;
+  const fh = img.naturalHeight;
+  const f = Math.floor(now / (step || 140)) % frames;
+  const dw = (w640 || fw) * EXP8_S;
+  const dh = (h640 || fh) * EXP8_S;
+  const dx = x640 * EXP8_S + EXP8_OX;
+  const dy = y640 * EXP8_S;
+  stageCtx.imageSmoothingEnabled = false;
+  if (flip) {
+    stageCtx.save();
+    stageCtx.translate(dx + dw, dy);
+    stageCtx.scale(-1, 1);
+    stageCtx.drawImage(img, f * fw, 0, fw, fh, 0, 0, dw, dh);
+    stageCtx.restore();
+    return;
+  }
+  stageCtx.drawImage(img, f * fw, 0, fw, fh, dx, dy, dw, dh);
+}
+function exp8DayProgress(now) {
+  const d = new Date(now);
+  const h = d.getHours() + d.getMinutes() / 60;
+  if (h >= 8 && h < 17) return (h - 8) / 9;
+  if (h >= 17 && h < 20) return (h - 17) / 3;
+  return h >= 20 ? (h - 20) / 9 : (h + 4) / 9;
+}
+function exp8Celestial(now, bucket) {
+  const sheet = exp8Image(bucket === 'night' ? 'shared_effects/moon_anim_4f.png' : 'shared_effects/sun_anim_4f.png');
+  if (!exp8Ready(sheet)) return;
+  const t = exp8DayProgress(now);
+  let x640;
+  let y640;
+  if (bucket === 'day') {
+    x640 = 90 + t * 460;
+    y640 = 96 - Math.sin(t * Math.PI) * 58;
+  } else if (bucket === 'sunset') {
+    x640 = 300 + t * 60;
+    y640 = 84 + t * 108;
+  } else {
+    x640 = 120 + t * 400;
+    y640 = 90 - Math.sin(t * Math.PI) * 52;
+  }
+  exp8Blit(sheet, 4, now, x640 - 48, y640 - 48, 96, 96, false, 320);
+}
+function exp8PingPong(now, i, span, speed) {
+  const t = (now / 1000) * speed + i * 2.13;
+  const cyc = t % 2;
+  const p = cyc < 1 ? cyc : 2 - cyc;
+  return { pos: p * span, dir: cyc < 1 ? 1 : -1 };
+}
+function exp8Roam(cfg, now, i) {
+  const img = exp8Image(cfg.file);
+  if (!exp8Ready(img)) return;
+  const span = EXP8_W + cfg.w;
+  const dirI = i % 2 === 0 ? 1 : -1;
+  let prog = (((now / 1000) * cfg.speed * dirI + i * span * 0.47) % span + span) % span;
+  const x640 = dirI > 0 ? prog - cfg.w : span - prog;
+  const midY = (cfg.y0 + cfg.y1) / 2;
+  const y640 = midY + Math.sin(now / 1400 + i * 2.4) * ((cfg.y1 - cfg.y0) / 2);
+  exp8Blit(img, cfg.frames, now, x640, y640, cfg.w, cfg.h, dirI < 0);
+}
+function exp8Patrol(cfg, now, i) {
+  const img = exp8Image(cfg.file);
+  if (!exp8Ready(img)) return;
+  const span = Math.max(10, cfg.x1 - cfg.x0 - cfg.w);
+  const pp = exp8PingPong(now, i, span, cfg.speed);
+  const y640 = cfg.y + Math.round(Math.sin(now / 260 + i * 3) * (cfg.bob || 0));
+  exp8Blit(img, cfg.frames, now, cfg.x0 + pp.pos, y640, cfg.w, cfg.h, pp.dir < 0);
+}
+const EXP8_SCENES = {
+  '01_buddy_park': [
+    { file: '01_buddy_park/dating_animals_bench_4f.png', frames: 4, x: 160, y: 224 },
+    { type: 'roam', file: '01_buddy_park/butterflies_4f.png', frames: 4, w: 64, h: 64, count: 2, y0: 108, y1: 168, speed: 20 },
+    { type: 'roam', file: '01_buddy_park/dragonflies_4f.png', frames: 4, w: 64, h: 64, count: 2, y0: 182, y1: 228, speed: 32 },
+    { file: '01_buddy_park/lamps_night_glow_4f.png', frames: 4, nightOnly: true },
+  ],
+  '02_manila_baywalk': [
+    { file: '02_manila_baywalk/water_shimmer_4f.png', frames: 4, x: 0, y: 192, step: 200 },
+    { type: 'roam', file: '02_manila_baywalk/sea_birds_4f.png', frames: 4, w: 64, h: 48, count: 2, y0: 36, y1: 104, speed: 40 },
+    { type: 'patrol', file: '02_manila_baywalk/walking_people_4f.png', frames: 4, w: 64, h: 96, count: 2, x0: 50, x1: 590, y: 272, speed: 9, bob: 2 },
+    { type: 'patrol', file: '02_manila_baywalk/kalesa_4f.png', frames: 4, w: 176, h: 104, count: 1, x0: 30, x1: 440, y: 280, speed: 5.5 },
+  ],
+  '03_floating_market': [
+    { file: '03_floating_market/canal_water_4f.png', frames: 4, x: 0, y: 200, step: 200 },
+    { type: 'patrol', file: '03_floating_market/vendor_boats_4f.png', frames: 4, w: 168, h: 96, count: 2, x0: 16, x1: 280, y: 296, speed: 4, bob: 2 },
+    { file: '03_floating_market/coffee_monitor_lizard_4f.png', frames: 4, x: 528, y: 216 },
+  ],
+  '04_kyoto_zen_garden': [
+    { file: '04_kyoto_zen_garden/windy_trees_4f.png', frames: 4 },
+    { file: '04_kyoto_zen_garden/shiba_inu_4f.png', frames: 4, x: 296, y: 288 },
+    { file: '04_kyoto_zen_garden/falling_sakura_8f.png', frames: 8, step: 120 },
+  ],
+  '05_rice_terraces': [
+    { file: '05_rice_terraces/windy_rice_4f.png', frames: 4 },
+    { file: '05_rice_terraces/farmers_planting_4f.png', frames: 4, x: 128, y: 248 },
+    { file: '05_rice_terraces/farmers_planting_4f.png', frames: 4, x: 256, y: 296, flip: true },
+    { file: '05_rice_terraces/carabao_4f.png', frames: 4, x: 416, y: 296 },
+  ],
+  '06_boracay_beach': [
+    { file: '06_boracay_beach/windy_coconuts_4f.png', frames: 4 },
+    { file: '06_boracay_beach/swimmers_kayak_4f.png', frames: 4, x: 104, y: 200 },
+    { file: '06_boracay_beach/beach_volleyball_4f.png', frames: 4, x: 260, y: 232 },
+    { file: '06_boracay_beach/tree_climber_4f.png', frames: 4, x: 72, y: 152 },
+  ],
+};
+function exp8WeatherKey() {
+  const w = latest && latest.derived && latest.derived.weather ? latest.derived.weather.id : 'clear';
+  return w;
+}
+function exp8ReturnPortal(now) {
+  const portal = sdImage('park/explore_portal.png');
+  const r = RETURN_PORTAL_RECT;
+  const cx = r.x + r.w / 2;
+  const cy = r.y + r.h / 2;
+  const pulse = 0.5 + 0.5 * Math.sin(now / 420);
+  const glow = cachedGradient('return-portal-glow', () => {
+    const rg = stageCtx.createRadialGradient(cx, cy, 4, cx, cy, 52);
+    rg.addColorStop(0, 'rgba(140, 220, 255, 0.85)');
+    rg.addColorStop(1, 'rgba(140, 220, 255, 0)');
+    return rg;
+  });
+  stageCtx.save();
+  stageCtx.globalAlpha = 0.24 + 0.3 * pulse;
+  stageCtx.fillStyle = glow;
+  stageCtx.fillRect(cx - 52, cy - 52, 104, 104);
+  stageCtx.restore();
+  stageCtx.imageSmoothingEnabled = false;
+  if (sdReady(portal)) stageCtx.drawImage(portal, r.x, r.y, r.w, r.h);
+  stageCtx.save();
+  stageCtx.font = 'bold 10px sans-serif';
+  stageCtx.textAlign = 'center';
+  stageCtx.fillStyle = 'rgba(10, 14, 22, 0.78)';
+  stageCtx.fillText('Return to Home', cx, r.y - 6);
+  stageCtx.restore();
+}
+function drawExplore8(now, phaseId, mode) {
+  const key = EXP8_MODE_KEY[mode];
+  if (!key) return false;
+  const bucket = phaseId === 'night' ? 'night' : (phaseId === 'dawn' || phaseId === 'dusk') ? 'sunset' : 'day';
+  const bg = exp8Image(`${key}/bg_${bucket}.png`);
+  if (!exp8Ready(bg)) return false;
+  stageCtx.imageSmoothingEnabled = false;
+  stageCtx.drawImage(bg, EXP8_OX, 0, EXP8_W * EXP8_S, EXP8_H * EXP8_S);
+  exp8Celestial(now, bucket);
+  const layers = EXP8_SCENES[key] || [];
+  for (const cfg of layers) {
+    if (cfg.nightOnly && bucket !== 'night') continue;
+    if (cfg.type === 'roam') {
+      for (let i = 0; i < cfg.count; i += 1) exp8Roam(cfg, now, i);
+    } else if (cfg.type === 'patrol') {
+      for (let i = 0; i < cfg.count; i += 1) exp8Patrol(cfg, now, i);
+    } else {
+      exp8Blit(exp8Image(cfg.file), cfg.frames, now, cfg.x || 0, cfg.y || 0, null, null, cfg.flip, cfg.step);
+    }
+  }
+  const wid = exp8WeatherKey();
+  if (wid === 'rainy' || wid === 'stormy') {
+    exp8Blit(exp8Image('shared_effects/weather_rain_4f.png'), 4, now, 0, 0, null, null, false, 120);
+  } else if (wid === 'cloudy' && key === '01_buddy_park') {
+    exp8Blit(exp8Image('shared_effects/weather_wind_4f.png'), 4, now, 0, 0, null, null, false, 160);
+  }
+  exp8ReturnPortal(now);
+  petSwimActive = mode === 'market' && (petWalk.x + EXP8_OX) / EXP8_S < 456 && petWalk.y >= 200 * EXP8_S;
+  return true;
+}
+function exp8FlashHome() {
+  portalFlashUntil = performance.now() + PORTAL_FLASH_MS;
+  if (sfx) sfx.play('click');
+  if (cuteSfx) cuteSfx.play('plop');
+  setTimeout(() => {
+    const st = latest && latest.state;
+    if (st && !st.dead && !arenaPetDead()) act('stopActivity');
+    setScene('home');
+    petWalk.target = null;
+    petWalk.x = STAGE_CX;
+    petWalk.y = 312;
+  }, 240);
+}
+function activeOutdoorAct() {
+  const pre = latest && latest.derived;
+  const act0 = pre && pre.activities ? pre.activities.find((a) => a.active) : null;
+  return act0 && act0.outdoor ? act0 : null;
+}
 function drawPark(now, phaseId, mode) {
+  petSwimActive = false;
+  if (drawExplore8(now, phaseId, mode)) return;
+  drawParkLegacy(now, phaseId, mode);
+}
+
+function drawParkLegacy(now, phaseId, mode) {
   const scene = sceneImageFor(mode);
   if (scene && !scene.bad && scene.complete && scene.naturalWidth > 0) {
     const sw2 = scene.naturalWidth;
@@ -2974,13 +3216,15 @@ function drawStagePet(now) {
     shadowCx = petWalk.x + petWalk.dir * (cc - 0.5) * boxSize;
     shadowRx = Math.max(10, Math.min(boxSize * 0.2, ((petDrawInfo.contentR - petDrawInfo.contentL) * boxSize) / 2));
   }
-  stageCtx.save();
-  stageCtx.globalAlpha = 0.2;
-  stageCtx.fillStyle = '#000';
-  stageCtx.beginPath();
-  stageCtx.ellipse(shadowCx, petWalk.y + 4, shadowRx, 7 + 2 * depthF, 0, 0, Math.PI * 2);
-  stageCtx.fill();
-  stageCtx.restore();
+  if (!petSwimActive) {
+    stageCtx.save();
+    stageCtx.globalAlpha = 0.2;
+    stageCtx.fillStyle = '#000';
+    stageCtx.beginPath();
+    stageCtx.ellipse(shadowCx, petWalk.y + 4, shadowRx, 7 + 2 * depthF, 0, 0, Math.PI * 2);
+    stageCtx.fill();
+    stageCtx.restore();
+  }
 
   if (latest && !latest.state.dead && petWalk.target !== null) {
     const pulse = 0.5 + 0.5 * Math.sin(now / 170);
@@ -3066,7 +3310,8 @@ function drawStagePet(now) {
     stageCtx.restore();
   } else {
     const bobbing = st === 'HAPPY' || st === 'WALK' || st === 'EAT';
-    const yOff = bobbing ? Math.round(Math.sin(now / (st === 'EAT' ? 130 : 260)) * (st === 'EAT' ? 2 : 4)) : 0;
+    let yOff = bobbing ? Math.round(Math.sin(now / (st === 'EAT' ? 130 : 260)) * (st === 'EAT' ? 2 : 4)) : 0;
+    if (petSwimActive) yOff += Math.round(Math.sin(now / 320) * 3);
 
     stageCtx.save();
     stageCtx.imageSmoothingEnabled = smoothGraphics;
@@ -3150,6 +3395,21 @@ function drawStagePet(now) {
     else drawPath(stageCtx);
     stageCtx.restore();
 
+    if (petSwimActive) {
+      const rip = exp8Image('shared_effects/pet_swim_ripple_4f.png');
+      if (exp8Ready(rip)) {
+        const rw = Math.max(64, Math.min(110, boxSize * 0.5));
+        const rh = rw / 2;
+        const f = Math.floor(now / 180) % 4;
+        const fw = rip.naturalWidth / 4;
+        stageCtx.save();
+        stageCtx.imageSmoothingEnabled = false;
+        stageCtx.globalAlpha = 0.85;
+        stageCtx.drawImage(rip, f * fw, 0, fw, rip.naturalHeight, petDraw.cx - rw / 2, petDraw.gy - rh * 0.62, rw, rh);
+        stageCtx.restore();
+      }
+    }
+
     if (st === 'SLEEP' && Math.random() < 0.02) spawnFx('z', petWalk.x + 20, petWalk.y - boxSize + 24, { vy: -0.35, size: 15 });
     if ((s.flags.working || s.activity) && Math.random() < 0.012) spawnFx('coin', petWalk.x + (Math.random() < 0.5 ? -50 : 50), 90, { vy: -0.4, size: 18 });
     if (petWalk.moving && Math.random() < 0.09) spawnFx('spark', petWalk.x - petWalk.dir * boxSize * 0.3, petWalk.y - 4, { vy: -0.15, size: 10 });
@@ -3157,6 +3417,16 @@ function drawStagePet(now) {
 
   drawEquippedOnPet(now, 'front');
   drawBattleFx(now);
+
+  if (now < portalFlashUntil) {
+    const ft = 1 - (portalFlashUntil - now) / PORTAL_FLASH_MS;
+    const fa = ft < 0.5 ? ft * 2 : (1 - ft) * 2;
+    stageCtx.save();
+    stageCtx.globalAlpha = 0.8 * Math.max(0, Math.min(1, fa));
+    stageCtx.fillStyle = '#eaf7ff';
+    stageCtx.fillRect(0, 0, petStageCanvas.width, petStageCanvas.height);
+    stageCtx.restore();
+  }
 
   for (let i = stageFx.length - 1; i >= 0; i -= 1) {
     const p2 = stageFx[i];
@@ -3473,6 +3743,22 @@ petStageCanvas.addEventListener('pointermove', (e) => {
   e.preventDefault();
 });
 
+petStageCanvas.addEventListener('pointermove', (e) => {
+  if (dragInfo) return;
+  const rect = petStageCanvas.getBoundingClientRect();
+  const x = ((e.clientX - rect.left) / rect.width) * STAGE_W;
+  const y = ((e.clientY - rect.top) / rect.height) * STAGE_H;
+  let hover = false;
+  if (stageScene === 'park' && x >= PORTAL_RECT.x - 12 && x <= PORTAL_RECT.x + PORTAL_RECT.w + 12 && y >= PORTAL_RECT.y - 12 && y <= PORTAL_RECT.y + PORTAL_RECT.h + 12) hover = true;
+  const out0 = activeOutdoorAct();
+  if (out0) {
+    const r = RETURN_PORTAL_RECT;
+    if (x >= r.x - 10 && x <= r.x + r.w + 10 && y >= r.y - 12 && y <= r.y + r.h + 8) hover = true;
+  }
+  parkPortalHover = hover;
+  petStageCanvas.style.cursor = hover ? 'pointer' : '';
+});
+
 const endHomeDrag = () => { dragInfo = null; };
 petStageCanvas.addEventListener('pointerup', endHomeDrag);
 petStageCanvas.addEventListener('pointercancel', endHomeDrag);
@@ -3541,10 +3827,6 @@ function renderExtras(d) {
   el('btn-daily').textContent = d.daily.claimedToday ? '✅ Claimed — come back tomorrow!' : `🎁 Claim Daily (+${d.daily.nextReward})`;
   el('btn-daily').disabled = d.daily.claimedToday;
   el('daily-info').textContent = `Streak: ${d.daily.streak} day${d.daily.streak === 1 ? '' : 's'} (best ${d.daily.best})`;
-  const fmEl = el('free-food-note');
-  if (fmEl) fmEl.textContent = d.rewards && d.rewards.freeFoodAvailable ? '1 free random meal — resets at midnight' : 'Claimed — come back tomorrow';
-  const ffb = el('btn-free-food');
-  if (ffb) { const on = d.rewards && d.rewards.freeFoodAvailable; ffb.disabled = !on; ffb.textContent = on ? '🎁 Free Daily Meal!' : '✅ Claimed today'; }
   const chipC = el('btn-gacha-free');
   if (chipC) { const on = d.rewards && d.rewards.freePullAvailable; chipC.disabled = !on; chipC.textContent = on ? '🎁 Free Daily Pull!' : 'Free pull used — resets at midnight'; }
 
@@ -3579,7 +3861,6 @@ function renderExtras(d) {
 }
 
 on('btn-daily','click', () => act('claimDaily'));
-on('btn-free-food','click', async () => { await act('claimFreeFood'); });
 
 let gachaBusy = false;
 

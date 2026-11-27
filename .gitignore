@@ -23,6 +23,7 @@ dist/
 !assets/branding/*.png
 !assets/scenes/*.png
 !assets/stardew/**/*.png
+!assets/explore_8bit/**/*.png
 !assets/wallpapers/*.png
 !src/dashboard/assets/**/*.png
 !docs/*.png

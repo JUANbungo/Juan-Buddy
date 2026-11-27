@@ -282,6 +282,78 @@
     mp3Role = null;
   }
 
+  const COMBAT_FILE = 'bgm/mp3/pixel_combat.mp3';
+  let combatAudio = null;
+  let combatRamp = null;
+  let combatWanted = false;
+  let ambientBeforeCombat = null;
+
+  function stopCombatRamp() {
+    if (combatRamp) { clearInterval(combatRamp); combatRamp = null; }
+  }
+
+  function playCombatMusic() {
+    if (!enabled || !mp3Supported()) return false;
+    hookGestureRecovery();
+    combatWanted = true;
+    if (mp3Audio && !mp3Audio.paused) {
+      ambientBeforeCombat = mp3Role;
+      try { mp3Audio.pause(); } catch (err) { /* ignore */ }
+    }
+    if (!combatAudio) {
+      const urls = assetUrls(COMBAT_FILE);
+      try {
+        combatAudio = new root.Audio();
+        combatAudio.loop = true;
+        combatAudio.volume = 0;
+        let u = 0;
+        combatAudio.src = urls[0];
+        combatAudio.onerror = () => {
+          u += 1;
+          if (combatAudio && u < urls.length) {
+            combatAudio.src = urls[u];
+            const r = combatAudio.play();
+            if (r && r.catch) r.catch(() => {});
+            return;
+          }
+          combatAudio = null;
+        };
+      } catch (err) { combatAudio = null; return false; }
+    }
+    const q = combatAudio.play();
+    if (q && typeof q.catch === 'function') q.catch(() => { /* autoplay guard */ });
+    stopCombatRamp();
+    const target = mp3Volume();
+    combatRamp = setInterval(() => {
+      if (!combatAudio) { stopCombatRamp(); return; }
+      let v = Number(combatAudio.volume) || 0;
+      v = Math.min(target, v + target / 12);
+      try { combatAudio.volume = v; } catch (err) { stopCombatRamp(); return; }
+      if (v >= target) stopCombatRamp();
+    }, 100);
+    return true;
+  }
+
+  function stopCombatMusic() {
+    combatWanted = false;
+    if (!combatAudio) return;
+    stopCombatRamp();
+    const audio = combatAudio;
+    combatRamp = setInterval(() => {
+      let v = Number(audio.volume) || 0;
+      v = Math.max(0, v - mp3Volume() / 8);
+      try { audio.volume = v; } catch (err) { v = 0; }
+      if (v <= 0) {
+        stopCombatRamp();
+        try { audio.pause(); } catch (err) { /* ignore */ }
+        if (combatAudio === audio) combatAudio = null;
+        const role = ambientBeforeCombat;
+        ambientBeforeCombat = null;
+        if (role && enabled && combatWanted === false) play(role);
+      }
+    }, 100);
+  }
+
   function mp3Supported() { return typeof root.Audio === 'function'; }
 
   function pickSong() {
@@ -439,7 +511,7 @@
   function setEnabled(on) {
     enabled = !!on;
     try { localStorage.setItem('juanbuddy-bgm', on ? 'on' : 'off'); } catch (err) { /* ignore */ }
-    if (!enabled) stop();
+    if (!enabled) { stopCombatMusic(); stop(); }
   }
 
   function getVolume() { return volume; }
@@ -451,6 +523,8 @@
     MP3_SONGS,
     play,
     stop,
+    playCombatMusic,
+    stopCombatMusic,
     ambientForHour,
     setVolume,
     getVolume,

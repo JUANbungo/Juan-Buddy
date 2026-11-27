@@ -65,6 +65,7 @@ function runAction(action, payload) {
     case 'toggleSleep': result = engine.toggleSleep(state); break;
     case 'buyUpgrade': result = engine.buyUpgrade(state, payload && payload.upgradeId); break;
     case 'startActivity': result = engine.startActivity(state, payload && payload.activityId); break;
+    case 'stopActivity': result = engine.stopActivity(state); break;
     case 'setSpecies':
       if (payload && typeof payload.speciesId === 'string' && setSpeciesId(payload.speciesId)) {
         result = { ok: true, message: 'Buddy chosen!' };
@@ -73,7 +74,6 @@ function runAction(action, payload) {
       }
       break;
     case 'claimDaily': result = engine.claimDaily(state); break;
-    case 'claimFreeFood': result = engine.claimFreeFood(state); break;
     case 'claimQuest': result = engine.claimQuest(state, payload ? payload.questId : undefined); break;
     case 'pullGacha': result = engine.pullGacha(state, payload && payload.times); break;
     case 'pullGearGacha': result = engine.pullGearGacha(state, payload && payload.times); break;

@@ -1266,6 +1266,16 @@ function completeActivity(state) {
   return message;
 }
 
+function stopActivity(state) {
+  const gate = deadGate(state);
+  if (gate) return gate;
+  if (!state.activity) return { ok: true, message: 'Already home.' };
+  const a = ACTIVITIES[state.activity.id];
+  state.activity = null;
+  state.activityCooldowns[a.id] = Date.now() + Math.round(a.cooldown * 1000 * 0.5);
+  return { ok: true, message: `\u2302\uFE0F Went back home from ${a.name}.` };
+}
+
 function startActivity(state, id) {
   const gate = deadGate(state);
   if (gate) return gate;
@@ -1734,21 +1744,6 @@ function fireStageEvents(state, out) {
   }
 }
 
-function claimFreeFood(state) {
-  const gate = deadGate(state);
-  if (gate) return gate;
-  if (!state.freeFood) state.freeFood = { last: null };
-  const tk = todayKey(Date.now());
-  if (state.freeFood.last === tk) return { ok: false, message: '\ud83c\udf81 Free meal na-claim na today \u2014 balik ka ng 12:00mn!' };
-  const foodIds = Object.keys(FOODS);
-  const pick = foodIds[Math.floor(Math.random() * foodIds.length)];
-  const food = FOODS[pick];
-  const res = applyFood(state, food, { free: true });
-  if (!res.ok) return res;
-  state.freeFood.last = tk;
-  return { ok: true, message: `\ud83c\udf81 FREE meal today: ${food.flag || ''} ${food.name}! ${res.message}` };
-}
-
 function buySkin(state, skinId) {
   const skin = SKINS[skinId];
   if (!skin) return { ok: false, message: 'Unknown skin.' };
@@ -1924,7 +1919,6 @@ function derivedStats(state) {
     },
     rewards: {
       freePullAvailable: !(state.freePulls && state.freePulls.last === todayKey(now)),
-      freeFoodAvailable: !(state.freeFood && state.freeFood.last === todayKey(now)),
     },
     quests: (function () {
       const q = questsOf(state);
@@ -2017,7 +2011,7 @@ function spawnWaste(state) {
   state.waste.push({
     kind: Math.random() < 0.55 ? 'poop' : 'pee',
     x: 60 + Math.floor(Math.random() * 360),
-    y: 240 + Math.floor(Math.random() * 52),
+    y: 300 + Math.floor(Math.random() * 48),
     at: Date.now(),
   });
 }
@@ -2129,7 +2123,7 @@ return {
   stageOf,
   stageForLevel,
   claimDaily,
-  claimFreeFood,
+  stopActivity,
   claimQuest,
   buyShopPet,
   pullGacha,
