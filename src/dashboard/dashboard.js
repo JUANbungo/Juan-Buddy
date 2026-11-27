@@ -373,6 +373,7 @@ function render(snapshot) {
   el('btn-play').disabled = s.flags.sleeping || s.meters.energy < 8;
 
   safeRender('shop', () => renderShop(s, d));
+  safeRender('homeFarm', () => renderHomeFarmHud(s));
   safeRender('foods', () => renderFoods(s, d));
   safeRender('activities', () => renderActivities(s, d));
   safeRender('buddyPicker', () => renderBuddyPicker(s));
@@ -1311,7 +1312,6 @@ let lastStageNow = 0;
 let petDraw = { cx: STAGE_CX, size: 264, dir: 1 };
 let petDrawInfo = null;
 let stageV2Key = null;
-const shadowSmooth = { cx: null, rx: null };
 
 function spawnFx(kind, x, y, opts) {
   const o = opts || {};
@@ -1834,11 +1834,11 @@ function drawRoom(now, phaseId, weatherId) {
   }
 }
 
-function drawFurniture() {
+function drawFurniture(skip) {
   if (!latest || !latest.state || !latest.state.upgrades) return;
   const up = latest.state.upgrades;
   stageCtx.save();
-  if (up.bed >= 1) {
+  if (up.bed >= 1 && !(skip && skip.has('bed'))) {
     const bx = 18;
     const bwy = 296 + Math.min(3, up.bed - 1) * 2;
     const h = 34 + up.bed * 5;
@@ -1854,7 +1854,7 @@ function drawFurniture() {
       stageCtx.fillRect(bx + 54, bwy + 8, 24, 10);
     }
   }
-  if (up.toys >= 1) {
+  if (up.toys >= 1 && !(skip && skip.has('toys'))) {
     stageCtx.fillStyle = '#dc2626';
     stageCtx.fillRect(404, 316, 44, 32);
     stageCtx.fillStyle = '#b91c1c';
@@ -1953,6 +1953,406 @@ function sceneImageFor(mode) {
   } catch (err) { img = null; }
   stageScenes[mode] = img;
   return img;
+}
+
+const SD_BASE = '../../assets/stardew';
+const SCENE_STORAGE_KEY = 'juanbuddy-scene-v1';
+const HOME_FURNITURE_ART = {
+  cozy_bed: { file: 'home/furniture/cozy_bed.png', w: 112, h: 80, icon: '\u{1F6CF}\uFE0F' },
+  toy_box: { file: 'home/furniture/toy_box.png', w: 96, h: 64, icon: '\u{1F9F8}' },
+  flower_vase: { file: 'home/furniture/flower_vase.png', w: 72, h: 68, icon: '\u{1F490}' },
+};
+const HOME_DOOR_ART = { closed: 'home/furniture/door_closed.png', open: 'home/furniture/door_open.png' };
+const DOOR_RECT = { x: 18, y: 104, w: 74, h: 70 };
+const DEFAULT_FURNITURE_LAYOUT = {
+  cozy_bed: { x: 96, y: 352 },
+  toy_box: { x: 432, y: 350 },
+  flower_vase: { x: 366, y: 238 },
+};
+const PORTAL_RECT = { x: 196, y: 112, w: 84, h: 74 };
+const FARM_PLOT_W = 64;
+const FARM_PLOTS = [
+  { x: 120, y: 246 }, { x: 196, y: 246 }, { x: 272, y: 246 },
+  { x: 120, y: 314 }, { x: 196, y: 314 }, { x: 272, y: 314 },
+];
+const FARM_HIVE_POS = { x: 398, y: 252 };
+const FARM_BEEHIVE_COST_UI = 400;
+const FARM_FERTILIZER_COST_UI = 30;
+const HF_ENGINE = (typeof window !== 'undefined' && window.JBEngine) || {};
+const FARM_CROPS_UI = HF_ENGINE.FARM_CROPS || {
+  berry: { growMs: 4 * 60000 }, flower: { growMs: 7 * 60000 }, plant: { growMs: 10 * 60000 },
+};
+
+let stageScene = 'home';
+let homeEditMode = false;
+let layoutDraft = null;
+let dragInfo = null;
+let doorOpenUntil = 0;
+let doorPending = false;
+let farmTool = 'plant';
+let farmCrop = 'berry';
+try {
+  const savedScene = localStorage.getItem(SCENE_STORAGE_KEY);
+  if (savedScene === 'park' || savedScene === 'farm') stageScene = savedScene;
+} catch (err) { stageScene = 'home'; }
+
+function setScene(scene) {
+  stageScene = scene === 'farm' || scene === 'park' ? scene : 'home';
+  if (stageScene !== 'home') {
+    homeEditMode = false;
+    layoutDraft = null;
+  }
+  try { localStorage.setItem(SCENE_STORAGE_KEY, stageScene); } catch (err) { stageScene = stageScene; }
+  updateHomeFarmBars();
+}
+
+const sdImages = {};
+function sdImage(rel) {
+  if (sdImages[rel] !== undefined) return sdImages[rel];
+  let img = null;
+  try {
+    img = new Image();
+    img.onerror = () => { img.bad = true; };
+    img.src = `${SD_BASE}/${rel}`;
+  } catch (err) { img = null; }
+  sdImages[rel] = img;
+  return img;
+}
+function sdReady(img) {
+  return img && !img.bad && img.complete && img.naturalWidth > 0;
+}
+
+function farmProgressUi(plot, farm, now) {
+  if (!plot || !FARM_CROPS_UI[plot.cropId]) return 0;
+  let elapsed = Math.max(0, now - plot.plantedAt) * (plot.watered ? 2 : 1);
+  if (farm && farm.beehive) elapsed *= 1.15;
+  return Math.min(1, elapsed / FARM_CROPS_UI[plot.cropId].growMs);
+}
+
+function homeLayoutOf() {
+  const s = latest && latest.state;
+  const owned = s && s.home && Array.isArray(s.home.owned) ? s.home.owned : [];
+  const saved = s && s.home && s.home.layout ? s.home.layout : {};
+  const layout = homeEditMode && layoutDraft ? layoutDraft : saved;
+  return owned
+    .map((id) => {
+      const art = HOME_FURNITURE_ART[id];
+      if (!art) return null;
+      const pos = layout[id] || DEFAULT_FURNITURE_LAYOUT[id] || { x: STAGE_CX, y: 330 };
+      return { id, x: pos.x, y: pos.y, w: art.w, h: art.h };
+    })
+    .filter(Boolean);
+}
+
+function drawHomeFloor(phaseId) {
+  const fy = STAGE_GROUND;
+  const floorTop = { day: '#c8a06a', dawn: '#c09068', dusk: '#8a6446', night: '#4a3a56' }[phaseId] || '#c8a06a';
+  const floorBot = { day: '#a87f4e', dawn: '#9c7248', dusk: '#6e4e38', night: '#3a2c44' }[phaseId] || '#a87f4e';
+  const grad = cachedGradient(`hfloor:${phaseId}`, () => {
+    const fg = stageCtx.createLinearGradient(0, fy - 12, 0, STAGE_H);
+    fg.addColorStop(0, floorTop);
+    fg.addColorStop(1, floorBot);
+    return fg;
+  });
+  stageCtx.fillStyle = grad;
+  stageCtx.fillRect(0, fy - 12, STAGE_W, STAGE_H - fy + 12);
+  stageCtx.fillStyle = 'rgba(0,0,0,0.10)';
+  stageCtx.fillRect(0, fy - 12, STAGE_W, 12);
+}
+
+function drawHomeFurnitureSet(now) {
+  const rects = homeLayoutOf();
+  const skip = new Set();
+  for (const r of rects) {
+    if (r.id === 'cozy_bed') skip.add('bed');
+    if (r.id === 'toy_box') skip.add('toys');
+  }
+  drawFurniture(skip);
+  stageCtx.imageSmoothingEnabled = false;
+  for (const r of rects) {
+    const art = HOME_FURNITURE_ART[r.id];
+    const img = sdImage(art.file);
+    if (!sdReady(img)) continue;
+    stageCtx.drawImage(img, r.x - r.w / 2, r.y - r.h, r.w, r.h);
+  }
+  const doorImg = sdImage(now < doorOpenUntil ? HOME_DOOR_ART.open : HOME_DOOR_ART.closed);
+  if (sdReady(doorImg)) {
+    stageCtx.drawImage(doorImg, DOOR_RECT.x, DOOR_RECT.y, DOOR_RECT.w, DOOR_RECT.h);
+  }
+  if (homeEditMode) {
+    stageCtx.save();
+    stageCtx.strokeStyle = 'rgba(255, 214, 102, 0.95)';
+    stageCtx.lineWidth = 2;
+    stageCtx.setLineDash([5, 4]);
+    for (const r of rects) stageCtx.strokeRect(r.x - r.w / 2, r.y - r.h, r.w, r.h);
+    stageCtx.restore();
+  }
+}
+
+function drawHomeScene(now, phaseId, weatherId) {
+  const s = latest && latest.state;
+  const wallId = s && s.home && s.home.wall ? s.home.wall : 'classic';
+  const wall = wallId === 'classic' ? null : sdImage(`home/walls/${wallId}.png`);
+  if (wall && sdReady(wall)) {
+    stageCtx.imageSmoothingEnabled = false;
+    stageCtx.drawImage(wall, 0, 0, STAGE_W, STAGE_H);
+    drawHomeFloor(phaseId);
+  } else {
+    drawRoom(now, phaseId, weatherId);
+  }
+  drawHomeFurnitureSet(now);
+}
+
+function drawParkScene(now, phaseId) {
+  const bg = sdImage('park/park_bg.png');
+  if (sdReady(bg)) {
+    stageCtx.imageSmoothingEnabled = false;
+    stageCtx.drawImage(bg, 0, 0, STAGE_W, STAGE_H);
+  } else {
+    drawPark(now, phaseId, 'park');
+    return;
+  }
+  const portal = sdImage('park/explore_portal.png');
+  const pcx = PORTAL_RECT.x + PORTAL_RECT.w / 2;
+  const pcy = PORTAL_RECT.y + PORTAL_RECT.h / 2;
+  const pulse = 0.5 + 0.5 * Math.sin(now / 420);
+  const glow = cachedGradient('portal-glow', () => {
+    const rg = stageCtx.createRadialGradient(pcx, pcy, 6, pcx, pcy, 70);
+    rg.addColorStop(0, 'rgba(140, 220, 255, 0.85)');
+    rg.addColorStop(1, 'rgba(140, 220, 255, 0)');
+    return rg;
+  });
+  stageCtx.save();
+  stageCtx.globalAlpha = 0.3 + 0.3 * pulse;
+  stageCtx.fillStyle = glow;
+  stageCtx.fillRect(pcx - 70, pcy - 70, 140, 140);
+  stageCtx.restore();
+  stageCtx.imageSmoothingEnabled = false;
+  if (sdReady(portal)) stageCtx.drawImage(portal, PORTAL_RECT.x, PORTAL_RECT.y, PORTAL_RECT.w, PORTAL_RECT.h);
+  stageCtx.save();
+  stageCtx.font = 'bold 12px sans-serif';
+  stageCtx.textAlign = 'center';
+  stageCtx.fillStyle = 'rgba(20, 16, 10, 0.78)';
+  stageCtx.fillText('Explore Asia \u2192', pcx, PORTAL_RECT.y - 8);
+  stageCtx.restore();
+}
+
+function drawFarmScene(now, phaseId) {
+  const bg = sdImage('farm/farm_bg.png');
+  if (sdReady(bg)) {
+    stageCtx.imageSmoothingEnabled = false;
+    stageCtx.drawImage(bg, 0, 0, STAGE_W, STAGE_H);
+  } else {
+    stageCtx.fillStyle = '#7cc46b';
+    stageCtx.fillRect(0, 0, STAGE_W, STAGE_H);
+  }
+  const farm = latest && latest.state && latest.state.farm ? latest.state.farm : { plots: [] };
+  const dry = sdImage('farm/soil_dry.png');
+  const wet = sdImage('farm/soil_wet.png');
+  stageCtx.imageSmoothingEnabled = false;
+  FARM_PLOTS.forEach((pos, i) => {
+    if (!pos) return;
+    const plot = farm.plots && farm.plots[i];
+    const soil = plot && plot.watered ? wet : dry;
+    if (sdReady(soil)) {
+      stageCtx.drawImage(soil, pos.x - FARM_PLOT_W / 2, pos.y - FARM_PLOT_W / 2, FARM_PLOT_W, FARM_PLOT_W);
+    } else {
+      stageCtx.fillStyle = plot && plot.watered ? '#6b4a2f' : '#8a6a45';
+      stageCtx.fillRect(pos.x - 30, pos.y - 30, 60, 60);
+    }
+    if (plot && plot.cropId) {
+      const prog = farmProgressUi(plot, farm, now);
+      const stage = prog >= 1 ? 2 : 1;
+      const cropImg = sdImage(`farm/crop_${plot.cropId}_stage${stage}.png`);
+      const ch = stage === 2 ? 52 : 36;
+      if (sdReady(cropImg)) stageCtx.drawImage(cropImg, pos.x - ch / 2, pos.y - FARM_PLOT_W / 2 - ch + 8, ch, ch);
+      stageCtx.save();
+      stageCtx.font = '10px sans-serif';
+      stageCtx.textAlign = 'center';
+      stageCtx.fillStyle = 'rgba(20, 16, 10, 0.8)';
+      stageCtx.fillText(prog >= 1 ? 'READY!' : `${Math.round(prog * 100)}%`, pos.x, pos.y + FARM_PLOT_W / 2 + 12);
+      stageCtx.restore();
+    }
+  });
+  if (farm.beehive) {
+    const hive = sdImage('farm/beehive.png');
+    if (sdReady(hive)) stageCtx.drawImage(hive, FARM_HIVE_POS.x - 35, FARM_HIVE_POS.y - 22, 70, 45);
+    const beeFrame = Math.floor(now / 180) % 2 === 0 ? 'farm/bee_frame1.png' : 'farm/bee_frame2.png';
+    const bee = sdImage(beeFrame);
+    if (sdReady(bee)) {
+      const bx = FARM_HIVE_POS.x - 66 + Math.sin(now / 900) * 58;
+      const by = FARM_HIVE_POS.y - 34 + Math.sin(now / 620) * 16;
+      stageCtx.drawImage(bee, bx, by, 50, 30);
+    }
+  }
+}
+
+function handleHomeFarmClick(x, y) {
+  if (!latest || !latest.state || homeEditMode) return false;
+  if (latest.state.dead || arenaPetDead()) return false;
+  if (stageScene === 'home') {
+    if (x >= DOOR_RECT.x - 6 && x <= DOOR_RECT.x + DOOR_RECT.w + 6 && y >= DOOR_RECT.y - 8 && y <= DOOR_RECT.y + DOOR_RECT.h + 22) {
+      goThroughDoor();
+      return true;
+    }
+    return false;
+  }
+  if (stageScene === 'park') {
+    if (x >= PORTAL_RECT.x - 12 && x <= PORTAL_RECT.x + PORTAL_RECT.w + 12 && y >= PORTAL_RECT.y - 12 && y <= PORTAL_RECT.y + PORTAL_RECT.h + 12) {
+      openPortalModal();
+      return true;
+    }
+    return false;
+  }
+  if (stageScene === 'farm') {
+    const idx = FARM_PLOTS.findIndex((p) => Math.abs(x - p.x) < 36 && Math.abs(y - p.y) < 36);
+    if (idx >= 0) {
+      farmPlotClick(idx);
+      return true;
+    }
+  }
+  return false;
+}
+
+function goThroughDoor() {
+  if (doorPending) return;
+  doorPending = true;
+  doorOpenUntil = performance.now() + 900;
+  petWalk.target = { x: Math.max(60, DOOR_RECT.x + DOOR_RECT.w / 2 + 8), y: 330 };
+  if (sfx) sfx.play('click');
+  if (cuteSfx) cuteSfx.play('plop');
+  setTimeout(() => {
+    doorPending = false;
+    setScene('park');
+    petWalk.target = null;
+  }, 700);
+}
+
+async function farmPlotClick(idx) {
+  const s = latest && latest.state;
+  const farm = s && s.farm;
+  if (!farm) return;
+  const plot = farm.plots && farm.plots[idx];
+  if (farmTool === 'water') {
+    await act('farmAction', { op: 'water', plot: idx });
+    return;
+  }
+  if (farmTool === 'fertilize') {
+    await act('farmAction', { op: 'fertilize', plot: idx });
+    return;
+  }
+  if (!plot || !plot.cropId) {
+    await act('farmAction', { op: 'plant', plot: idx, cropId: farmCrop });
+    return;
+  }
+  await act('farmAction', { op: 'harvest', plot: idx });
+}
+
+function updateHomeFarmBars() {
+  const nav = el('scene-nav');
+  if (nav) nav.querySelectorAll('.scene-btn[data-scene]').forEach((b) => b.classList.toggle('on', b.dataset.scene === stageScene));
+  const editBtn = el('edit-home-btn');
+  if (editBtn) {
+    editBtn.classList.toggle('hidden', stageScene !== 'home');
+    editBtn.classList.toggle('on', homeEditMode);
+  }
+  const editBar = el('edit-home-bar');
+  if (editBar) editBar.classList.toggle('hidden', !(homeEditMode && stageScene === 'home'));
+  const farmBar = el('farm-bar');
+  if (farmBar) farmBar.classList.toggle('hidden', stageScene !== 'farm');
+}
+
+function openPortalModal() {
+  const modal = el('portal-modal');
+  if (!modal) return;
+  const list = el('portal-destinations');
+  if (list && !list.dataset.built) {
+    const acts = (latest && latest.derived && latest.derived.activities) || [];
+    for (const id of ['park', 'baywalk', 'market', 'temple', 'terraces', 'beach']) {
+      const a = acts.find((x) => x.id === id) || {};
+      const btn = document.createElement('button');
+      btn.className = 'portal-dest';
+      btn.dataset.activityId = id;
+      btn.innerHTML = `<span class="pd-name">${a.name || id}</span><span class="pd-meta muted small">${a.desc || ''}</span>`;
+      btn.addEventListener('click', async () => {
+        closePortalModal();
+        const res = await act('startActivity', { activityId: id });
+        if (res && res.ok) setScene('home');
+      });
+      list.appendChild(btn);
+    }
+    list.dataset.built = '1';
+  }
+  modal.classList.remove('hidden');
+}
+
+function closePortalModal() {
+  const modal = el('portal-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function renderHomeFarmHud(s) {
+  updateHomeFarmBars();
+  const farm = s.farm || { fertilizer: 0, snacks: 0, eco: 0, beehive: false };
+  const fert = el('farm-fert-count');
+  if (fert) fert.textContent = String(farm.fertilizer);
+  const eco = el('farm-eco');
+  if (eco) eco.textContent = `\ud83c\udf3f Eco ${farm.eco}`;
+  const snacks = el('farm-snacks');
+  if (snacks) snacks.textContent = `\ud83e\udd5d Snacks ${farm.snacks}`;
+  const hiveBtn = el('btn-buy-beehive');
+  if (hiveBtn) {
+    hiveBtn.disabled = !!farm.beehive || s.coins < FARM_BEEHIVE_COST_UI;
+    hiveBtn.textContent = farm.beehive ? '\ud83d\udc1d Beehive active' : `\ud83d\udc1d Beehive (${FARM_BEEHIVE_COST_UI})`;
+  }
+  const fertBtn = el('btn-buy-fertilizer');
+  if (fertBtn) fertBtn.disabled = s.coins < FARM_FERTILIZER_COST_UI;
+  const snackBtn = el('btn-eat-snack');
+  if (snackBtn) snackBtn.disabled = farm.snacks < 1;
+  renderHomeShop(s);
+}
+
+const homeShopCards = {};
+function renderHomeShop(s) {
+  const host = el('home-shop');
+  if (!host) return;
+  const home = s.home || { owned: [], wall: 'classic' };
+  if (!host.dataset.built) {
+    host.innerHTML = '<h3 class="home-shop-title">\ud83c\udfe0 Home & Farm</h3><div class="wall-row" id="home-walls"></div><div class="shop-grid" id="home-furniture"></div>';
+    const walls = host.querySelector('#home-walls');
+    const wallsList = HF_ENGINE.HOME_WALLS || [];
+    for (const w of wallsList) {
+      const b = document.createElement('button');
+      b.className = 'wall-swatch';
+      b.dataset.wallId = w.id;
+      b.textContent = w.name;
+      b.addEventListener('click', () => act('homeAction', { op: 'setWall', wallId: w.id }));
+      walls.appendChild(b);
+    }
+    const grid = host.querySelector('#home-furniture');
+    for (const f of HF_ENGINE.FURNITURE || []) {
+      const card = document.createElement('div');
+      card.className = 'shop-item';
+      card.dataset.furniture = f.id;
+      card.innerHTML = '<div class="name"></div><div class="desc"></div><button class="btn buy-btn"></button>';
+      card.querySelector('.buy-btn').addEventListener('click', () => act('homeAction', { op: 'buyFurniture', itemId: f.id }));
+      grid.appendChild(card);
+      homeShopCards[f.id] = card;
+    }
+    host.dataset.built = '1';
+  }
+  host.querySelectorAll('.wall-swatch').forEach((b) => b.classList.toggle('on', b.dataset.wallId === home.wall));
+  for (const f of HF_ENGINE.FURNITURE || []) {
+    const card = homeShopCards[f.id];
+    if (!card) continue;
+    const art = HOME_FURNITURE_ART[f.id] || { icon: '\u{1F9FD}' };
+    const owned = home.owned.includes(f.id);
+    card.querySelector('.name').innerHTML = `${art.icon} ${f.name}${owned ? ' <span class="lvl-tag">Owned</span>' : ''}`;
+    card.querySelector('.desc').textContent = f.desc;
+    const btn = card.querySelector('.buy-btn');
+    btn.disabled = owned || s.coins < f.cost;
+    btn.innerHTML = owned ? 'Placed in Home' : `Buy \u2014 ${COIN_ICON_HTML}${f.cost}`;
+  }
 }
 
 function drawPark(now, phaseId, mode) {
@@ -2510,11 +2910,16 @@ function drawStagePet(now) {
   }
   const pre = latest && latest.derived;
   const activeAct = pre && pre.activities ? pre.activities.find((a) => a.active) : null;
+  const activePhase = pre && pre.phase ? pre.phase.id : 'day';
+  const activeWeather = pre && pre.weather ? pre.weather.id : 'clear';
   if (activeAct && activeAct.outdoor) {
-    drawPark(now, pre && pre.phase ? pre.phase.id : 'day', activeAct.outdoor);
+    drawPark(now, activePhase, activeAct.outdoor);
+  } else if (stageScene === 'farm') {
+    drawFarmScene(now, activePhase);
+  } else if (stageScene === 'park') {
+    drawParkScene(now, activePhase);
   } else {
-    drawRoom(now, pre && pre.phase ? pre.phase.id : 'day', pre && pre.weather ? pre.weather.id : 'clear');
-    drawFurniture();
+    drawHomeScene(now, activePhase, activeWeather);
     drawWaste(now, pre ? pre.waste : []);
   }
 
@@ -2563,25 +2968,17 @@ function drawStagePet(now) {
   // renders before this frame's sprite is measured (1-frame staleness is invisible)
 
   let shadowCx = petWalk.x;
-  let shadowRx = Math.min(30 + 26 * depthF, 44);
+  let shadowRx = Math.max(10, Math.min(boxSize * 0.24, 38));
   if (petDrawInfo && typeof petDrawInfo.contentL === 'number' && !(latest && latest.state && latest.state.pet && latest.state.pet.stage === 'egg')) {
     const cc = (petDrawInfo.contentL + petDrawInfo.contentR) / 2;
     shadowCx = petWalk.x + petWalk.dir * (cc - 0.5) * boxSize;
-    shadowRx = Math.max(12, Math.min(boxSize * 0.2, ((petDrawInfo.contentR - petDrawInfo.contentL) * boxSize) / 2));
+    shadowRx = Math.max(10, Math.min(boxSize * 0.2, ((petDrawInfo.contentR - petDrawInfo.contentL) * boxSize) / 2));
   }
-  if (shadowSmooth.cx === null) { shadowSmooth.cx = shadowCx; shadowSmooth.rx = shadowRx; }
-  else {
-    const k = Math.min(1, dt * 12);
-    shadowSmooth.cx += (shadowCx - shadowSmooth.cx) * k;
-    shadowSmooth.rx += (shadowRx - shadowSmooth.rx) * k;
-  }
-  shadowCx = shadowSmooth.cx;
-  shadowRx = shadowSmooth.rx;
   stageCtx.save();
-  stageCtx.globalAlpha = 0.22;
+  stageCtx.globalAlpha = 0.2;
   stageCtx.fillStyle = '#000';
   stageCtx.beginPath();
-  stageCtx.ellipse(shadowCx, petWalk.y + 4, shadowRx, 8 + 3 * depthF, 0, 0, Math.PI * 2);
+  stageCtx.ellipse(shadowCx, petWalk.y + 4, shadowRx, 7 + 2 * depthF, 0, 0, Math.PI * 2);
   stageCtx.fill();
   stageCtx.restore();
 
@@ -2891,6 +3288,8 @@ petStageCanvas.addEventListener('click', async (e) => {
   const rect = petStageCanvas.getBoundingClientRect();
   const x = ((e.clientX - rect.left) / rect.width) * STAGE_W;
   const y = ((e.clientY - rect.top) / rect.height) * STAGE_H;
+  if (handleHomeFarmClick(x, y)) return;
+  if (homeEditMode) return;
   if (latest && (latest.state.dead || arenaPetDead())) return;
   const wastes = (latest.derived && latest.derived.waste) || [];
   let nearest = null;
@@ -2981,6 +3380,102 @@ if (stageMenuBtn && stageMenu) {
     }
   });
 }
+
+document.querySelectorAll('#scene-nav .scene-btn[data-scene]').forEach((b) => {
+  b.addEventListener('click', () => {
+    setScene(b.dataset.scene);
+    if (b.dataset.scene === 'home') petWalk.target = null;
+    if (sfx) sfx.play('click');
+  });
+});
+
+on('edit-home-btn', 'click', () => {
+  if (stageScene !== 'home') setScene('home');
+  homeEditMode = !homeEditMode;
+  layoutDraft = homeEditMode ? JSON.parse(JSON.stringify((latest && latest.state && latest.state.home && latest.state.home.layout) || {})) : null;
+  updateHomeFarmBars();
+  if (sfx) sfx.play('click');
+});
+
+on('btn-save-layout', 'click', async () => {
+  const res = await act('homeAction', { op: 'saveLayout', layout: layoutDraft || {} });
+  if (res && res.ok) {
+    homeEditMode = false;
+    layoutDraft = null;
+    updateHomeFarmBars();
+  }
+});
+
+on('btn-cancel-layout', 'click', () => {
+  homeEditMode = false;
+  layoutDraft = null;
+  updateHomeFarmBars();
+  if (sfx) sfx.play('click');
+});
+
+document.querySelectorAll('.farm-tool').forEach((b) => {
+  b.addEventListener('click', () => {
+    farmTool = b.dataset.farmTool || 'plant';
+    document.querySelectorAll('.farm-tool').forEach((x) => x.classList.toggle('on', x === b));
+    if (sfx) sfx.play('click');
+  });
+});
+
+document.querySelectorAll('.farm-crop').forEach((b) => {
+  b.addEventListener('click', () => {
+    farmCrop = b.dataset.farmCrop || 'berry';
+    farmTool = 'plant';
+    document.querySelectorAll('.farm-crop').forEach((x) => x.classList.toggle('on', x === b));
+    document.querySelectorAll('.farm-tool').forEach((x) => x.classList.toggle('on', x.dataset.farmTool === 'plant'));
+    if (sfx) sfx.play('click');
+  });
+});
+
+on('btn-buy-fertilizer', 'click', () => act('farmAction', { op: 'buyFertilizer' }));
+on('btn-buy-beehive', 'click', () => act('farmAction', { op: 'buyBeehive' }));
+on('btn-eat-snack', 'click', () => act('farmAction', { op: 'eatSnack' }));
+on('btn-portal-close', 'click', () => closePortalModal());
+
+const portalModalEl = el('portal-modal');
+if (portalModalEl) {
+  portalModalEl.addEventListener('click', (e) => {
+    if (e.target === portalModalEl) closePortalModal();
+  });
+}
+
+petStageCanvas.addEventListener('pointerdown', (e) => {
+  if (!homeEditMode || stageScene !== 'home') return;
+  const rect = petStageCanvas.getBoundingClientRect();
+  const x = ((e.clientX - rect.left) / rect.width) * STAGE_W;
+  const y = ((e.clientY - rect.top) / rect.height) * STAGE_H;
+  const rects = homeLayoutOf();
+  for (let i = rects.length - 1; i >= 0; i -= 1) {
+    const r = rects[i];
+    if (x >= r.x - r.w / 2 - 4 && x <= r.x + r.w / 2 + 4 && y >= r.y - r.h - 4 && y <= r.y + 8) {
+      dragInfo = { id: r.id, dx: x - r.x, dy: y - r.y };
+      try { petStageCanvas.setPointerCapture(e.pointerId); } catch (err) {}
+      e.preventDefault();
+      return;
+    }
+  }
+});
+
+petStageCanvas.addEventListener('pointermove', (e) => {
+  if (!dragInfo) return;
+  const rect = petStageCanvas.getBoundingClientRect();
+  const x = ((e.clientX - rect.left) / rect.width) * STAGE_W;
+  const y = ((e.clientY - rect.top) / rect.height) * STAGE_H;
+  if (!layoutDraft) layoutDraft = {};
+  layoutDraft[dragInfo.id] = {
+    x: Math.max(30, Math.min(450, Math.round(x - dragInfo.dx))),
+    y: Math.max(150, Math.min(352, Math.round(y - dragInfo.dy))),
+  };
+  e.preventDefault();
+});
+
+const endHomeDrag = () => { dragInfo = null; };
+petStageCanvas.addEventListener('pointerup', endHomeDrag);
+petStageCanvas.addEventListener('pointercancel', endHomeDrag);
 
 let lastStepAt = 0;
 let eatPrevState = null;

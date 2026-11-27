@@ -167,6 +167,8 @@
       case 'choosePerk': result = engine.choosePerk(state, payload ? payload.index : undefined); break;
       case 'buySkin': result = engine.buySkin(state, payload && payload.skinId); break;
       case 'setSkin': result = engine.setSkin(state, payload && payload.skinId); break;
+      case 'homeAction': result = engine.homeAction(state, payload); break;
+      case 'farmAction': result = engine.farmAction(state, payload); break;
       case 'exportSave':
         result = { ok: true, code: engine.saveCode(state), message: 'Save code copied!' };
         break;

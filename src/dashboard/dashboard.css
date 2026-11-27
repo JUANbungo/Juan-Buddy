@@ -2174,3 +2174,177 @@ body { background-attachment: fixed; }
   .toast, #toast { max-width: calc(100vw - 24px); }
   .jb-ad-bottom { width: 100%; }
 }
+
+.scene-nav {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  z-index: 60;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: calc(100% - 120px);
+}
+.scene-btn {
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  color: #2c2418;
+  background: linear-gradient(180deg, #fff6dd, #f4e3b8);
+  border: 2px solid #b99a5e;
+  border-radius: 8px;
+  padding: 4px 9px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  image-rendering: pixelated;
+  white-space: nowrap;
+}
+.scene-btn:hover { filter: brightness(1.06); }
+.scene-btn.on {
+  background: linear-gradient(180deg, #ffe08a, #f5c34d);
+  border-color: #a3782c;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.5), 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.scene-btn.hidden { display: none; }
+
+.edit-home-bar {
+  position: absolute;
+  top: 40px;
+  left: 10px;
+  z-index: 61;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  background: rgba(20, 16, 10, 0.78);
+  border: 1px solid rgba(255, 214, 102, 0.6);
+  border-radius: 9px;
+  color: #ffe9b3;
+}
+.edit-home-bar.hidden { display: none; }
+.edit-home-bar .btn { padding: 3px 10px; font-size: 11px; }
+
+.farm-bar {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+  padding: 7px 10px;
+  background: rgba(20, 16, 10, 0.78);
+  border: 1px solid rgba(255, 214, 102, 0.45);
+  border-radius: 11px;
+  max-width: calc(100% - 20px);
+}
+.farm-bar.hidden { display: none; }
+.farm-row {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.farm-tool, .farm-crop {
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #f3e9d2;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  padding: 3px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.farm-tool:hover, .farm-crop:hover { background: rgba(255, 255, 255, 0.16); }
+.farm-tool.on, .farm-crop.on {
+  background: linear-gradient(180deg, #ffe08a, #f5c34d);
+  color: #2c2418;
+  border-color: #a3782c;
+}
+.farm-bar .btn { padding: 3px 9px; font-size: 10.5px; }
+.farm-bar .chip { font-size: 10.5px; padding: 2.5px 8px; }
+
+.portal-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 6, 3, 0.6);
+}
+.portal-modal.hidden { display: none; }
+.portal-card {
+  width: min(420px, calc(100vw - 28px));
+  max-height: 86vh;
+  overflow: auto;
+  background: var(--cream, #fdf3dc);
+  border: 8px solid transparent;
+  border-image-source: url('../../assets/sprites/ui/panels/cozy_panel_frame.png');
+  border-image-slice: 12 fill;
+  border-image-repeat: stretch;
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
+.portal-destinations {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+.portal-dest {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  font: inherit;
+  text-align: left;
+  background: #fff9ea;
+  border: 2px solid #d8c193;
+  border-radius: 9px;
+  padding: 8px 10px;
+  cursor: pointer;
+  image-rendering: pixelated;
+}
+.portal-dest:hover { border-color: #a3782c; background: #fff3d6; }
+.pd-name { font-weight: 700; font-size: 12.5px; color: #4a3a24; }
+.pd-meta { font-size: 10px; }
+
+.home-shop-title { margin: 14px 0 6px; }
+.wall-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 12px;
+}
+.wall-swatch {
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  color: #4a3a24;
+  background: #fff9ea;
+  border: 2px solid #d8c193;
+  border-radius: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.wall-swatch.on {
+  background: linear-gradient(180deg, #ffe08a, #f5c34d);
+  border-color: #a3782c;
+}
+
+@media (max-width: 768px) {
+  .scene-nav { max-width: calc(100% - 96px); gap: 4px; }
+  .scene-btn { font-size: 10px; padding: 3px 7px; }
+  .farm-bar { bottom: 36px; padding: 6px 7px; }
+  .farm-tool, .farm-crop, .farm-bar .btn, .farm-bar .chip { font-size: 9.5px; padding: 2.5px 6px; }
+  .portal-destinations { grid-template-columns: 1fr; }
+}
+.farm-tool-ico { height: 16px; width: auto; vertical-align: -3px; }

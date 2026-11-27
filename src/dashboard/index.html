@@ -126,6 +126,44 @@
             <button class="stage-menu-item" data-menu-tab="settings"><img class="eco-pixel" src="assets/icons/tab_options_woodgear.png" alt="" draggable="false"> Options</button>
           </div>
           <div class="stage-hint">Tap pet = greet 💕 · Tap floor = walk 🚶 · Tap 💩💧 = clean it 🧹</div>
+          <div id="scene-nav" class="scene-nav">
+            <button class="scene-btn on" data-scene="home" title="Buddy's Home">🏠 Home</button>
+            <button class="scene-btn" data-scene="park" title="Buddy Park">🌳 Park</button>
+            <button class="scene-btn" data-scene="farm" title="Eco-Farm">🌾 Farm</button>
+            <button id="edit-home-btn" class="scene-btn hidden" title="Edit Home">🛠️ Edit Home</button>
+          </div>
+          <div id="edit-home-bar" class="edit-home-bar hidden">
+            <span class="small">Drag furniture, then save.</span>
+            <button id="btn-save-layout" class="btn btn-amber">Save Layout</button>
+            <button id="btn-cancel-layout" class="btn">Cancel</button>
+          </div>
+          <div id="farm-bar" class="farm-bar hidden">
+            <div class="farm-row">
+              <button class="farm-tool on" data-farm-tool="plant" title="Plant selected crop">🌱 Plant</button>
+              <button class="farm-tool" data-farm-tool="water" title="Water a plot (2x growth)"><img class="pixelated farm-tool-ico" src="../../assets/stardew/farm/tool_watering_can.png" alt="" draggable="false"> Water</button>
+              <button class="farm-tool" data-farm-tool="fertilize" title="Use fertilizer (instant ready)"><img class="pixelated farm-tool-ico" src="../../assets/stardew/farm/tool_fertilizer.png" alt="" draggable="false"> Fertilizer (<span id="farm-fert-count">0</span>)</button>
+            </div>
+            <div class="farm-row">
+              <button class="farm-crop on" data-farm-crop="berry" title="Berries - 20 coin seeds">🫐 Berries (20)</button>
+              <button class="farm-crop" data-farm-crop="flower" title="Flowers - 35 coin seeds">🌸 Flowers (35)</button>
+              <button class="farm-crop" data-farm-crop="plant" title="Plants - 55 coin seeds">🌿 Plants (55)</button>
+            </div>
+            <div class="farm-row">
+              <span id="farm-eco" class="chip">🌿 Eco 0</span>
+              <span id="farm-snacks" class="chip">🍓 Snacks 0</span>
+              <button id="btn-eat-snack" class="btn">Eat Snack</button>
+              <button id="btn-buy-fertilizer" class="btn">+ Fertilizer (30)</button>
+              <button id="btn-buy-beehive" class="btn">🐝 Beehive (400)</button>
+            </div>
+          </div>
+          <div id="portal-modal" class="portal-modal hidden">
+            <div class="portal-card">
+              <h3>🌏 Explore Asia</h3>
+              <p class="muted small">Pick a destination — your buddy travels there right away.</p>
+              <div id="portal-destinations" class="portal-destinations"></div>
+              <button id="btn-portal-close" class="btn">Stay in Park</button>
+            </div>
+          </div>
           <div id="danger-banner" class="danger-banner eco-care-warning hidden"><img class="eco-pixel" src="assets/icons/warning_wilted_leaf.png" alt="" draggable="false"> ⚠️ Your buddy needs care NOW — feed them or let them sleep!</div>
         </div>
         <div class="care-grid">
@@ -186,6 +224,7 @@
           <section class="card">
             <h2>🛠️ Shop</h2>
             <div id="shop" class="shop-grid"></div>
+            <div id="home-shop"></div>
           </section>
         </div>
 

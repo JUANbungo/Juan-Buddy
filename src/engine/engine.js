@@ -46,6 +46,192 @@ const UPGRADES = {
   },
 };
 
+const HOME_WALLS = [
+  { id: 'classic', name: 'Classic Room', cost: 0 },
+  { id: 'wall_pastel_cream', name: 'Pastel Cream', cost: 0 },
+  { id: 'wall_cozy_night', name: 'Cozy Night', cost: 0 },
+  { id: 'wall_bamboo_zen', name: 'Bamboo Zen', cost: 0 },
+  { id: 'wall_sky_clouds', name: 'Sky Clouds', cost: 0 },
+];
+
+const FURNITURE = [
+  { id: 'cozy_bed', name: 'Cozy Bed', cost: 240, desc: 'A soft 16-bit bed for naps. Replaces the old bed model.' },
+  { id: 'toy_box', name: 'Toy Box', cost: 180, desc: 'Keeps toys tidy. Replaces the old toy pile.' },
+  { id: 'flower_vase', name: 'Flower Vase', cost: 120, desc: 'A fresh vase of flowers for the room.' },
+];
+
+const FARM_CROPS = {
+  berry: { id: 'berry', name: 'Berries', seed: 20, growMs: 4 * 60000, coins: [26, 44], xp: 6, snacks: 1, eco: 2 },
+  flower: { id: 'flower', name: 'Flowers', seed: 35, growMs: 7 * 60000, coins: [46, 72], xp: 10, snacks: 1, eco: 4 },
+  plant: { id: 'plant', name: 'Plants', seed: 55, growMs: 10 * 60000, coins: [70, 110], xp: 16, snacks: 2, eco: 7 },
+};
+
+const FARM_PLOT_COUNT = 6;
+const FARM_BEEHIVE_COST = 400;
+const FARM_FERTILIZER_COST = 30;
+const FARM_WATER_SPEED = 2;
+const FARM_BEEHIVE_SPEED = 1.15;
+const FARM_BEEHIVE_HARVEST = 1.15;
+
+function defaultHomeState() {
+  return { wall: 'classic', owned: [], layout: {} };
+}
+
+function defaultFarmState() {
+  return { plots: new Array(FARM_PLOT_COUNT).fill(null), beehive: false, fertilizer: 1, snacks: 0, harvests: 0, eco: 0 };
+}
+
+function farmProgressOf(plot, farm, now) {
+  if (!plot || !FARM_CROPS[plot.cropId]) return 0;
+  const crop = FARM_CROPS[plot.cropId];
+  let elapsed = Math.max(0, now - plot.plantedAt) * (plot.watered ? FARM_WATER_SPEED : 1);
+  if (farm && farm.beehive) elapsed *= FARM_BEEHIVE_SPEED;
+  return Math.min(1, elapsed / crop.growMs);
+}
+
+function homeAction(state, payload) {
+  const gate = deadGate(state);
+  if (gate) return gate;
+  ensureHomeFarm(state);
+  const home = state.home;
+  const op = payload && payload.op;
+  if (op === 'setWall') {
+    const wall = HOME_WALLS.find((w) => w.id === payload.wallId);
+    if (!wall) return { ok: false, message: 'Unknown wall design.' };
+    home.wall = wall.id;
+    return { ok: true, message: `Wall design: ${wall.name}.` };
+  }
+  if (op === 'buyFurniture') {
+    const item = FURNITURE.find((f) => f.id === payload.itemId);
+    if (!item) return { ok: false, message: 'Unknown furniture.' };
+    if (home.owned.includes(item.id)) return { ok: false, message: `You already own the ${item.name}.` };
+    if (state.coins < item.cost) return { ok: false, message: `Not enough coins for the ${item.name}.` };
+    state.coins -= item.cost;
+    home.owned.push(item.id);
+    return { ok: true, message: `${item.name} delivered to Buddy's Home!` };
+  }
+  if (op === 'saveLayout') {
+    const layout = payload && payload.layout;
+    if (!layout || typeof layout !== 'object') return { ok: false, message: 'No layout given.' };
+    const clean = {};
+    for (const item of FURNITURE) {
+      const pos = layout[item.id];
+      if (!pos) continue;
+      const x = Math.round(Number(pos.x));
+      const y = Math.round(Number(pos.y));
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+      clean[item.id] = { x: Math.max(30, Math.min(450, x)), y: Math.max(150, Math.min(352, y)) };
+    }
+    home.layout = clean;
+    return { ok: true, message: 'Home layout saved.' };
+  }
+  return { ok: false, message: 'Unknown home action.' };
+}
+
+function farmAction(state, payload) {
+  const gate = deadGate(state);
+  if (gate) return gate;
+  ensureHomeFarm(state);
+  const farm = state.farm;
+  const now = Date.now();
+  const op = payload && payload.op;
+  const plotIndex = Math.round(Number(payload && payload.plot));
+  const plot = farm.plots[plotIndex];
+  if (op === 'plant') {
+    if (Number.isNaN(plotIndex) || plotIndex < 0 || plotIndex >= FARM_PLOT_COUNT) return { ok: false, message: 'No such plot.' };
+    if (plot && plot.cropId) return { ok: false, message: 'That plot is already growing.' };
+    const crop = FARM_CROPS[payload.cropId];
+    if (!crop) return { ok: false, message: 'Unknown crop.' };
+    if (state.coins < crop.seed) return { ok: false, message: `Not enough coins for ${crop.name} seeds.` };
+    state.coins -= crop.seed;
+    farm.plots[plotIndex] = { cropId: crop.id, plantedAt: now, watered: false };
+    return { ok: true, message: `Planted ${crop.name}!` };
+  }
+  if (op === 'water') {
+    if (!plot || !plot.cropId) return { ok: false, message: 'Nothing to water there.' };
+    if (plot.watered) return { ok: false, message: 'Already watered.' };
+    plot.watered = true;
+    return { ok: true, message: 'Watered! Growth sped up 2x.' };
+  }
+  if (op === 'fertilize') {
+    if (!plot || !plot.cropId) return { ok: false, message: 'Nothing to fertilize there.' };
+    if (farmProgressOf(plot, farm, now) >= 1) return { ok: false, message: 'Already ready to harvest!' };
+    if (farm.fertilizer < 1) return { ok: false, message: 'No fertilizer left. Buy some in the farm bar.' };
+    farm.fertilizer -= 1;
+    plot.plantedAt = Math.min(plot.plantedAt, now - FARM_CROPS[plot.cropId].growMs);
+    return { ok: true, message: 'Fertilizer applied \u2014 instantly ready!' };
+  }
+  if (op === 'harvest') {
+    if (!plot || !plot.cropId) return { ok: false, message: 'Nothing planted there.' };
+    if (farmProgressOf(plot, farm, now) < 1) return { ok: false, message: 'Still growing...' };
+    const crop = FARM_CROPS[plot.cropId];
+    const bonus = farm.beehive ? FARM_BEEHIVE_HARVEST : 1;
+    const coins = Math.round((crop.coins[0] + Math.random() * (crop.coins[1] - crop.coins[0])) * bonus);
+    state.coins += coins;
+    state.stats.coinsEarned += coins;
+    state.pet.xp += crop.xp * currentXpMul(state);
+    farm.snacks += crop.snacks + (farm.beehive ? 1 : 0);
+    farm.harvests += 1;
+    farm.eco += crop.eco;
+    farm.plots[plotIndex] = null;
+    applyLevelUps(state);
+    return { ok: true, message: `Harvested ${crop.name}! +${coins} coins +${crop.xp} XP +${crop.eco} eco` };
+  }
+  if (op === 'buyBeehive') {
+    if (farm.beehive) return { ok: false, message: 'You already have a beehive.' };
+    if (state.coins < FARM_BEEHIVE_COST) return { ok: false, message: 'Not enough coins for the Beehive.' };
+    state.coins -= FARM_BEEHIVE_COST;
+    farm.beehive = true;
+    return { ok: true, message: 'Beehive placed! Bees boost growth (+15%) and harvests (+15% coins, +1 snack).' };
+  }
+  if (op === 'buyFertilizer') {
+    if (state.coins < FARM_FERTILIZER_COST) return { ok: false, message: 'Not enough coins for fertilizer.' };
+    state.coins -= FARM_FERTILIZER_COST;
+    farm.fertilizer += 1;
+    return { ok: true, message: 'Bought 1 fertilizer.' };
+  }
+  if (op === 'eatSnack') {
+    if (farm.snacks < 1) return { ok: false, message: 'No harvested snacks left.' };
+    if (state.flags.sleeping) return { ok: false, message: `${state.pet.name} is sleeping...` };
+    const cheapest = DELICACIES.reduce((a, d) => (d.cost > 0 && d.cost < a.cost ? d : a));
+    const food = FOODS[cheapest.id];
+    if (!food) return { ok: false, message: 'No snack food defined.' };
+    const res = applyFood(state, food, { free: true });
+    if (res && res.ok) farm.snacks -= 1;
+    return res;
+  }
+  return { ok: false, message: 'Unknown farm action.' };
+}
+
+function ensureHomeFarm(state) {
+  if (!state.home || typeof state.home !== 'object') state.home = defaultHomeState();
+  if (!HOME_WALLS.some((w) => w.id === state.home.wall)) state.home.wall = 'classic';
+  if (!Array.isArray(state.home.owned)) state.home.owned = [];
+  state.home.owned = state.home.owned.filter((id) => FURNITURE.some((f) => f.id === id));
+  if (!state.home.layout || typeof state.home.layout !== 'object') state.home.layout = {};
+  if (!state.farm || typeof state.farm !== 'object') state.farm = defaultFarmState();
+  const farm = state.farm;
+  if (!Array.isArray(farm.plots) || farm.plots.length !== FARM_PLOT_COUNT) {
+    const plots = new Array(FARM_PLOT_COUNT).fill(null);
+    if (Array.isArray(farm.plots)) plots.splice(0, Math.min(farm.plots.length, FARM_PLOT_COUNT), ...farm.plots.slice(0, FARM_PLOT_COUNT));
+    farm.plots = plots;
+  }
+  for (let i = 0; i < farm.plots.length; i += 1) {
+    const p = farm.plots[i];
+    if (p && p.cropId && FARM_CROPS[p.cropId] && typeof p.plantedAt === 'number') {
+      p.watered = !!p.watered;
+    } else {
+      farm.plots[i] = null;
+    }
+  }
+  farm.beehive = !!farm.beehive;
+  farm.fertilizer = Math.max(0, Math.round(Number(farm.fertilizer) || 0));
+  farm.snacks = Math.max(0, Math.round(Number(farm.snacks) || 0));
+  farm.harvests = Math.max(0, Math.round(Number(farm.harvests) || 0));
+  farm.eco = Math.max(0, Math.round(Number(farm.eco) || 0));
+  return state;
+}
+
 const ACTIVITIES = {
   walk: {
     id: 'walk', name: 'Tara, Lakwatsa!', icon: '🚶',
@@ -729,6 +915,8 @@ function defaultState() {
     coins: 20,
     flags: { sleeping: false, working: false },
     upgrades: { bed: 0, toys: 0, job: 1, feeder: 0 },
+    home: defaultHomeState(),
+    farm: defaultFarmState(),
     activity: null,
     activityCooldowns: {},
     effects: { happyUntil: 0, eatUntil: 0, xpMulUntil: 0, xpMul: 1, buffUntil: 0, buffLabel: null },
@@ -806,6 +994,7 @@ function ensureState(state) {
   state.arena.deaths = Math.max(0, Math.round(Number(state.arena.deaths) || 0));
   state.arena.ghostUntil = Math.max(0, Math.round(Number(state.arena.ghostUntil) || 0));
   state.arena.resetAt = Math.max(0, Math.round(Number(state.arena.resetAt) || 0));
+  ensureHomeFarm(state);
   return state;
 }
 
@@ -1973,6 +2162,16 @@ return {
   useEvoStone,
   itemBonus,
   setSettings,
+  homeAction,
+  farmAction,
+  ensureHomeFarm,
+  farmProgressOf,
+  HOME_WALLS,
+  FURNITURE,
+  FARM_CROPS,
+  FARM_PLOT_COUNT,
+  FARM_BEEHIVE_COST,
+  FARM_FERTILIZER_COST,
   choosePerk,
   PERK_TYPES,
   PERK_EPIC_CHANCE,

@@ -22,6 +22,7 @@ dist/
 !assets/items/**/*.png
 !assets/branding/*.png
 !assets/scenes/*.png
+!assets/stardew/**/*.png
 !assets/wallpapers/*.png
 !src/dashboard/assets/**/*.png
 !docs/*.png
