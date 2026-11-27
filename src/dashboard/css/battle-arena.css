@@ -231,6 +231,11 @@
   gap: 10px;
   margin-top: 12px;
 }
+.jb-enemy-locked {
+  color: #b3541e;
+  font-weight: 800;
+}
+
 .jb-enemy-card {
   background: #fff9ec;
   border: 2px solid #d9c39e;

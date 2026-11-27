@@ -48,7 +48,7 @@ check('arenaResult win grants capped gold + xp and levels up', () => {
   const res = engine.arenaResult(s, { monsterId: 'guard_slime', win: true, gold: 99999, xp: 999 });
   assert(res.ok === true, 'win should apply');
   assert(s.battle.wins === 1, 'battle.wins increments');
-  assert(res.gold === 20, `gold capped to monster max 20, got ${res.gold}`);
+  assert(res.gold === 50, `gold capped to monster max 50, got ${res.gold}`);
   assert(res.xp === 6, `xp capped to monster xp 6, got ${res.xp}`);
   assert(s.state === undefined && res.arena.status === 'alive', 'arena still alive');
 });
@@ -193,14 +193,14 @@ check('monster ids + home of sheets on disk match', () => {
 
 check('rebalanced HP + gold/XP values', () => {
   const want = {
-    guard_slime: { lv: 1, hp: 65, atk: 7, goldMin: 12, goldMax: 20, xp: 6 },
-    cave_bat: { lv: 4, hp: 115, atk: 12, goldMin: 22, goldMax: 34, xp: 12 },
-    wild_boar: { lv: 8, hp: 190, atk: 19, goldMin: 38, goldMax: 55, xp: 20 },
-    ridge_wolf: { lv: 13, hp: 290, atk: 28, goldMin: 58, goldMax: 80, xp: 32 },
-    kumiho: { lv: 18, hp: 420, atk: 38, goldMin: 80, goldMax: 115, xp: 48 },
-    oni_brute: { lv: 24, hp: 600, atk: 50, goldMin: 115, goldMax: 160, xp: 70 },
-    ember_wyvern: { lv: 30, hp: 850, atk: 66, goldMin: 160, goldMax: 230, xp: 100 },
-    void_titan: { lv: 40, hp: 1300, atk: 88, goldMin: 240, goldMax: 340, xp: 150 },
+    guard_slime: { lv: 1, hp: 65, atk: 7, goldMin: 30, goldMax: 50, xp: 6 },
+    cave_bat: { lv: 4, hp: 115, atk: 12, goldMin: 55, goldMax: 85, xp: 12 },
+    wild_boar: { lv: 8, hp: 190, atk: 19, goldMin: 95, goldMax: 140, xp: 20 },
+    ridge_wolf: { lv: 13, hp: 290, atk: 28, goldMin: 145, goldMax: 200, xp: 32 },
+    kumiho: { lv: 18, hp: 420, atk: 38, goldMin: 200, goldMax: 290, xp: 48 },
+    oni_brute: { lv: 24, hp: 600, atk: 50, goldMin: 290, goldMax: 400, xp: 70 },
+    ember_wyvern: { lv: 30, hp: 850, atk: 66, goldMin: 400, goldMax: 575, xp: 100 },
+    void_titan: { lv: 40, hp: 1300, atk: 88, goldMin: 600, goldMax: 850, xp: 150 },
   };
   for (const m of packApi.JUAN_BUDDY_MONSTERS) {
     const w = want[m.id];

@@ -1282,7 +1282,7 @@ function initArena() {
         level,
         maxHp,
         hp: maxHp,
-        atk: Math.round((bs.atk || 5) * arenaAtkMul),
+        atk: Math.round(((bs.atk || 5) + level * 2) * arenaAtkMul),
         def: bs.def || 2,
         spd: bs.spd || 3,
         gold: (s && s.coins) || 0,

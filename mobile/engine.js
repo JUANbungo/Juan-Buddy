@@ -50,57 +50,57 @@ const ACTIVITIES = {
   walk: {
     id: 'walk', name: 'Tara, Lakwatsa!', icon: '🚶',
     desc: 'A quick stroll around the barangay.',
-    duration: 20, energy: 8, coins: [5, 9], xp: 4, cooldown: 30,
+    duration: 20, energy: 8, coins: [10, 18], xp: 4, cooldown: 30,
   },
   cook: {
     id: 'cook', name: 'Cook Adobo', icon: '🍳',
     desc: 'Simmer a pot of adobo to sell.',
-    duration: 30, energy: 12, coins: [9, 15], xp: 6, cooldown: 45,
+    duration: 30, energy: 12, coins: [18, 30], xp: 6, cooldown: 45,
   },
   videoke: {
     id: 'videoke', name: 'Videoke Night', icon: '🎤',
     desc: 'Belt out power ballads. Standing ovation.',
-    duration: 45, energy: 18, coins: [14, 22], xp: 9, cooldown: 60,
+    duration: 45, energy: 18, coins: [28, 44], xp: 9, cooldown: 60,
   },
   study: {
     id: 'study', name: 'Study Session', icon: '📚',
     desc: 'Cram for exams. Brain gains.',
-    duration: 60, energy: 20, coins: [20, 32], xp: 12, cooldown: 90,
+    duration: 60, energy: 20, coins: [40, 64], xp: 12, cooldown: 90,
   },
   fish: {
     id: 'fish', name: 'Fishing Trip', icon: '🎣',
     desc: 'Patience may land a big, lucky catch.',
-    duration: 90, energy: 25, coins: [28, 45], xp: 16, cooldown: 120, lucky: 0.15,
+    duration: 90, energy: 25, coins: [56, 90], xp: 16, cooldown: 120, lucky: 0.15,
   },
   park: {
     id: 'park', name: 'Barangay Park', icon: '🌳',
     desc: 'Run around the park. Fresh air + sniffy trees.',
-    duration: 40, energy: 12, coins: [10, 18], xp: 9, cooldown: 60, outdoor: 'park',
+    duration: 40, energy: 12, coins: [20, 36], xp: 9, cooldown: 60, outdoor: 'park',
   },
   baywalk: {
     id: 'baywalk', name: 'Manila Baywalk', icon: '🌅',
     desc: 'Sunset by the bay. Peak Filipino romanticism.',
-    duration: 55, energy: 16, coins: [18, 30], xp: 12, cooldown: 90, outdoor: 'baywalk',
+    duration: 55, energy: 16, coins: [36, 60], xp: 12, cooldown: 90, outdoor: 'baywalk',
   },
   market: {
     id: 'market', name: 'Floating Market', icon: '🚣',
     desc: 'Bangkok canals full of mangoes and boat noodles.',
-    duration: 65, energy: 18, coins: [24, 38], xp: 14, cooldown: 100, outdoor: 'market',
+    duration: 65, energy: 18, coins: [48, 76], xp: 14, cooldown: 100, outdoor: 'market',
   },
   temple: {
     id: 'temple', name: 'Kyoto Zen Garden', icon: '⛩',
     desc: 'Rake sand, pet a lucky cat, find inner peace.',
-    duration: 70, energy: 14, coins: [20, 34], xp: 16, cooldown: 110, outdoor: 'temple',
+    duration: 70, energy: 14, coins: [40, 68], xp: 16, cooldown: 110, outdoor: 'temple',
   },
   terraces: {
     id: 'terraces', name: 'Rice Terraces', icon: '🌾',
     desc: 'Climb the emerald steps of Banaue.',
-    duration: 85, energy: 26, coins: [34, 52], xp: 20, cooldown: 130, outdoor: 'terraces',
+    duration: 85, energy: 26, coins: [68, 104], xp: 20, cooldown: 130, outdoor: 'terraces',
   },
   beach: {
     id: 'beach', name: 'Boracay Beach', icon: '🏖️',
     desc: 'Powder sand, clear water, pure island bliss.',
-    duration: 95, energy: 24, coins: [40, 60], xp: 22, cooldown: 150, outdoor: 'beach',
+    duration: 95, energy: 24, coins: [80, 120], xp: 22, cooldown: 150, outdoor: 'beach',
   },
 };
 
@@ -108,7 +108,7 @@ const MAX_METERS = 100;
 const OFFLINE_CAP_SECONDS = 24 * 60 * 60;
 const OFFLINE_RATE = 0.05;
 const LEVEL_XP_BASE = 40;
-const LEVEL_XP_GROWTH = 1.6;
+const LEVEL_XP_GROWTH = 1.3;
 
 const STAGES = [
   { id: 'egg', name: 'Egg', minLevel: 1, scale: 0.42 },
@@ -195,14 +195,14 @@ const ITEM_GACHA_POOL = {
 
 
 const MONSTERS = [
-  { id: 'slime', name: 'Guard Slime', icon: '\ud83d\udfe2', lvl: 1, hp: 65, atk: 7, def: 2, energy: 8, coins: [12, 20], xp: 6 },
-  { id: 'bat', name: 'Cave Bat', icon: '\ud83e\udd87', lvl: 4, hp: 115, atk: 12, def: 5, energy: 12, coins: [22, 34], xp: 12 },
-  { id: 'boar', name: 'Wild Boar', icon: '\ud83d\udc17', lvl: 8, hp: 190, atk: 19, def: 9, energy: 16, coins: [38, 55], xp: 20 },
-  { id: 'wolf', name: 'Ridge Wolf', icon: '\ud83d\udc3a', lvl: 13, hp: 290, atk: 28, def: 14, energy: 20, coins: [58, 80], xp: 32 },
-  { id: 'kumiho', name: 'Kumiho', icon: '\ud83e\udd8a', lvl: 18, hp: 420, atk: 38, def: 20, energy: 26, coins: [80, 115], xp: 48 },
-  { id: 'oni', name: 'Oni Brute', icon: '\ud83d\udc79', lvl: 24, hp: 600, atk: 50, def: 28, energy: 32, coins: [115, 160], xp: 70 },
-  { id: 'wyvern', name: 'Ember Wyvern', icon: '\ud83d\udc09', lvl: 30, hp: 850, atk: 66, def: 38, energy: 40, coins: [160, 230], xp: 100 },
-  { id: 'titan', name: 'Void Titan', icon: '\ud83d\udc7e', lvl: 40, hp: 1300, atk: 88, def: 52, energy: 50, coins: [240, 340], xp: 150 },
+  { id: 'slime', name: 'Guard Slime', icon: '\ud83d\udfe2', lvl: 1, hp: 65, atk: 7, def: 2, energy: 8, coins: [30, 50], xp: 6 },
+  { id: 'bat', name: 'Cave Bat', icon: '\ud83e\udd87', lvl: 4, hp: 115, atk: 12, def: 5, energy: 12, coins: [55, 85], xp: 12 },
+  { id: 'boar', name: 'Wild Boar', icon: '\ud83d\udc17', lvl: 8, hp: 190, atk: 19, def: 9, energy: 16, coins: [95, 140], xp: 20 },
+  { id: 'wolf', name: 'Ridge Wolf', icon: '\ud83d\udc3a', lvl: 13, hp: 290, atk: 28, def: 14, energy: 20, coins: [145, 200], xp: 32 },
+  { id: 'kumiho', name: 'Kumiho', icon: '\ud83e\udd8a', lvl: 18, hp: 420, atk: 38, def: 20, energy: 26, coins: [200, 290], xp: 48 },
+  { id: 'oni', name: 'Oni Brute', icon: '\ud83d\udc79', lvl: 24, hp: 600, atk: 50, def: 28, energy: 32, coins: [290, 400], xp: 70 },
+  { id: 'wyvern', name: 'Ember Wyvern', icon: '\ud83d\udc09', lvl: 30, hp: 850, atk: 66, def: 38, energy: 40, coins: [400, 575], xp: 100 },
+  { id: 'titan', name: 'Void Titan', icon: '\ud83d\udc7e', lvl: 40, hp: 1300, atk: 88, def: 52, energy: 50, coins: [600, 850], xp: 150 },
 ];
 
 const GEAR = [

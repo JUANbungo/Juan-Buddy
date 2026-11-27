@@ -11,14 +11,14 @@
 
   // Exact 8 Battle Arena Monsters matching Juan Buddy UI (rebalanced: higher HP)
   const MONSTERS = [
-    { id: "guard_slime",  name: "Guard Slime",  lv: 1,  hp: 65,   atk: 7,  goldMin: 12,  goldMax: 20,  xp: 6,   limitedDrop: { enabled: false, comingSoon: true, chance: 1.5, itemName: "Mystery Limited Item" } },
-    { id: "cave_bat",     name: "Cave Bat",     lv: 4,  hp: 115,  atk: 12, goldMin: 22,  goldMax: 34,  xp: 12,  limitedDrop: { enabled: false, comingSoon: true, chance: 2.0, itemName: "Mystery Limited Item" } },
-    { id: "wild_boar",    name: "Wild Boar",    lv: 8,  hp: 190,  atk: 19, goldMin: 38,  goldMax: 55,  xp: 20,  limitedDrop: { enabled: false, comingSoon: true, chance: 2.5, itemName: "Mystery Limited Item" } },
-    { id: "ridge_wolf",   name: "Ridge Wolf",   lv: 13, hp: 290,  atk: 28, goldMin: 58,  goldMax: 80,  xp: 32,  limitedDrop: { enabled: false, comingSoon: true, chance: 3.0, itemName: "Mystery Limited Item" } },
-    { id: "kumiho",       name: "Kumiho",       lv: 18, hp: 420,  atk: 38, goldMin: 80,  goldMax: 115, xp: 48,  limitedDrop: { enabled: false, comingSoon: true, chance: 3.5, itemName: "Mystery Limited Item" } },
-    { id: "oni_brute",    name: "Oni Brute",    lv: 24, hp: 600,  atk: 50, goldMin: 115, goldMax: 160, xp: 70,  limitedDrop: { enabled: false, comingSoon: true, chance: 4.0, itemName: "Mystery Limited Item" } },
-    { id: "ember_wyvern", name: "Ember Wyvern", lv: 30, hp: 850,  atk: 66, goldMin: 160, goldMax: 230, xp: 100, limitedDrop: { enabled: false, comingSoon: true, chance: 4.5, itemName: "Mystery Limited Item" } },
-    { id: "void_titan",   name: "Void Titan",   lv: 40, hp: 1300, atk: 88, goldMin: 240, goldMax: 340, xp: 150, limitedDrop: { enabled: false, comingSoon: true, chance: 5.0, itemName: "Mystery Limited Item" } },
+    { id: "guard_slime",  name: "Guard Slime",  lv: 1,  hp: 65,   atk: 7,  goldMin: 30,  goldMax: 50,  xp: 6,   limitedDrop: { enabled: false, comingSoon: true, chance: 1.5, itemName: "Mystery Limited Item" } },
+    { id: "cave_bat",     name: "Cave Bat",     lv: 4,  hp: 115,  atk: 12, goldMin: 55,  goldMax: 85,  xp: 12,  limitedDrop: { enabled: false, comingSoon: true, chance: 2.0, itemName: "Mystery Limited Item" } },
+    { id: "wild_boar",    name: "Wild Boar",    lv: 8,  hp: 190,  atk: 19, goldMin: 95,  goldMax: 140,  xp: 20,  limitedDrop: { enabled: false, comingSoon: true, chance: 2.5, itemName: "Mystery Limited Item" } },
+    { id: "ridge_wolf",   name: "Ridge Wolf",   lv: 13, hp: 290,  atk: 28, goldMin: 145, goldMax: 200,  xp: 32,  limitedDrop: { enabled: false, comingSoon: true, chance: 3.0, itemName: "Mystery Limited Item" } },
+    { id: "kumiho",       name: "Kumiho",       lv: 18, hp: 420,  atk: 38, goldMin: 200, goldMax: 290, xp: 48,  limitedDrop: { enabled: false, comingSoon: true, chance: 3.5, itemName: "Mystery Limited Item" } },
+    { id: "oni_brute",    name: "Oni Brute",    lv: 24, hp: 600,  atk: 50, goldMin: 290, goldMax: 400, xp: 70,  limitedDrop: { enabled: false, comingSoon: true, chance: 4.0, itemName: "Mystery Limited Item" } },
+    { id: "ember_wyvern", name: "Ember Wyvern", lv: 30, hp: 850,  atk: 66, goldMin: 400, goldMax: 575, xp: 100, limitedDrop: { enabled: false, comingSoon: true, chance: 4.5, itemName: "Mystery Limited Item" } },
+    { id: "void_titan",   name: "Void Titan",   lv: 40, hp: 1300, atk: 88, goldMin: 600, goldMax: 850, xp: 150, limitedDrop: { enabled: false, comingSoon: true, chance: 5.0, itemName: "Mystery Limited Item" } },
   ];
 
   /**
@@ -266,6 +266,10 @@
 
       const player = this.getPlayer();
       const enemy = { ...this.selectedMonster };
+      if (player.level < enemy.lv) {
+        this._setLog(`🔒 ${enemy.name} needs Level ${enemy.lv} — you are Lv ${player.level}. Work, explore and fight weaker enemies to level up!`);
+        return;
+      }
       const kit = player.kit || null;
       const talentValue = (stat) => (kit && kit.talent && kit.talent.stat === stat ? Number(kit.talent.value) || 0 : 0);
 
@@ -771,6 +775,7 @@
     /** Render the 8 selectable animated monster cards */
     renderEnemySelector() {
       if (!this.selectorMount) return;
+      const playerLevel = (this.getPlayer() || {}).level || 1;
       this.selectorMount.innerHTML = `
         <div class="jb-selector-topbar">
           <button class="jb-arena-btn secondary" id="jb-selector-back" type="button">\u2190 Back to Home</button>
@@ -781,7 +786,7 @@
             <div class="jb-enemy-card ${this.selectedMonster.id === m.id ? "selected" : ""}" data-monster="${m.id}">
               <div class="jb-enemy-card-sprite" style="background-image:url('${this.assetBase}/monsters/${m.id}/idle_sheet.png')"></div>
               <div class="jb-enemy-name">${m.name}</div>
-              <div class="jb-enemy-meta">Lv ${m.lv} • HP ${m.hp} • ATK ${m.atk}<br/>🪙 ${m.goldMin}-${m.goldMax}g • +${m.xp}xp<br/><span class="jb-limited-tag">🎁 Limited Drop: ${m.limitedDrop && m.limitedDrop.enabled ? "Active" : "Soon"}</span></div>
+              <div class="jb-enemy-meta">${playerLevel >= m.lv ? "Lv " + m.lv : "🔒 Lv " + m.lv} • HP ${m.hp} • ATK ${m.atk}<br/>🪙 ${m.goldMin}-${m.goldMax}g • +${m.xp}xp<br/><span class="jb-limited-tag">🎁 Limited Drop: ${m.limitedDrop && m.limitedDrop.enabled ? "Active" : "Soon"}</span></div>
               <button class="jb-arena-btn ${this.selectedMonster.id === m.id ? "danger" : "secondary"}" type="button">
                 ${this.selectedMonster.id === m.id ? "Selected" : "Choose"}
               </button>
@@ -792,7 +797,14 @@
 
       this.selectorMount.querySelector("#jb-selector-back")?.addEventListener("click", () => this.exitArena());
       this.selectorMount.querySelectorAll(".jb-enemy-card").forEach((card) => {
-        card.addEventListener("click", () => this.selectEnemy(card.dataset.monster));
+        card.addEventListener("click", () => {
+          const m = MONSTERS.find((mo) => mo.id === card.dataset.monster);
+          if (m && playerLevel < m.lv) {
+            this._setLog(`🔒 ${m.name} needs Level ${m.lv} — keep grinding! (You are Lv ${playerLevel})`);
+            return;
+          }
+          this.selectEnemy(card.dataset.monster);
+        });
         const m = MONSTERS.find((mo) => mo.id === card.dataset.monster);
         if (!m) return;
         const spriteEl = card.querySelector(".jb-enemy-card-sprite");
