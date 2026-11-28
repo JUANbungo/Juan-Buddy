@@ -5,6 +5,8 @@
 (function (global) {
   "use strict";
 
+  const tr = (s) => (global.JBI18n && global.JBI18n.t ? global.JBI18n.t(s) : s);
+
   const STORAGE_KEY = "juanBuddyBattleDeathState_v1";
   const ONE_HOUR_MS = 60 * 60 * 1000;
   const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -854,7 +856,7 @@
           </div>
 
           <div class="jb-arena-log">
-            <span id="jb-log-text">Choose an enemy below and click Fight!</span>
+            <span id="jb-log-text">${tr("Choose an enemy below and click Fight!")}</span>
             <div class="jb-skill-controls">
               <div class="jb-energy-wrap" title="Battle Energy (charges +7 per round)">
                 <div class="jb-energy-fill" id="jb-energy-bar" style="width:30%"></div>
@@ -907,7 +909,7 @@
       this.selectorMount.innerHTML = `
         <div class="jb-selector-topbar">
           <button class="jb-arena-btn secondary" id="jb-selector-back" type="button">\u2190 Back to Home</button>
-          <span class="jb-selector-title">\u2694\ufe0f Choose your opponent</span>
+          <span class="jb-selector-title">${tr("\u2694\ufe0f Choose your opponent")}</span>
         </div>
         <div class="jb-enemy-grid">
           ${MONSTERS.map((m) => `
@@ -916,7 +918,7 @@
               <div class="jb-enemy-name">${m.name}</div>
               <div class="jb-enemy-meta">${playerLevel >= m.lv ? "Lv " + m.lv : "🔒 Lv " + m.lv} • HP ${m.hp} • ATK ${m.atk}<br/>🪙 ${m.goldMin}-${m.goldMax}g • +${m.xp}xp<br/><span class="jb-limited-tag">🎁 Limited Drop: ${m.limitedDrop && m.limitedDrop.enabled ? "Active" : "Soon"}</span></div>
               <button class="jb-arena-btn ${this.selectedMonster.id === m.id ? "danger" : "secondary"}" type="button">
-                ${this.selectedMonster.id === m.id ? "Selected" : "Choose"}
+                ${this.selectedMonster.id === m.id ? tr("Selected") : tr("Choose")}
               </button>
             </div>
           `).join("")}

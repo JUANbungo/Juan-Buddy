@@ -11,8 +11,55 @@ let bgmOverride = null;
 let bgmOverrideUntil = 0;
 let bgmStarted = false;
 
+const i18n = window.JBI18n || { LANGS: [], t: (s2) => s2, apply: () => {}, setLang: () => {}, getLang: () => 'en' };
+const tr = (s2) => i18n.t(s2);
+let fpsCap = 60;
+let fpsCounterOn = false;
+let gfxQuality = 'high';
+let bitMode = '16';
+let applyStageDpr = () => {};
+let lastFrameAt = 0;
+let fpsFrames = 0;
+let fpsWindowStart = 0;
+
 function smoothOfSettings(st) {
   return !!(st && st.pixelGraphics === false);
+}
+
+function wantsSmooth() {
+  return smoothGraphics || bitMode === '24' || bitMode === '32';
+}
+
+function applyQuality(quality) {
+  gfxQuality = ['low', 'medium', 'high'].includes(quality) ? quality : 'high';
+  if (typeof document !== 'undefined' && document.body && document.body.classList) {
+    document.body.classList.toggle('gfx-low', gfxQuality === 'low');
+    document.body.classList.toggle('gfx-medium', gfxQuality === 'medium');
+  }
+  if (window.JuanBuddyEco && window.JuanBuddyEco.setEnabled) window.JuanBuddyEco.setEnabled(gfxQuality !== 'low');
+  applyStageDpr();
+}
+
+function applyBitMode(mode) {
+  bitMode = ['8', '16', '24', '32'].includes(String(mode)) ? String(mode) : '16';
+  if (typeof document !== 'undefined' && document.body && document.body.classList) {
+    ['8', '16', '24', '32'].forEach((m) => document.body.classList.toggle('bit-' + m, bitMode === m));
+  }
+  applyStageDpr();
+}
+
+function tickFps(now) {
+  fpsFrames += 1;
+  if (!fpsWindowStart) fpsWindowStart = now;
+  if (now - fpsWindowStart < 500) return;
+  const fps = Math.round((fpsFrames * 1000) / (now - fpsWindowStart));
+  fpsFrames = 0;
+  fpsWindowStart = now;
+  const chip = el('fps-chip');
+  if (chip) {
+    chip.textContent = fps + ' FPS';
+    chip.classList.toggle('hidden', !fpsCounterOn);
+  }
 }
 
 function applyGraphics(smooth) {
@@ -82,6 +129,16 @@ function paintSettingsControls(st) {
   if (gfxSelect && document.activeElement !== gfxSelect) gfxSelect.value = st.pixelGraphics === false ? 'smooth' : 'pixel';
   if (bgmRange && document.activeElement !== bgmRange) bgmRange.value = String(Math.round((st.bgmVol || 0.5) * 100));
   if (sfxRange && document.activeElement !== sfxRange) sfxRange.value = String(Math.round((st.sfxVol || 0.7) * 100));
+  const fpsSel = el('set-fps');
+  if (fpsSel && document.activeElement !== fpsSel) fpsSel.value = String(st.fpsCap === undefined ? 60 : st.fpsCap);
+  const fpsCounter = el('set-fps-counter');
+  if (fpsCounter) fpsCounter.checked = !!st.fpsCounter;
+  const qualitySel = el('set-quality');
+  if (qualitySel && document.activeElement !== qualitySel) qualitySel.value = st.gfxQuality || 'high';
+  const bitSel = el('set-bit');
+  if (bitSel && document.activeElement !== bitSel) bitSel.value = String(st.bitMode || '16');
+  const langSel = el('set-lang');
+  if (langSel && document.activeElement !== langSel) langSel.value = i18n.getLang();
   const swatches = document.querySelectorAll('.theme-swatch');
   if (swatches && swatches.forEach) swatches.forEach((sw) => {
     sw.classList.toggle('on', sw.dataset && sw.dataset.theme === (st.theme || 'classic'));
@@ -108,6 +165,8 @@ function clearNamedFlag() {
 function maybeShowNameModal() {
   const modal = el('name-modal');
   if (!modal || namedAlready() || !latest) return;
+  const splash = el('splash');
+  if (splash && !splash.classList.contains('hidden')) return;
   const s = latest.state;
   if (s && s.pet && s.pet.name === 'Buddy' && s.pet.stage === 'egg' && modal.classList.contains('hidden')) {
     modal.classList.remove('hidden');
@@ -280,6 +339,15 @@ function render(snapshot) {
     if (wantSmooth !== smoothGraphics) applyGraphics(wantSmooth);
     if (d.settings.theme && d.settings.theme !== currentTheme) applyTheme(d.settings.theme);
     if (d.settings.wallPaw && d.settings.wallPaw !== currentWallPaw) applyWallPaw(d.settings.wallPaw);
+    if (d.settings.gfxQuality && d.settings.gfxQuality !== gfxQuality) applyQuality(d.settings.gfxQuality);
+    if (d.settings.bitMode && d.settings.bitMode !== bitMode) applyBitMode(d.settings.bitMode);
+    if (typeof d.settings.fpsCap === 'number') fpsCap = d.settings.fpsCap;
+    if (!!d.settings.fpsCounter !== fpsCounterOn) {
+      fpsCounterOn = !!d.settings.fpsCounter;
+      const chip = el('fps-chip');
+      if (chip) chip.classList.toggle('hidden', !fpsCounterOn);
+    }
+    if (d.settings.lang && !i18n.hasSaved() && i18n.getLang() !== d.settings.lang) i18n.setLang(d.settings.lang);
   }
   const weatherId = d.weather ? d.weather.id : 'clear';
   const wantRain = weatherId === 'stormy' ? 'storm' : weatherId === 'rainy' ? 'rain' : 'off';
@@ -289,7 +357,10 @@ function render(snapshot) {
     if (document.body && document.body.classList) document.body.classList.toggle('rain-active', wantRain !== 'off');
   }
   const homeTitle = el('home-title');
-  if (homeTitle) homeTitle.textContent = `🏠 ${s.pet.name}'s Home`;
+  if (homeTitle) {
+    const outdoorAct = activeOutdoorAct();
+    homeTitle.textContent = outdoorAct ? `🌍 ${outdoorAct.name || tr('Explore')}` : stageScene === 'farm' ? `🌾 ${tr('Farm')}` : `🏠 ${s.pet.name}'s Home`;
+  }
   maybeShowNameModal();
   maybeShowPerkModal(d);
   arenaSyncPack();
@@ -339,9 +410,9 @@ function render(snapshot) {
     : s.effects.happyUntil > t ? 'HAPPY'
     : s.activity ? 'ON ACTIVITY'
     : s.flags.working ? 'WORKING'
-    : (d.statusText || 'IDLE').toUpperCase();
+    : tr((d.statusText || 'IDLE').toUpperCase());
 
-  if (d.weather) el('weather-chip').textContent = `${d.weather.icon} ${d.weather.label}`;
+  if (d.weather) el('weather-chip').textContent = `${d.weather.icon} ${tr(d.weather.label)}`;
   if (d.phase) {
     el('phase-chip').innerHTML = `<img class="phase-ico pixelated" src="assets/icons/${d.phase.id === 'night' ? 'weather_night_firefly' : 'weather_sun'}.png" alt="" draggable="false"> ${d.phase.label}`;
     if (window.JuanBuddyEco && window.JuanBuddyEco.setTimeOfDay) window.JuanBuddyEco.setTimeOfDay(d.phase.id === 'night' ? 'night' : 'day');
@@ -364,7 +435,7 @@ function render(snapshot) {
   if (questsPopOpen) renderQuestsPop();
 
   const metersNow = s.meters || {};
-  const careLow = metersNow.hunger <= 15 || metersNow.energy <= 10;
+  const careLow = metersNow.hunger <= 10 || metersNow.energy <= 10 || metersNow.happiness <= 10;
   el('danger-banner').classList.toggle('hidden', !!(s.dead || (s.flags && s.flags.sleeping) || !careLow));
   el('death-overlay').classList.toggle('hidden', !s.dead);
   if (s.dead) {
@@ -1068,6 +1139,9 @@ function splashSetup() {
     if (sfx) sfx.play('click');
   });
 }
+const warnTrack = el('danger-banner-text');
+if (warnTrack) warnTrack.textContent = (`\u26a0\uFE0F ${tr('WARNING')} \u00B7 `).repeat(4);
+
 splashSetup();
 
 // ===== Battle Arena + Death/Revive integration (engine-authoritative economy) =====
@@ -1363,6 +1437,7 @@ let petDrawInfo = null;
 let stageV2Key = null;
 
 function spawnFx(kind, x, y, opts) {
+  if (gfxQuality === 'low') return;
   const o = opts || {};
   stageFx.push({ kind, x, y, vy: o.vy !== undefined ? o.vy : -0.5, life: 1, size: o.size || 16, wobble: Math.random() * 6 });
 }
@@ -1478,7 +1553,7 @@ function drawWithSkin(drawFn, tint) {
   }
   const sctx = skinCanvas.getContext('2d');
   sctx.clearRect(0, 0, STAGE_W, STAGE_H);
-  sctx.imageSmoothingEnabled = smoothGraphics;
+  sctx.imageSmoothingEnabled = wantsSmooth();
   drawFn(sctx);
   sctx.globalCompositeOperation = 'source-atop';
   sctx.fillStyle = tint;
@@ -2426,11 +2501,13 @@ function updateHomeFarmBars() {
   }
   const editBar = el('edit-home-bar');
   if (editBar) editBar.classList.toggle('hidden', !(homeEditMode && stageScene === 'home'));
+  const outdoorNow = !!activeOutdoorAct();
+  const farmScene = stageScene === 'farm' && !outdoorNow;
   const topBar = el('farm-topbar');
-  if (topBar) topBar.classList.toggle('hidden', stageScene !== 'farm');
+  if (topBar) topBar.classList.toggle('hidden', !farmScene);
   const plusTab = el('farm-plus-tab');
-  if (plusTab) plusTab.classList.toggle('hidden', stageScene !== 'farm');
-  if (stageScene !== 'farm') {
+  if (plusTab) plusTab.classList.toggle('hidden', !farmScene);
+  if (!farmScene) {
     farmDrawerOpen = false;
     const drawer = el('farm-plus-drawer');
     if (drawer) drawer.classList.add('hidden');
@@ -2669,8 +2746,6 @@ const EXP8_SCENES = {
   '02_manila_baywalk': [
     { file: '02_manila_baywalk/water_shimmer_4f.png', frames: 4, x: 0, y: 192, step: 340 },
     { type: 'roam', file: '02_manila_baywalk/sea_birds_4f.png', frames: 4, w: 64, h: 48, count: 2, y0: 36, y1: 104, speed: 20 },
-    { type: 'patrol', file: '02_manila_baywalk/walking_people_4f.png', frames: 4, w: 64, h: 96, count: 2, x0: 50, x1: 590, y: 272, speed: 3, bob: 2 },
-    { type: 'patrol', file: '02_manila_baywalk/kalesa_4f.png', frames: 4, w: 176, h: 104, count: 1, x0: 30, x1: 440, y: 280, speed: 4 },
   ],
   '03_floating_market': [
     { file: '03_floating_market/canal_water_4f.png', frames: 4, x: 0, y: 200, step: 340 },
@@ -3467,7 +3542,7 @@ function drawStagePet(now) {
     const prog = Math.max(0.04, Math.min(1, (s.pet.xp || 0) / 14));
     if (prog > 0.8 && Math.random() < 0.05) spawnFx('spark', STAGE_CX + (Math.random() * 40 - 20), 220, { vy: -0.3, size: 10 });
     stageCtx.save();
-    stageCtx.imageSmoothingEnabled = smoothGraphics;
+    stageCtx.imageSmoothingEnabled = wantsSmooth();
     const shake = prog > 0.6 ? Math.sin(now / 55) * 4 * prog : 0;
     const eggAnim = prog > 0.92 ? 'crack' : (now < eggExciteUntil || prog > 0.6 ? 'shaking' : 'idle');
     const eggFrames = sprites.petSheetFrames('egg', eggAnim);
@@ -3498,7 +3573,7 @@ function drawStagePet(now) {
     if (petSwimActive) yOff += Math.round(Math.sin(now / 320) * 3);
 
     stageCtx.save();
-    stageCtx.imageSmoothingEnabled = smoothGraphics;
+    stageCtx.imageSmoothingEnabled = wantsSmooth();
 
     const drawPath = (g) => {
       g.save();
@@ -4001,6 +4076,13 @@ let eatPrevState = null;
 let eatMunchAt = 0;
 let stageLoopErrors = 0;
 (function stageLoop() {
+  const frameNow = performance.now();
+  if (lastFrameAt && fpsCap > 0 && frameNow - lastFrameAt < 1000 / fpsCap - 0.5) {
+    requestAnimationFrame(stageLoop);
+    return;
+  }
+  lastFrameAt = frameNow;
+  tickFps(frameNow);
   try {
   const stageNow = performance.now();
   // When the stage canvas is hidden (battle arena, feature panels open, tab in
@@ -4043,19 +4125,20 @@ let stageLoopErrors = 0;
 })();
 
 (function fitStageDpr() {
-  const apply = () => {
-    const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+  applyStageDpr = () => {
+    const maxDpr = gfxQuality === 'low' ? 1 : gfxQuality === 'medium' ? 2 : 3;
+    const dpr = Math.max(1, Math.min(bitMode === '8' ? 1 : maxDpr, window.devicePixelRatio || 1));
     const w = Math.round(STAGE_W * dpr);
     const h = Math.round(STAGE_H * dpr);
     if (petStageCanvas.width !== w) {
       petStageCanvas.width = w;
       petStageCanvas.height = h;
       stageCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      stageCtx.imageSmoothingEnabled = !smoothGraphics;
+      stageCtx.imageSmoothingEnabled = wantsSmooth();
     }
   };
-  apply();
-  window.addEventListener('resize', apply);
+  applyStageDpr();
+  window.addEventListener('resize', applyStageDpr);
 })();
 
 // Juan Bungo Reaper event: init overlay + reap→full-reset hook (returns to Title)
@@ -4171,7 +4254,8 @@ on('btn-daily','click', () => act('claimDaily'));
 let gachaBusy = false;
 
 function spawnConfetti(container, stars) {
-  const count = stars >= 5 ? 60 : stars >= 4 ? 34 : 18;
+  if (gfxQuality === 'low') return;
+  const count = Math.round((stars >= 5 ? 60 : stars >= 4 ? 34 : 18) * (gfxQuality === 'medium' ? 0.5 : 1));
   const cols = ['#fbbf24', '#fb7185', '#a78bfa', '#38bdf8', '#4ade80', '#f472b6'];
   for (let i = 0; i < count; i += 1) {
     const p = document.createElement('div');
@@ -4491,6 +4575,52 @@ if (ecoThemePicks) {
     if (sfx) sfx.play('coin');
   });
 }
+
+const fpsSelect = el('set-fps');
+if (fpsSelect) fpsSelect.addEventListener('change', async () => {
+  await api.action('setSettings', { fpsCap: Number(fpsSelect.value) });
+  if (sfx) sfx.play('click');
+});
+const fpsCounterInput = el('set-fps-counter');
+if (fpsCounterInput) fpsCounterInput.addEventListener('change', async () => {
+  await api.action('setSettings', { fpsCounter: fpsCounterInput.checked });
+  if (sfx) sfx.play('click');
+});
+const qualitySelect = el('set-quality');
+if (qualitySelect) qualitySelect.addEventListener('change', async () => {
+  applyQuality(qualitySelect.value);
+  await api.action('setSettings', { gfxQuality: qualitySelect.value });
+  if (sfx) sfx.play('click');
+});
+const bitSelect = el('set-bit');
+if (bitSelect) bitSelect.addEventListener('change', async () => {
+  applyBitMode(bitSelect.value);
+  await api.action('setSettings', { bitMode: bitSelect.value });
+  if (sfx) sfx.play('click');
+});
+
+function populateLangSelect(sel) {
+  if (!sel || !i18n.LANGS) return;
+  sel.innerHTML = '';
+  for (const l of i18n.LANGS) {
+    const opt = document.createElement('option');
+    opt.value = l.id;
+    opt.textContent = l.label;
+    sel.appendChild(opt);
+  }
+  sel.value = i18n.getLang();
+}
+function wireLangSelect(sel) {
+  if (!sel) return;
+  populateLangSelect(sel);
+  sel.addEventListener('change', () => {
+    i18n.setLang(sel.value);
+    api.action('setSettings', { lang: sel.value });
+    if (sfx) sfx.play('click');
+  });
+}
+wireLangSelect(el('splash-lang'));
+wireLangSelect(el('set-lang'));
 
 document.addEventListener('pointerdown', startBgmOnGesture);
 

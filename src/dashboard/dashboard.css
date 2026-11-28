@@ -278,15 +278,22 @@ header h1:hover { color: #fff; }
   font-size: 13.5px;
   font-weight: 800;
   letter-spacing: 1.2px;
-  color: #7dff9e;
-  background: rgba(0, 25, 8, 0.55);
+  color: #ff6b6b;
+  background: rgba(45, 0, 0, 0.6);
   border-radius: 9px;
-  text-shadow: 0 0 10px rgba(0, 255, 65, 1), 0 0 3px rgba(180, 255, 200, 0.9);
-  animation: care-marquee-scroll 11s linear infinite;
+  text-shadow: 0 0 10px rgba(255, 30, 30, 1), 0 0 3px rgba(255, 180, 180, 0.9);
+  animation: care-marquee-scroll 11s linear infinite, care-warning-blink 0.9s ease-in-out infinite;
 }
 @keyframes care-marquee-scroll {
   0% { transform: translateX(0); }
   100% { transform: translateX(-100%); }
+}
+@keyframes care-warning-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: care-marquee-scroll 11s linear infinite; }
 }
 
 .care-grid {
@@ -1723,7 +1730,6 @@ header.topbar { padding-right: 262px; }
   height: 150px;
   max-width: 88%;
   object-fit: contain;
-  mix-blend-mode: multiply;
   margin-top: 8px;
   animation: splash-logo-bounce 3.4s ease-in-out infinite;
   filter: drop-shadow(0 7px 10px rgba(0, 0, 0, 0.18));
@@ -1769,6 +1775,14 @@ header.topbar { padding-right: 262px; }
   border-top: 2px dashed rgba(107, 80, 48, 0.4);
 }
 .splash-credits p { margin: 5px 0; }
+.splash-hint {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 2px dashed rgba(107, 80, 48, 0.4);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #7a6850;
+}
 @media (prefers-reduced-motion: reduce) {
   .splash-load > div { transition: none; }
 }
@@ -2485,6 +2499,16 @@ button, .btn, .scene-btn, .farm-tool, .topbar-quick, .tab-btn {
   /* stat points row (+ATK/+DEF/+SPD): wrap + roomier tap targets */
   .battle-points { flex-wrap: wrap; row-gap: 6px; }
   .btn-stat { padding: 7px 11px; font-size: 11.5px; }
+
+  /* dedicated phone header: two clean rows instead of a wrapping clutter —
+     row 1 = pet + LV + streak ... quick buttons, row 2 = coins / clock / EXP */
+  .topbar-row { row-gap: 6px; }
+  .brand { order: 1; margin-right: auto; max-width: 62vw; }
+  .hud-center { order: 2; flex: 0 0 auto; width: auto; margin-left: auto; }
+  .hud-pills { order: 3; flex: 1 1 100%; justify-content: space-between; gap: 6px; }
+  .hud-pill { min-width: 0; }
+  .hud-pill .hud-txt { min-width: 0; }
+  #hud-tz { display: none; }
 }
 @media (pointer: coarse) {
   /* backdrop blur is the most expensive effect on phone GPUs — the overlays all
@@ -2505,3 +2529,63 @@ button, .btn, .scene-btn, .farm-tool, .topbar-quick, .tab-btn {
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* ==== FPS counter chip ==== */
+.fps-chip {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #d7ff9a;
+  background: rgba(20, 24, 16, 0.72);
+  border: 1px solid rgba(215, 255, 154, 0.4);
+  border-radius: 6px;
+  padding: 1px 7px;
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+/* ==== Splash language picker ==== */
+.splash-lang-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 4px 0 10px;
+  font-size: 13px;
+  color: #7a6850;
+}
+.splash-lang-row select { min-width: 150px; }
+
+/* ==== Settings inline toggle (FPS counter) ==== */
+.settings-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* ==== Visual bit modes ==== */
+body.bit-8 #dash-pet {
+  image-rendering: pixelated;
+  filter: saturate(1.4) contrast(1.15);
+}
+body.bit-8 .eco-pixel,
+body.bit-8 .pixelated {
+  image-rendering: pixelated;
+}
+body.bit-16 #dash-pet { image-rendering: pixelated; }
+body.bit-24 #dash-pet,
+body.bit-32 #dash-pet { image-rendering: auto; }
+body.bit-32 #dash-pet { filter: saturate(1.06) contrast(1.02); }
+
+/* ==== Graphics quality (low/medium tone-down) ==== */
+body.gfx-low .confetti-bit { display: none; }
+body.gfx-medium .confetti-bit { opacity: 0.6; }
+body.gfx-low #eco-particle-canvas { display: none; }
