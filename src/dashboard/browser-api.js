@@ -187,7 +187,7 @@
   window.__JB_SAVE__ = saveState;
 
   window.BuddyAPI = {
-    getState: () => snapshot(null),
+    getState: async () => snapshot(null),
     action: runAction,
     saveNow: () => { saveState(); return true; },
     onState: (cb) => { listeners.push(cb); },
