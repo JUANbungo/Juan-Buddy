@@ -12,6 +12,16 @@
   const HP_STORAGE_KEY = "juanBuddyArenaHpState_v1";
   const HP_REGEN_INTERVAL_MS = 3 * 60 * 1000; // +1 HP every 3 minutes (wall-clock catch-up)
 
+  const arenaSfxApi = (typeof global.JBSfx !== "undefined" && global.JBSfx) || (typeof window !== "undefined" ? window.JBSfx : null);
+  const arenaSfxLast = {};
+  function arenaSfx(name, throttleMs) {
+    if (!arenaSfxApi || typeof arenaSfxApi.play !== "function") return;
+    const now = Date.now();
+    if (arenaSfxLast[name] && now - arenaSfxLast[name] < (throttleMs || 150)) return;
+    arenaSfxLast[name] = now;
+    try { arenaSfxApi.play(name); } catch (err) { /* audio unavailable */ }
+  }
+
   function loadHpState() {
     try {
       const raw = global.localStorage ? global.localStorage.getItem(HP_STORAGE_KEY) : null;
@@ -390,6 +400,7 @@
       };
       this.bt = bt;
       this.inBattle = true;
+      arenaSfx("swing");
       this._setLog(`\u2694\ufe0f Battle started against ${enemy.name} (Lv ${enemy.lv})! You have ${bt.pHp}/${player.maxHp || player.hp || 60} HP.`);
       const fightBtn = this.stageMount?.querySelector("#jb-fight-btn");
       if (fightBtn) fightBtn.disabled = true;
@@ -424,6 +435,7 @@
             bt.pHp = Math.min(player.maxHp || 60, bt.pHp + heal);
             this._floatText(pEl, `\uD83D\uDC9A +${heal}`, "heal");
             this._updateHpBars(bt.pHp, player.maxHp || 60, bt.eHp, enemy.hp);
+            arenaSfx("heal", 500);
           }
         }
 
@@ -433,6 +445,7 @@
           bt.pHp = Math.min(player.maxHp || 60, bt.pHp + regen);
           this._floatText(pEl, `\uD83D\uDC9A +${regen}`, "heal");
           this._updateHpBars(bt.pHp, player.maxHp || 60, bt.eHp, enemy.hp);
+          arenaSfx("heal", 500);
         }
 
         let dotTotal = 0;
@@ -441,6 +454,7 @@
         }
         if (dotTotal > 0) {
           bt.eHp = Math.max(0, bt.eHp - dotTotal);
+          arenaSfx("hit", 400);
           this._floatText(eEl, `\u2620\uFE0F -${dotTotal}`, "dot");
           this._updateHpBars(bt.pHp, player.maxHp || 60, bt.eHp, enemy.hp);
           if (bt.eHp <= 0) { this._victory(); return; }
@@ -448,6 +462,8 @@
 
         const pAtk = this._playerAttackDamage();
         bt.eHp = Math.max(0, bt.eHp - pAtk.total);
+        arenaSfx("swing", 180);
+        arenaSfx(pAtk.crit ? "crit" : "hit", 180);
         pEl?.classList.add("attack-right");
         eEl?.classList.add("hit-flash");
         this._updateHpBars(bt.pHp, player.maxHp || 60, bt.eHp, enemy.hp);
@@ -488,6 +504,7 @@
           const rawEnemyDmg = Math.max(2, enemy.atk - Math.floor((player.def || 4) * 0.35));
           const atkDown = bt.eStatuses.atk_down ? bt.eStatuses.atk_down.value : 0;
           const eDmg = Math.max(2, Math.round(rawEnemyDmg * (1 - atkDown) * (0.85 + Math.random() * 0.3)));
+          arenaSfx("swing", 320);
           eEl?.classList.add("attack-left");
           pEl?.classList.add("hit-flash");
           this._setLog(`\uD83D\uDD25 ${enemy.name} strikes back for ${eDmg} DMG!`);
@@ -495,6 +512,7 @@
           setTimeout(() => {
             eEl?.classList.remove("attack-left");
             pEl?.classList.remove("hit-flash");
+            arenaSfx("hurt", 320);
             const died = this._playerTakeDamage(eDmg);
             if (died) return;
             this._tickStatusesEnd();
@@ -566,6 +584,7 @@
       if (bt.pHp <= 0) {
         this.inBattle = false;
         this._updateSkillBtn();
+        arenaSfx("defeat", 1200);
         this._commitBattleHp(0);
         const isFullDeath = this.deathState.deathCount >= 2;
         this.triggerPetDeath(isFullDeath);
@@ -579,6 +598,7 @@
     _victory() {
       const bt = this.bt;
       this.inBattle = false;
+      arenaSfx("victory", 1200);
       const talent = bt.kit && bt.kit.talent;
       const goldBonus = talent && talent.stat === "arenaGoldBonusPct" ? (Number(talent.value) || 0) : 0;
       const baseGold = Math.floor(bt.enemy.goldMin + Math.random() * (bt.enemy.goldMax - bt.enemy.goldMin + 1));
@@ -630,6 +650,7 @@
         this._floatText(pEl, `\u26A1 +${refund}`, "buff");
       }
 
+      arenaSfx("skillCast");
       this._setLog(`\u2728 ${bt.player.name} uses ${kit.skill.name}!`);
       this._updateSkillBtn();
 
@@ -640,6 +661,7 @@
         this._updateHpBars(bt.pHp, bt.player.maxHp || 60, bt.eHp, bt.enemy.hp);
         this._playVfx(pEl, kit.skill);
         this._setLog(`\uD83E\uDEB7 ${kit.skill.name} restores ${heal} HP!`);
+        arenaSfx("heal", 500);
         return;
       }
 
@@ -692,6 +714,7 @@
         const heal = Math.round((bt.player.maxHp || 60) * (selfHeal || 0) * (1 + (bt.healRecv || 0)));
         bt.pHp = Math.min(bt.player.maxHp || 60, bt.pHp + heal);
         this._floatText(pEl, `\uD83D\uDC9A +${heal}`, "heal");
+        arenaSfx("heal", 500);
       }
 
       this._updateHpBars(bt.pHp, bt.player.maxHp || 60, bt.eHp, bt.enemy.hp);

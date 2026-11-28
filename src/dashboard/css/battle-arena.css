@@ -831,3 +831,112 @@
   left: 12%;
 }
 .jb-fighter.player .jb-hp-wrap { width: 100%; }
+
+/* ===== Phone / narrow screens: keep the Battle Arena fully on-screen ===== */
+@media (max-width: 560px) {
+  /* Taller stage so topbar, fighters and the log all fit without clipping */
+  .jb-arena-stage {
+    aspect-ratio: 4 / 5;
+    border-width: 2px;
+  }
+  .jb-arena-topbar {
+    top: 6px;
+    left: 6px;
+    right: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px;
+  }
+  .jb-arena-badge {
+    order: -1;
+    flex-basis: 100%;
+    text-align: center;
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+  .jb-arena-btn {
+    padding: 6px 9px;
+    font-size: 11px;
+  }
+  .jb-fighter.player {
+    left: 3%;
+    width: 120px;
+    bottom: 20%;
+  }
+  .jb-fighter.enemy {
+    right: 3%;
+    bottom: 20%;
+  }
+  .jb-fighter.player .jb-sprite-box {
+    width: 96px;
+    height: 96px;
+    animation-name: jbSprite4Frame;
+  }
+  .jb-fighter.player .jb-sprite-box.jb-sprite-8 {
+    animation-name: jbSprite8Frame;
+  }
+  .jb-fighter.enemy .jb-sprite-box {
+    width: 72px;
+    height: 72px;
+    animation-name: jbSprite4Frame72;
+  }
+  .jb-arena-log {
+    left: 6px;
+    right: 6px;
+    bottom: 6px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+    padding: 6px 8px;
+    text-align: center;
+  }
+  .jb-arena-log #jb-log-text {
+    font-size: 10.5px;
+  }
+  .jb-skill-controls {
+    justify-content: center;
+  }
+  .jb-arena-log #jb-fight-btn {
+    width: 100%;
+  }
+  .jb-enemy-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .jb-enemy-card {
+    padding: 8px 6px;
+  }
+  .jb-enemy-card-sprite {
+    width: 56px;
+    height: 56px;
+  }
+  .jb-enemy-name {
+    font-size: 12px;
+  }
+  .jb-enemy-meta {
+    font-size: 10px;
+  }
+  .jb-shop-card {
+    padding: 14px 12px;
+  }
+  .jb-shop-item {
+    gap: 8px;
+    padding: 8px;
+  }
+  .jb-shop-item img {
+    width: 44px;
+    height: 44px;
+  }
+  .arena-lock-badge {
+    max-width: calc(100% - 24px);
+  }
+  .arena-lock-badge .arena-lock-msg {
+    font-size: 9px;
+  }
+}
+
+/* 4-frame sheet sized for a 72px box (phone enemy sprite) */
+@keyframes jbSprite4Frame72 {
+  from { background-position: 0 0; }
+  to { background-position: -288px 0; }
+}

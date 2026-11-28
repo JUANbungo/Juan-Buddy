@@ -266,6 +266,10 @@ async function act(action, payload) {
   return res;
 }
 
+let lastSeenPetKey = '';
+let lastSeenDead = false;
+let lastFarmReadyKey = '';
+
 function render(snapshot) {
   latest = snapshot;
   const { state: s, derived: d, toast } = snapshot;
@@ -303,6 +307,20 @@ function render(snapshot) {
   if (renderTextCache.petName !== s.pet.name) { renderTextCache.petName = s.pet.name; el('pet-name').textContent = s.pet.name; }
   if (renderTextCache.level !== s.pet.level) { renderTextCache.level = s.pet.level; el('level').textContent = s.pet.level; }
   updateBrandFace(s);
+
+  // Pet life-transition sounds: hatch, evolve, level-up, death
+  const petKey = `${s.pet.stage}:${s.pet.evolved ? 1 : 0}:${s.pet.level}`;
+  if (lastSeenPetKey && lastSeenPetKey !== petKey) {
+    const wasEgg = lastSeenPetKey.indexOf('egg:') === 0;
+    const wasUnEvolved = lastSeenPetKey.indexOf(':0:') !== -1;
+    if (wasEgg && s.pet.stage !== 'egg') { if (sfx) sfx.play('hatch'); }
+    else if (s.pet.evolved && wasUnEvolved) { if (sfx) sfx.play('evolve'); }
+    else if (Number(lastSeenPetKey.split(':')[2]) < s.pet.level) { if (sfx) sfx.play('levelup'); }
+  }
+  lastSeenPetKey = petKey;
+  const petDeadNow = !!s.dead;
+  if (petDeadNow && !lastSeenDead && sfx) sfx.play('death');
+  lastSeenDead = petDeadNow;
 
   const coinNum = Math.floor(s.coins);
   if (renderTextCache.coins !== coinNum) { renderTextCache.coins = coinNum; el('coins').textContent = coinNum; }
@@ -2156,7 +2174,7 @@ function drawParkScene(now, phaseId) {
   const portal = sdImage('park/explore_portal.png');
   const pcx = PORTAL_RECT.x + PORTAL_RECT.w / 2;
   const pcy = PORTAL_RECT.y + PORTAL_RECT.h / 2;
-  const pulse = 0.5 + 0.5 * Math.sin(now / 420);
+  const pulse = 0.5 + 0.5 * Math.sin(now / 640);
   const hoverBoost = parkPortalHover ? 0.22 : 0;
   const glow = cachedGradient('portal-glow', () => {
     const rg = stageCtx.createRadialGradient(pcx, pcy, 6, pcx, pcy, 70);
@@ -2319,6 +2337,8 @@ async function farmPlotClick(idx) {
 function updateHomeFarmBars() {
   const nav = el('scene-nav');
   if (nav) nav.querySelectorAll('.scene-btn[data-scene]').forEach((b) => b.classList.toggle('on', b.dataset.scene === stageScene));
+  const farmBtn = nav ? nav.querySelector('.scene-btn[data-scene="farm"]') : null;
+  if (farmBtn) farmBtn.classList.toggle('hidden', stageScene !== 'home');
   const editBtn = el('edit-home-btn');
   if (editBtn) {
     editBtn.classList.toggle('hidden', stageScene !== 'home');
@@ -2352,6 +2372,7 @@ function openPortalModal() {
       btn.addEventListener('click', async () => {
         closePortalModal();
         portalFlashUntil = performance.now() + PORTAL_FLASH_MS;
+        if (sfx) sfx.play('portal');
         setScene(id);
         await act('startActivity', { activityId: id, force: true });
       });
@@ -2385,6 +2406,19 @@ function renderHomeFarmHud(s) {
   if (fertBtn) fertBtn.disabled = s.coins < FARM_FERTILIZER_COST_UI;
   const snackBtn = el('btn-eat-snack');
   if (snackBtn) snackBtn.disabled = farm.snacks < 1;
+  // Gentle chime whenever a crop becomes ready (and again after new plantings)
+  try {
+    if (s.farm && Array.isArray(s.farm.plots)) {
+      const readyKey = s.farm.plots
+        .map((pl, i) => (farmProgressUi(pl, s.farm) >= 1 && !farmWiltedUi(pl) ? i : -1))
+        .filter((i) => i >= 0)
+        .join(',');
+      if (lastFarmReadyKey !== undefined && readyKey !== lastFarmReadyKey && readyKey) {
+        if (sfx) sfx.play('ready');
+      }
+      lastFarmReadyKey = readyKey;
+    }
+  } catch (err) { /* farm HUD unavailable */ }
   renderHomeShop(s);
 }
 
@@ -2479,7 +2513,7 @@ function exp8Blit(img, frames, now, x640, y640, w640, h640, flip, step) {
   if (!exp8Ready(img) || !frames) return;
   const fw = img.naturalWidth / frames;
   const fh = img.naturalHeight;
-  const f = Math.floor(now / (step || 140)) % frames;
+  const f = Math.floor(now / (step || 200)) % frames;
   const dw = (w640 || fw) * EXP8_S;
   const dh = (h640 || fh) * EXP8_S;
   const dx = x640 * EXP8_S + EXP8_OX;
@@ -2548,25 +2582,25 @@ function exp8Patrol(cfg, now, i) {
 const EXP8_SCENES = {
   '01_buddy_park': [
     { file: '01_buddy_park/dating_animals_bench_4f.png', frames: 4, x: 160, y: 224 },
-    { type: 'roam', file: '01_buddy_park/butterflies_4f.png', frames: 4, w: 64, h: 64, count: 2, y0: 108, y1: 168, speed: 20 },
-    { type: 'roam', file: '01_buddy_park/dragonflies_4f.png', frames: 4, w: 64, h: 64, count: 2, y0: 182, y1: 228, speed: 32 },
+    { type: 'roam', file: '01_buddy_park/butterflies_4f.png', frames: 4, w: 64, h: 64, count: 2, y0: 108, y1: 168, speed: 12 },
+    { type: 'roam', file: '01_buddy_park/dragonflies_4f.png', frames: 4, w: 64, h: 64, count: 2, y0: 182, y1: 228, speed: 16 },
     { file: '01_buddy_park/lamps_night_glow_4f.png', frames: 4, nightOnly: true },
   ],
   '02_manila_baywalk': [
-    { file: '02_manila_baywalk/water_shimmer_4f.png', frames: 4, x: 0, y: 192, step: 200 },
-    { type: 'roam', file: '02_manila_baywalk/sea_birds_4f.png', frames: 4, w: 64, h: 48, count: 2, y0: 36, y1: 104, speed: 40 },
-    { type: 'patrol', file: '02_manila_baywalk/walking_people_4f.png', frames: 4, w: 64, h: 96, count: 2, x0: 50, x1: 590, y: 272, speed: 9, bob: 2 },
-    { type: 'patrol', file: '02_manila_baywalk/kalesa_4f.png', frames: 4, w: 176, h: 104, count: 1, x0: 30, x1: 440, y: 280, speed: 5.5 },
+    { file: '02_manila_baywalk/water_shimmer_4f.png', frames: 4, x: 0, y: 192, step: 340 },
+    { type: 'roam', file: '02_manila_baywalk/sea_birds_4f.png', frames: 4, w: 64, h: 48, count: 2, y0: 36, y1: 104, speed: 20 },
+    { type: 'patrol', file: '02_manila_baywalk/walking_people_4f.png', frames: 4, w: 64, h: 96, count: 2, x0: 50, x1: 590, y: 272, speed: 6.5, bob: 2 },
+    { type: 'patrol', file: '02_manila_baywalk/kalesa_4f.png', frames: 4, w: 176, h: 104, count: 1, x0: 30, x1: 440, y: 280, speed: 4 },
   ],
   '03_floating_market': [
-    { file: '03_floating_market/canal_water_4f.png', frames: 4, x: 0, y: 200, step: 200 },
-    { type: 'patrol', file: '03_floating_market/vendor_boats_4f.png', frames: 4, w: 168, h: 96, count: 2, x0: 16, x1: 280, y: 296, speed: 4, bob: 2 },
+    { file: '03_floating_market/canal_water_4f.png', frames: 4, x: 0, y: 200, step: 340 },
+    { type: 'patrol', file: '03_floating_market/vendor_boats_4f.png', frames: 4, w: 168, h: 96, count: 2, x0: 16, x1: 280, y: 296, speed: 3, bob: 2 },
     { file: '03_floating_market/coffee_monitor_lizard_4f.png', frames: 4, x: 528, y: 216 },
   ],
   '04_kyoto_zen_garden': [
     { file: '04_kyoto_zen_garden/windy_trees_4f.png', frames: 4 },
     { file: '04_kyoto_zen_garden/shiba_inu_4f.png', frames: 4, x: 296, y: 288 },
-    { file: '04_kyoto_zen_garden/falling_sakura_8f.png', frames: 8, step: 120 },
+    { file: '04_kyoto_zen_garden/falling_sakura_8f.png', frames: 8, step: 190 },
   ],
   '05_rice_terraces': [
     { file: '05_rice_terraces/windy_rice_4f.png', frames: 4 },
@@ -2590,7 +2624,7 @@ function exp8ReturnPortal(now) {
   const r = RETURN_PORTAL_RECT;
   const cx = r.x + r.w / 2;
   const cy = r.y + r.h / 2;
-  const pulse = 0.5 + 0.5 * Math.sin(now / 420);
+  const pulse = 0.5 + 0.5 * Math.sin(now / 640);
   const glow = cachedGradient('return-portal-glow', () => {
     const rg = stageCtx.createRadialGradient(cx, cy, 4, cx, cy, 52);
     rg.addColorStop(0, 'rgba(140, 220, 255, 0.85)');
@@ -2633,9 +2667,9 @@ function drawExplore8(now, phaseId, mode) {
   }
   const wid = exp8WeatherKey();
   if (wid === 'rainy' || wid === 'stormy') {
-    exp8Blit(exp8Image('shared_effects/weather_rain_4f.png'), 4, now, 0, 0, null, null, false, 120);
+    exp8Blit(exp8Image('shared_effects/weather_rain_4f.png'), 4, now, 0, 0, null, null, false, 180);
   } else if (wid === 'cloudy' && key === '01_buddy_park') {
-    exp8Blit(exp8Image('shared_effects/weather_wind_4f.png'), 4, now, 0, 0, null, null, false, 160);
+    exp8Blit(exp8Image('shared_effects/weather_wind_4f.png'), 4, now, 0, 0, null, null, false, 220);
   }
   exp8ReturnPortal(now);
   petSwimActive = mode === 'market' && (petWalk.x + EXP8_OX) / EXP8_S < 456 && petWalk.y >= 200 * EXP8_S;
@@ -2643,7 +2677,7 @@ function drawExplore8(now, phaseId, mode) {
 }
 function exp8FlashHome() {
   portalFlashUntil = performance.now() + PORTAL_FLASH_MS;
-  if (sfx) sfx.play('click');
+  if (sfx) sfx.play('portal');
   if (cuteSfx) cuteSfx.play('plop');
   setTimeout(() => {
     const st = latest && latest.state;

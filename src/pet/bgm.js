@@ -253,23 +253,18 @@
     if (cs && cs.src && /^(https?|file):/i.test(cs.src) && cs.src.indexOf('blob:') !== 0) BGM_BASE = cs.src;
   } catch (err) { BGM_BASE = ''; }
 
-  // Browser pages (PWA / GitHub Pages / Capacitor localhost) keep music next to
-  // the page in bgm/, so the page-relative URL loads without a 404 detour.
-  // The desktop Electron build (file://) resolves assets via the script path instead.
-  function pageRelativeFirst() {
-    try {
-      if (typeof root.location !== 'undefined' && /^(https?):/i.test(root.location.href)) return true;
-    } catch (err) { /* ignore */ }
-    return false;
-  }
-
+  // Resolve music relative to this script (../../assets/bgm/...) first: that path
+  // is correct in every target (Electron file://, GitHub Pages, Capacitor https://localhost).
+  // The page-relative "bgm/..." URL is only a fallback; on GitHub Pages and the
+  // Android APK there is no bgm/ folder next to index.html, so trying it first
+  // produced a 404 detour that could leave the phone silently without BGM.
   function assetUrls(rel) {
     const base = [];
     if (BGM_BASE) {
       try { base.push(new URL('../../assets/' + rel, BGM_BASE).href); } catch (err) { /* ignore */ }
     }
     base.push(rel);
-    return pageRelativeFirst() ? base.reverse() : base;
+    return base;
   }
 
   function mp3Volume() { return Math.max(0, Math.min(1, volume * 0.5)); }

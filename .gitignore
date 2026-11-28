@@ -21,6 +21,7 @@ dist/
 !assets/death/**/*.png
 !assets/items/**/*.png
 !assets/branding/*.png
+!assets/branding/icons/*.png
 !assets/scenes/*.png
 !assets/stardew/**/*.png
 !assets/explore_8bit/**/*.png

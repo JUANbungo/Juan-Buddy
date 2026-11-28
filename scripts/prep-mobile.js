@@ -57,4 +57,8 @@ fs.writeFileSync(path.join(pages, 'index.html'), [
   '',
 ].join('\n'));
 
+// PWA manifest + app icons (phone home-screen install / iOS Add to Home Screen)
+fs.copyFileSync(path.join(root, 'manifest.webmanifest'), path.join(pages, 'manifest.webmanifest'));
+fs.cpSync(path.join(root, 'assets', 'branding', 'icons'), path.join(pages, 'assets', 'branding', 'icons'), { recursive: true });
+
 console.log('Prepared pages/: full desktop dashboard + assets for GitHub Pages / APK (webDir)');

@@ -211,6 +211,77 @@
       tone(200, dur, { type: 'sawtooth', vol: 0.07, slideTo: 1200 });
       shimmer(dur, 0.03);
     },
+    swing() {
+      tone(340, 0.14, { type: 'sawtooth', vol: 0.09, slideTo: 640 });
+      shimmer(0.12, 0.025);
+    },
+    hit() {
+      tone(150, 0.14, { type: 'square', vol: 0.13, slideTo: 70 });
+      noise(0.1, { vol: 0.08, filterFreq: 900 });
+    },
+    crit() {
+      tone(150, 0.18, { type: 'square', vol: 0.16, slideTo: 60 });
+      tone(1250, 0.16, { type: 'triangle', vol: 0.12, slideTo: 420 });
+      noise(0.14, { vol: 0.1, filterFreq: 1200 });
+    },
+    hurt() {
+      tone(230, 0.2, { type: 'triangle', vol: 0.12, slideTo: 130 });
+    },
+    heal() {
+      tone(660, 0.12, { type: 'sine', vol: 0.1 });
+      tone(880, 0.16, { type: 'sine', vol: 0.1, delay: 0.08 });
+      shimmer(0.3, 0.035);
+    },
+    skillCast() {
+      tone(240, 0.3, { type: 'sawtooth', vol: 0.09, slideTo: 980 });
+      shimmer(0.3, 0.04);
+    },
+    victory() {
+      const seq = [[523.25, 0], [523.25, 0.14], [523.25, 0.28], [659.25, 0.46], [783.99, 0.72]];
+      seq.forEach(([f, d], i) => tone(f, i >= 3 ? 0.5 : 0.13, { type: 'square', vol: 0.11, delay: d }));
+      tone(1046.5, 0.7, { type: 'triangle', vol: 0.1, delay: 0.98 });
+      tone(1568, 0.7, { type: 'triangle', vol: 0.07, delay: 0.98 });
+      shimmer(0.8, 0.04);
+    },
+    defeat() {
+      tone(392, 0.28, { type: 'triangle', vol: 0.11 });
+      tone(349.23, 0.28, { type: 'triangle', vol: 0.11, delay: 0.3 });
+      tone(329.63, 0.28, { type: 'triangle', vol: 0.11, delay: 0.6 });
+      tone(246.94, 0.7, { type: 'triangle', vol: 0.12, delay: 0.9 });
+      tone(155, 0.9, { type: 'sine', vol: 0.1, slideTo: 82, delay: 0.9 });
+    },
+    portal() {
+      tone(200, 0.35, { type: 'sine', vol: 0.1, slideTo: 1400 });
+      shimmer(0.35, 0.04);
+      tone(880, 0.2, { type: 'triangle', vol: 0.08, delay: 0.15 });
+    },
+    ready() {
+      tone(784, 0.12, { type: 'triangle', vol: 0.1 });
+      tone(1175, 0.2, { type: 'triangle', vol: 0.1, delay: 0.1 });
+    },
+    hatch() {
+      noise(0.09, { vol: 0.12, filterFreq: 1600 });
+      tone(880, 0.12, { type: 'triangle', vol: 0.11, delay: 0.12 });
+      tone(1175, 0.18, { type: 'triangle', vol: 0.11, delay: 0.24 });
+      shimmer(0.3, 0.03);
+    },
+    evolve() {
+      tone(392, 0.5, { type: 'sawtooth', vol: 0.08, slideTo: 1568 });
+      shimmer(0.6, 0.05);
+      tone(1046.5, 0.4, { type: 'triangle', vol: 0.1, delay: 0.5 });
+      tone(1318.5, 0.5, { type: 'triangle', vol: 0.09, delay: 0.62 });
+    },
+    levelup() {
+      tone(523.25, 0.1, { type: 'square', vol: 0.1 });
+      tone(659.25, 0.1, { type: 'square', vol: 0.1, delay: 0.09 });
+      tone(783.99, 0.1, { type: 'square', vol: 0.1, delay: 0.18 });
+      tone(1046.5, 0.24, { type: 'triangle', vol: 0.12, delay: 0.27 });
+    },
+    death() {
+      tone(392, 0.3, { type: 'triangle', vol: 0.11, slideTo: 300 });
+      tone(311.13, 0.4, { type: 'triangle', vol: 0.1, delay: 0.3, slideTo: 220 });
+      tone(155.56, 0.8, { type: 'sine', vol: 0.1, delay: 0.7, slideTo: 98 });
+    },
     gachaChord(freqs, dur, delay) {
       freqs.forEach((f, i) => tone(f, dur, { type: 'triangle', vol: 0.12, delay: delay + i * 0.05 }));
       shimmer(dur + 0.3, 0.045);

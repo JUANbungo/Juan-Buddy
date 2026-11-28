@@ -1374,6 +1374,7 @@ input:focus-visible,
 
 @media (prefers-reduced-motion: reduce) {
   .evo-card, .gacha-orb, .stage-menu, .stage-menu-btn { animation: none !important; }
+  .splash-logo { animation: none; }
 }
 
 /* ==== Level-up perk modal ==== */
@@ -1715,6 +1716,13 @@ header.topbar { padding-right: 262px; }
   object-fit: contain;
   mix-blend-mode: multiply;
   margin-top: 8px;
+  animation: splash-logo-bounce 3.4s ease-in-out infinite;
+  filter: drop-shadow(0 7px 10px rgba(0, 0, 0, 0.18));
+  will-change: transform;
+}
+@keyframes splash-logo-bounce {
+  0%, 100% { transform: translateY(0) rotate(-1.4deg) scale(1); }
+  50% { transform: translateY(-9px) rotate(1.4deg) scale(1.04); }
 }
 .splash-title {
   font-size: 26px;
@@ -2425,3 +2433,19 @@ body { background-attachment: fixed; }
   .portal-destinations { grid-template-columns: 1fr; }
 }
 .farm-tool-ico { height: 16px; width: auto; vertical-align: -3px; }
+
+/* ==== Phone / touch polish ==== */
+button, .btn, .scene-btn, .farm-tool, .topbar-quick, .tab-btn {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (pointer: coarse) {
+  header.topbar {
+    padding-top: calc(6px + env(safe-area-inset-top));
+    padding-left: calc(10px + env(safe-area-inset-left));
+    padding-right: calc(10px + env(safe-area-inset-right));
+  }
+  .layout {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+}
