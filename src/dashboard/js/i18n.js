@@ -70,6 +70,7 @@
     'Buddies': { fil: 'Mga Kaibigan', th: 'เพื่อน', id: 'Teman', ja: 'なかま', zh: '伙伴', vi: 'Bạn thân' },
     'Life': { fil: 'Buhay', th: 'ชีวิต', id: 'Hidup', ja: 'ライフ', zh: '生活', vi: 'Cuộc sống' },
     'Options': { fil: 'Opsyon', th: 'ตั้งค่า', id: 'Pengaturan', ja: '設定', zh: '设置', vi: 'Tùy chọn' },
+    'WARNING': { fil: 'BABALA', th: 'คำเตือน', id: 'PERINGATAN', ja: '警告', zh: '警告', vi: 'CẢNH BÁO' },
     'Farm': { fil: 'Bukid', th: 'ฟาร์ม', id: 'Kebun', ja: '農場', zh: '农场', vi: 'Nông trại' },
     'Edit Home': { fil: 'I-edit ang Tahanan', th: 'แก้ไขบ้าน', id: 'Ubah Rumah', ja: 'おうち編集', zh: '编辑家', vi: 'Sửa nhà' },
     '🏠 Home': { fil: '🏠 Tahanan', th: '🏠 บ้าน', id: '🏠 Beranda', ja: '🏠 おうち', zh: '🏠 家', vi: '🏠 Nhà' },

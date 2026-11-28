@@ -435,7 +435,7 @@ function render(snapshot) {
   if (questsPopOpen) renderQuestsPop();
 
   const metersNow = s.meters || {};
-  const careLow = metersNow.hunger <= 15 || metersNow.energy <= 10;
+  const careLow = metersNow.hunger <= 10 || metersNow.energy <= 10 || metersNow.happiness <= 10;
   el('danger-banner').classList.toggle('hidden', !!(s.dead || (s.flags && s.flags.sleeping) || !careLow));
   el('death-overlay').classList.toggle('hidden', !s.dead);
   if (s.dead) {
@@ -1139,6 +1139,9 @@ function splashSetup() {
     if (sfx) sfx.play('click');
   });
 }
+const warnTrack = el('danger-banner-text');
+if (warnTrack) warnTrack.textContent = (`\u26a0\uFE0F ${tr('WARNING')} \u00B7 `).repeat(4);
+
 splashSetup();
 
 // ===== Battle Arena + Death/Revive integration (engine-authoritative economy) =====

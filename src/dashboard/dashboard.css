@@ -278,15 +278,22 @@ header h1:hover { color: #fff; }
   font-size: 13.5px;
   font-weight: 800;
   letter-spacing: 1.2px;
-  color: #7dff9e;
-  background: rgba(0, 25, 8, 0.55);
+  color: #ff6b6b;
+  background: rgba(45, 0, 0, 0.6);
   border-radius: 9px;
-  text-shadow: 0 0 10px rgba(0, 255, 65, 1), 0 0 3px rgba(180, 255, 200, 0.9);
-  animation: care-marquee-scroll 11s linear infinite;
+  text-shadow: 0 0 10px rgba(255, 30, 30, 1), 0 0 3px rgba(255, 180, 180, 0.9);
+  animation: care-marquee-scroll 11s linear infinite, care-warning-blink 0.9s ease-in-out infinite;
 }
 @keyframes care-marquee-scroll {
   0% { transform: translateX(0); }
   100% { transform: translateX(-100%); }
+}
+@keyframes care-warning-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: care-marquee-scroll 11s linear infinite; }
 }
 
 .care-grid {
