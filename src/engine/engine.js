@@ -1902,6 +1902,15 @@ function newGame(state) {
   return { ok: true, message: '🌱 A new egg awaits! Take good care of your next buddy.' };
 }
 
+// Reaper event (Juan Bungo): full wipe back to factory defaults — only callable
+// from the reap sequence after the 666-second countdown hits zero.
+function reaperReset(state) {
+  const fresh = defaultState();
+  for (const key of Object.keys(state)) delete state[key];
+  Object.assign(state, fresh);
+  return { ok: true, message: 'SOUL REAPED BY JUAN BUNGO — journey reset.' };
+}
+
 const SHOP_PETS = [
   { id: 'dragon', name: 'Dragon', icon: '\ud83d\udc09', cost: 1000000, desc: 'Legendary Flame Dragon \u2014 Bakunawa kin. NEVER in eggs, only here!' },
   { id: 'nila', name: 'Nila', icon: '\ud83e\udd9a', cost: 1000000, desc: 'Royal Indian Peacock \u2014 Feather Storm royalty. NEVER in eggs, only here!' },
@@ -2181,6 +2190,7 @@ return {
   parseSaveCode,
   importSave,
   newGame,
+  reaperReset,
   SKINS,
   GACHA,
   GEAR,

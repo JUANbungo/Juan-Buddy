@@ -176,6 +176,7 @@
         result = engine.importSave(state, payload && payload.code);
         break;
       case 'newGame': result = engine.newGame(state); break;
+      case 'reaperReset': result = engine.reaperReset(state); break;
       case 'rename': {
         if (payload && typeof payload.name === 'string' && payload.name.trim().length > 0) {
           const milestoneFree = !!(state.milestones && state.milestones.rename60);

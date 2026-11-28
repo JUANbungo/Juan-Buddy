@@ -351,6 +351,91 @@
 
   function mp3Supported() { return typeof root.Audio === 'function'; }
 
+  // ===== Reaper event BGM (Juan Bungo) — 'Lurching Doom' with smooth fades =====
+  const REAPER_FILES = ['audio/Lurching Doom.mp3', 'bgm/mp3/Lurching Doom.mp3'];
+  let reaperAudio = null;
+  let reaperRamp = null;
+  let ambientBeforeReaper = null;
+
+  function stopReaperRamp() {
+    if (reaperRamp) { clearInterval(reaperRamp); reaperRamp = null; }
+  }
+
+  function playReaperMusic() {
+    if (!mp3Supported()) return false;
+    hookGestureRecovery();
+    if (mp3Audio && !mp3Audio.paused) {
+      ambientBeforeReaper = mp3Role;
+      try { mp3Audio.pause(); } catch (err) { /* ignore */ }
+    }
+    if (!reaperAudio) {
+      const urls = [];
+      for (const rel of REAPER_FILES) {
+        for (const u of assetUrls(rel)) urls.push(u);
+      }
+      reaperAudio = new root.Audio();
+      reaperAudio.loop = true;
+      reaperAudio.volume = 0;
+      let u = 0;
+      reaperAudio.src = urls[0];
+      reaperAudio.onerror = () => {
+        u += 1;
+        if (reaperAudio && u < urls.length) {
+          reaperAudio.src = urls[u];
+          const r = reaperAudio.play();
+          if (r && r.catch) r.catch(() => {});
+          return;
+        }
+        reaperAudio = null; // missing file: stay silent, never freeze the game
+      };
+    }
+    const q = reaperAudio.play();
+    if (q && typeof q.catch === 'function') q.catch(() => { /* autoplay guard */ });
+    stopReaperRamp();
+    const target = mp3Volume();
+    // fade-in: +target/25 every 100ms = 2.5s smooth ramp
+    reaperRamp = setInterval(() => {
+      if (!reaperAudio) { stopReaperRamp(); return; }
+      let v = Number(reaperAudio.volume) || 0;
+      v = Math.min(target, v + target / 25);
+      try { reaperAudio.volume = v; } catch (err) { stopReaperRamp(); return; }
+      if (v >= target) stopReaperRamp();
+    }, 100);
+    return true;
+  }
+
+  function stopReaperMusic() {
+    if (!reaperAudio) {
+      restoreAmbientAfterReaper();
+      return;
+    }
+    stopReaperRamp();
+    const audio = reaperAudio;
+    const target = mp3Volume();
+    // fade-out: -target/20 every 100ms = 2.0s smooth ramp, then pause + reset
+    reaperRamp = setInterval(() => {
+      let v = Number(audio.volume) || 0;
+      v = Math.max(0, v - target / 20);
+      try { audio.volume = v; } catch (err) { v = 0; }
+      if (v <= 0) {
+        stopReaperRamp();
+        try { audio.pause(); } catch (err) { /* ignore */ }
+        try { audio.currentTime = 0; } catch (err) { /* ignore */ }
+        if (reaperAudio === audio) reaperAudio = null;
+        restoreAmbientAfterReaper();
+      }
+    }, 100);
+  }
+
+  function restoreAmbientAfterReaper() {
+    const role = ambientBeforeReaper;
+    ambientBeforeReaper = null;
+    if (role && enabled) {
+      try { play(role); } catch (err) { /* ignore */ }
+    }
+  }
+
+
   function pickSong() {
     let idx = Math.floor(Math.random() * MP3_SONGS.length);
     if (MP3_SONGS.length > 1 && idx === mp3Idx) idx = (idx + 1) % MP3_SONGS.length;
@@ -521,6 +606,8 @@
     stop,
     playCombatMusic,
     stopCombatMusic,
+    playReaperMusic,
+    stopReaperMusic,
     ambientForHour,
     setVolume,
     getVolume,

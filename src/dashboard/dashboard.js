@@ -2115,8 +2115,15 @@ try {
 } catch (err) { stageScene = 'home'; }
 
 function setScene(scene) {
-  stageScene = scene === 'farm' || scene === 'park' ? scene : 'home';
+  stageScene = scene === 'farm' || scene === 'park' || scene === 'home' ? scene : 'home';
   playWavSafe(WAV.tab, 0.5);
+  if (stageScene === 'home') {
+    // Returning home must never leave the pet stuck on the wall (bug: pet ended
+    // up at outdoor/farm heights after scene changes). Clamp onto the floor.
+    if (petWalk.target && (petWalk.target.y < WALK_Y_MIN || petWalk.target.y > WALK_Y_MAX)) petWalk.target = null;
+    petWalk.x = Math.max(56, Math.min(STAGE_W - 56, petWalk.x));
+    petWalk.y = Math.max(WALK_Y_MIN, Math.min(WALK_Y_MAX, petWalk.y));
+  }
   if (stageScene !== 'home') {
     homeEditMode = false;
     layoutDraft = null;
@@ -4016,6 +4023,12 @@ let stageLoopErrors = 0;
     lastFed = null;
   }
   eatPrevState = nowState;
+  // Juan Bungo Reaper event (secret hazard boss): trigger watcher + overlays
+  if (window.JuanBungoReaper) {
+    try {
+      window.JuanBungoReaper.tick(stageNow, latest, { x: petWalk.x, y: petWalk.y });
+    } catch (err) { /* reaper must never break the stage loop */ }
+  }
   } catch (err) {
     stageLoopErrors += 1;
     if (stageLoopErrors <= 5) console.error('[Juan Buddy] stage loop error:', err && err.message);
@@ -4038,6 +4051,18 @@ let stageLoopErrors = 0;
   apply();
   window.addEventListener('resize', apply);
 })();
+
+// Juan Bungo Reaper event: init overlay + reap→full-reset hook (returns to Title)
+if (window.JuanBungoReaper) {
+  window.JuanBungoReaper.init({
+    canvas: petStageCanvas,
+    onReapReset: async () => {
+      try { await act('reaperReset'); } catch (err) { /* ignore */ }
+      try { localStorage.removeItem(SCENE_STORAGE_KEY); } catch (err) { /* ignore */ }
+      window.location.reload();
+    },
+  });
+}
 
 const achCards = {};
 

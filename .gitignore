@@ -26,6 +26,7 @@ dist/
 !assets/stardew/**/*.png
 !assets/explore_8bit/**/*.png
 !assets/wallpapers/*.png
+!assets/reaper/**/*.png
 !src/dashboard/assets/**/*.png
 !docs/*.png
 !docs/16bit/*.png
