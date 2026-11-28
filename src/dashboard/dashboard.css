@@ -1768,6 +1768,14 @@ header.topbar { padding-right: 262px; }
   border-top: 2px dashed rgba(107, 80, 48, 0.4);
 }
 .splash-credits p { margin: 5px 0; }
+.splash-hint {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 2px dashed rgba(107, 80, 48, 0.4);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #7a6850;
+}
 @media (prefers-reduced-motion: reduce) {
   .splash-load > div { transition: none; }
 }

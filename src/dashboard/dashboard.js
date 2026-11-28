@@ -1105,7 +1105,6 @@ function splashSetup() {
     const cm = el('credits-modal');
     if (cm) cm.classList.add('hidden');
     if (creditsBox) creditsBox.classList.add('hidden');
-    if (helpBox) helpBox.classList.add('hidden');
     startBgmOnGesture();
     if (sfx) sfx.play('happy');
   });
@@ -1127,19 +1126,7 @@ function splashSetup() {
     if (creditsModal) creditsModal.classList.add('hidden');
     if (creditsBox) creditsBox.classList.add('hidden');
   };
-  const helpBox = el('splash-help');
-  const helpBtn = el('btn-splash-help');
-  const helpBack = el('btn-splash-help-back');
-  const closeHelp = () => { if (helpBox) helpBox.classList.add('hidden'); };
-  if (helpBtn) helpBtn.addEventListener('click', () => {
-    if (!helpBox) return;
-    const opening = helpBox.classList.contains('hidden');
-    helpBox.classList.toggle('hidden', !opening);
-    if (opening && creditsBox) creditsBox.classList.add('hidden');
-    if (sfx) sfx.play('click');
-  });
-  if (helpBox && helpBack) helpBack.addEventListener('click', closeHelp);
-    if (creditsBtn) creditsBtn.addEventListener('click', openCredits);
+  if (creditsBtn) creditsBtn.addEventListener('click', openCredits);
   if (creditsBox && creditsBack) creditsBack.addEventListener('click', closeCredits);
   if (creditsModal) creditsModal.addEventListener('click', (e) => {
     if (e.target === creditsModal) closeCredits();
