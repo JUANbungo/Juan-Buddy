@@ -12,7 +12,7 @@
   try {
     if (typeof localStorage !== 'undefined') {
       enabled = localStorage.getItem('juanbuddy-sfx') !== 'off';
-      const v = Number(localStorage.getItem('juanbuddy-sfx-vol'));
+      const v = Number(localStorage.getItem('juanbuddy-sfx-vol') ?? NaN);
       if (!Number.isNaN(v) && v >= 0 && v <= 1) volume = v;
     }
   } catch (err) {
