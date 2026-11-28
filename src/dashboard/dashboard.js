@@ -1994,7 +1994,7 @@ const HOME_FURNITURE_ART = {
   flower_vase: { file: 'home/furniture/flower_vase.png', w: 72, h: 68, icon: '\u{1F490}' },
 };
 const HOME_DOOR_ART = { closed: 'home/furniture/door_closed.png', open: 'home/furniture/door_open.png' };
-const DOOR_RECT = { x: 18, y: 104, w: 74, h: 70 };
+const DOOR_RECT = { x: 18, y: 212, w: 74, h: 74 };
 const DEFAULT_FURNITURE_LAYOUT = {
   cozy_bed: { x: 96, y: 352 },
   toy_box: { x: 432, y: 350 },
@@ -2011,8 +2011,9 @@ const FARM_BEEHIVE_COST_UI = 400;
 const FARM_FERTILIZER_COST_UI = 30;
 const HF_ENGINE = (typeof window !== 'undefined' && window.JBEngine) || {};
 const FARM_CROPS_UI = HF_ENGINE.FARM_CROPS || {
-  berry: { growMs: 4 * 60000 }, flower: { growMs: 7 * 60000 }, plant: { growMs: 10 * 60000 },
+  berry: { growMs: 5 * 60000 }, flower: { growMs: 5 * 60000 }, plant: { growMs: 5 * 60000 },
 };
+const FARM_WILT_MS_UI = 5 * 60000;
 
 let stageScene = 'home';
 let homeEditMode = false;
@@ -2054,11 +2055,19 @@ function sdReady(img) {
   return img && !img.bad && img.complete && img.naturalWidth > 0;
 }
 
-function farmProgressUi(plot, farm, now) {
+function farmProgressUi(plot, farm) {
   if (!plot || !FARM_CROPS_UI[plot.cropId]) return 0;
-  let elapsed = Math.max(0, now - plot.plantedAt) * (plot.watered ? 2 : 1);
-  if (farm && farm.beehive) elapsed *= 1.15;
-  return Math.min(1, elapsed / FARM_CROPS_UI[plot.cropId].growMs);
+  const t = Date.now();
+  const speed = (plot.watered ? 2 : 1) * (farm && farm.beehive ? 1.15 : 1);
+  const elapsed = Math.max(0, t - plot.plantedAt) * speed;
+  const growMs = FARM_CROPS_UI[plot.cropId].growMs;
+  const prog = Math.min(1, elapsed / growMs);
+  if (prog >= 1 && !plot.readyAt) plot.readyAt = t - Math.max(0, (elapsed - growMs) / speed);
+  return prog;
+}
+
+function farmWiltedUi(plot) {
+  return !!(plot && plot.readyAt && Date.now() - plot.readyAt > FARM_WILT_MS_UI);
 }
 
 function homeLayoutOf() {
@@ -2194,22 +2203,35 @@ function drawFarmScene(now, phaseId) {
       stageCtx.fillRect(pos.x - 30, pos.y - 30, 60, 60);
     }
     if (plot && plot.cropId) {
-      const prog = farmProgressUi(plot, farm, now);
+      const prog = farmProgressUi(plot, farm);
+      const wilted = farmWiltedUi(plot);
       const stage = prog >= 1 ? 2 : 1;
       const cropImg = sdImage(`farm/crop_${plot.cropId}_stage${stage}.png`);
-      const sway = Math.sin(now / 700 + pos.x) * 1.5;
+      const sway = wilted ? 0 : Math.sin(now / 700 + pos.x) * 1.5;
       const ch = stage === 2 ? 52 : Math.round(14 + 22 * prog);
-      const bob = stage === 2 ? Math.round(Math.sin(now / 400) * 1.5) : 0;
-      if (sdReady(cropImg)) stageCtx.drawImage(cropImg, pos.x - ch / 2 + sway, pos.y - FARM_PLOT_W / 2 - ch + 8 + bob, ch, ch);
+      const bob = stage === 2 && !wilted ? Math.round(Math.sin(now / 400) * 1.5) : 0;
+      if (sdReady(cropImg)) {
+        if (wilted) {
+          stageCtx.save();
+          stageCtx.filter = 'grayscale(0.85) brightness(0.82)';
+        }
+        stageCtx.drawImage(cropImg, pos.x - ch / 2 + sway, pos.y - FARM_PLOT_W / 2 - ch + 8 + bob, ch, ch);
+        if (wilted) stageCtx.restore();
+      }
       stageCtx.save();
-      stageCtx.font = 'bold 11px sans-serif';
+      const barY = pos.y + FARM_PLOT_W / 2 + 2;
+      stageCtx.fillStyle = 'rgba(20, 14, 8, 0.78)';
+      stageCtx.fillRect(pos.x - 28, barY, 56, 8);
+      stageCtx.fillStyle = wilted ? '#c25a3c' : (prog >= 1 ? '#ffd24a' : '#57d35f');
+      stageCtx.fillRect(pos.x - 27, barY + 1, Math.round(54 * Math.max(0.04, prog)), 6);
+      stageCtx.font = 'bold 8px sans-serif';
       stageCtx.textAlign = 'center';
-      stageCtx.lineWidth = 3;
-      stageCtx.strokeStyle = 'rgba(255, 250, 235, 0.9)';
-      stageCtx.fillStyle = 'rgba(40, 28, 12, 0.95)';
-      const label = prog >= 1 ? 'READY!' : `${Math.round(prog * 100)}%`;
-      stageCtx.strokeText(label, pos.x, pos.y + FARM_PLOT_W / 2 + 12);
-      stageCtx.fillText(label, pos.x, pos.y + FARM_PLOT_W / 2 + 12);
+      stageCtx.lineWidth = 2;
+      stageCtx.strokeStyle = 'rgba(15, 10, 5, 0.85)';
+      stageCtx.fillStyle = '#fff8e7';
+      const label = wilted ? 'WILTED!' : (prog >= 1 ? 'READY!' : `${Math.round(prog * 100)}%`);
+      stageCtx.strokeText(label, pos.x, barY + 7);
+      stageCtx.fillText(label, pos.x, barY + 7);
       stageCtx.restore();
     }
   });
@@ -2330,8 +2352,8 @@ function openPortalModal() {
       btn.addEventListener('click', async () => {
         closePortalModal();
         portalFlashUntil = performance.now() + PORTAL_FLASH_MS;
-        const res = await act('startActivity', { activityId: id });
-        if (res && res.ok) setScene('home');
+        setScene(id);
+        await act('startActivity', { activityId: id, force: true });
       });
       list.appendChild(btn);
     }
@@ -3439,6 +3461,25 @@ function drawStagePet(now) {
       g.restore();
     };
 
+    if (tint && skinDef) {
+      const rgba = (String(tint).match(/[\d.]+/g) || []).map(Number);
+      const gr = rgba[0] || 255;
+      const gg = rgba[1] || 255;
+      const gb = rgba[2] || 255;
+      const ga = 0.5 + 0.3 * Math.sin(now / 320);
+      const glowCy = petDraw.gy - petDraw.size * 0.38;
+      const glowR = petDraw.size * 0.78;
+      const glowGrad = stageCtx.createRadialGradient(petDraw.cx, glowCy, glowR * 0.12, petDraw.cx, glowCy, glowR);
+      glowGrad.addColorStop(0, `rgba(${gr}, ${gg}, ${gb}, ${(ga * 0.85).toFixed(3)})`);
+      glowGrad.addColorStop(0.55, `rgba(${gr}, ${gg}, ${gb}, ${(ga * 0.45).toFixed(3)})`);
+      glowGrad.addColorStop(1, `rgba(${gr}, ${gg}, ${gb}, 0)`);
+      stageCtx.save();
+      stageCtx.globalCompositeOperation = 'lighter';
+      stageCtx.globalAlpha = Math.max(0.18, ga);
+      stageCtx.fillStyle = glowGrad;
+      stageCtx.fillRect(petDraw.cx - glowR, glowCy - glowR, glowR * 2, glowR * 2);
+      stageCtx.restore();
+    }
     if (tint) drawWithSkin(drawPath, tint);
     else drawPath(stageCtx);
     stageCtx.restore();

@@ -138,7 +138,7 @@
       case 'toggleWork': result = engine.toggleWork(state); break;
       case 'toggleSleep': result = engine.toggleSleep(state); break;
       case 'buyUpgrade': result = engine.buyUpgrade(state, payload && payload.upgradeId); break;
-      case 'startActivity': result = engine.startActivity(state, payload && payload.activityId); break;
+      case 'startActivity': result = engine.startActivity(state, payload && payload.activityId, payload); break;
       case 'stopActivity': result = engine.stopActivity(state); break;
       case 'setSpecies':
         if (payload && typeof payload.speciesId === 'string' && setSpeciesId(payload.speciesId)) {

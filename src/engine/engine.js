@@ -61,9 +61,9 @@ const FURNITURE = [
 ];
 
 const FARM_CROPS = {
-  berry: { id: 'berry', name: 'Berries', seed: 20, growMs: 4 * 60000, coins: [26, 44], xp: 6, snacks: 1, eco: 2 },
-  flower: { id: 'flower', name: 'Flowers', seed: 35, growMs: 7 * 60000, coins: [46, 72], xp: 10, snacks: 1, eco: 4 },
-  plant: { id: 'plant', name: 'Plants', seed: 55, growMs: 10 * 60000, coins: [70, 110], xp: 16, snacks: 2, eco: 7 },
+  berry: { id: 'berry', name: 'Berries', seed: 20, growMs: 5 * 60000, coins: [26, 44], xp: 6, snacks: 1, eco: 2 },
+  flower: { id: 'flower', name: 'Flowers', seed: 35, growMs: 5 * 60000, coins: [46, 72], xp: 10, snacks: 1, eco: 4 },
+  plant: { id: 'plant', name: 'Plants', seed: 55, growMs: 5 * 60000, coins: [70, 110], xp: 16, snacks: 2, eco: 7 },
 };
 
 const FARM_PLOT_COUNT = 6;
@@ -72,6 +72,7 @@ const FARM_FERTILIZER_COST = 30;
 const FARM_WATER_SPEED = 2;
 const FARM_BEEHIVE_SPEED = 1.15;
 const FARM_BEEHIVE_HARVEST = 1.15;
+const FARM_WILT_MS = 5 * 60000;
 
 function defaultHomeState() {
   return { wall: 'classic', owned: [], layout: {} };
@@ -81,12 +82,24 @@ function defaultFarmState() {
   return { plots: new Array(FARM_PLOT_COUNT).fill(null), beehive: false, fertilizer: 1, snacks: 0, harvests: 0, eco: 0 };
 }
 
+function farmSpeedOf(plot, farm) {
+  let speed = plot && plot.watered ? FARM_WATER_SPEED : 1;
+  if (farm && farm.beehive) speed *= FARM_BEEHIVE_SPEED;
+  return speed;
+}
+
 function farmProgressOf(plot, farm, now) {
   if (!plot || !FARM_CROPS[plot.cropId]) return 0;
   const crop = FARM_CROPS[plot.cropId];
-  let elapsed = Math.max(0, now - plot.plantedAt) * (plot.watered ? FARM_WATER_SPEED : 1);
-  if (farm && farm.beehive) elapsed *= FARM_BEEHIVE_SPEED;
-  return Math.min(1, elapsed / crop.growMs);
+  const speed = farmSpeedOf(plot, farm);
+  const elapsed = Math.max(0, now - plot.plantedAt) * speed;
+  const prog = Math.min(1, elapsed / crop.growMs);
+  if (prog >= 1 && !plot.readyAt) plot.readyAt = now - Math.max(0, (elapsed - crop.growMs) / speed);
+  return prog;
+}
+
+function farmWiltedOf(plot, now) {
+  return !!(plot && plot.readyAt && now - plot.readyAt > FARM_WILT_MS);
 }
 
 function homeAction(state, payload) {
@@ -151,12 +164,14 @@ function farmAction(state, payload) {
   }
   if (op === 'water') {
     if (!plot || !plot.cropId) return { ok: false, message: 'Nothing to water there.' };
+    if (farmWiltedOf(plot, now)) return { ok: false, message: 'That crop wilted already \u2014 clear the plot and plant again.' };
     if (plot.watered) return { ok: false, message: 'Already watered.' };
     plot.watered = true;
     return { ok: true, message: 'Watered! Growth sped up 2x.' };
   }
   if (op === 'fertilize') {
     if (!plot || !plot.cropId) return { ok: false, message: 'Nothing to fertilize there.' };
+    if (farmWiltedOf(plot, now)) return { ok: false, message: 'That crop wilted already \u2014 clear the plot and plant again.' };
     if (farmProgressOf(plot, farm, now) >= 1) return { ok: false, message: 'Already ready to harvest!' };
     if (farm.fertilizer < 1) return { ok: false, message: 'No fertilizer left. Buy some in the farm bar.' };
     farm.fertilizer -= 1;
@@ -165,6 +180,10 @@ function farmAction(state, payload) {
   }
   if (op === 'harvest') {
     if (!plot || !plot.cropId) return { ok: false, message: 'Nothing planted there.' };
+    if (farmWiltedOf(plot, now)) {
+      farm.plots[plotIndex] = null;
+      return { ok: false, message: 'The crop wilted and dried up... plant a new one!' };
+    }
     if (farmProgressOf(plot, farm, now) < 1) return { ok: false, message: 'Still growing...' };
     const crop = FARM_CROPS[plot.cropId];
     const bonus = farm.beehive ? FARM_BEEHIVE_HARVEST : 1;
@@ -223,6 +242,11 @@ function ensureHomeFarm(state) {
   for (let i = 0; i < farm.plots.length; i += 1) {
     const p = farm.plots[i];
     if (p && p.cropId && FARM_CROPS[p.cropId] && typeof p.plantedAt === 'number') {
+      farmProgressOf(p, farm, Date.now());
+      if (farmWiltedOf(p, Date.now())) {
+        farm.plots[i] = null;
+        continue;
+      }
       p.watered = !!p.watered;
     } else {
       farm.plots[i] = null;
@@ -330,8 +354,8 @@ const SKINS = {
   classic: { id: 'classic', name: 'Classic', cost: 0, tint: null },
   golden: { id: 'golden', name: 'Golden Shine', cost: 300, tint: 'rgba(255, 200, 60, 0.34)' },
   sakura: { id: 'sakura', name: 'Sakura Glow', cost: 450, tint: 'rgba(255, 130, 180, 0.30)' },
-  midnight: { id: 'midnight', name: 'Midnight Aura', cost: 600, tint: 'rgba(40, 60, 160, 0.38)' },
-  cosmic: { id: 'cosmic', name: 'Cosmic Mythic', cost: 0, gachaOnly: true, tint: 'rgba(167, 139, 250, 0.40)' },
+  midnight: { id: 'midnight', name: 'Midnight Aura', cost: 6000, tint: 'rgba(40, 60, 160, 0.38)' },
+  cosmic: { id: 'cosmic', name: 'Cosmic Mythic', cost: 100000, tint: 'rgba(167, 139, 250, 0.40)' },
 };
 
 const GACHA = {
@@ -1280,21 +1304,31 @@ function stopActivity(state) {
   return { ok: true, message: `\u2302\uFE0F Went back home from ${a.name}.` };
 }
 
-function startActivity(state, id) {
+function startActivity(state, id, opts) {
   const gate = deadGate(state);
   if (gate) return gate;
   const a = ACTIVITIES[id];
   if (!a) return { ok: false, message: 'Unknown activity.' };
-  if (state.activity) return { ok: false, message: 'Already busy with an activity!' };
+  const force = !!(opts && opts.force);
+  if (state.activity) {
+    if (!force) return { ok: false, message: 'Already busy with an activity!' };
+    const prev = ACTIVITIES[state.activity.id];
+    state.activity = null;
+    if (prev) delete state.activityCooldowns[prev.id];
+  }
   if (state.flags.sleeping) return { ok: false, message: 'Wake up first!' };
   const colCost = collectionBonusesOf(state).totals.energyCostReductionPct || 0;
   const cost = Math.max(1, Math.round(a.energy * (1 - Math.min(0.9, colCost))));
-  if (state.meters.energy < cost) return { ok: false, message: `Not enough energy (needs ${cost} ⚡).` };
+  if (state.meters.energy < cost) {
+    if (!force) return { ok: false, message: `Not enough energy (needs ${cost} ⚡).` };
+  } else {
+    state.meters.energy = clamp100(state.meters.energy - cost);
+  }
   const cd = state.activityCooldowns[id] || 0;
-  if (Date.now() < cd) {
+  if (Date.now() < cd && !force) {
     return { ok: false, message: `${a.name} is on cooldown (${Math.ceil((cd - Date.now()) / 1000)}s).` };
   }
-  state.meters.energy = clamp100(state.meters.energy - cost);
+  if (force) delete state.activityCooldowns[id];
   state.activity = { id, endsAt: Date.now() + a.duration * 1000 };
   state.flags.working = false;
   return { ok: true, message: `${a.icon} ${a.name} started!` };

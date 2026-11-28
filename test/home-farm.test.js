@@ -59,14 +59,17 @@ console.log('home & farm tests');
   const dup = engine.farmAction(s, { op: 'plant', plot: 0, cropId: 'berry' });
   assert(!dup.ok, 'occupied plot rejects planting');
 
-  const grew = { ...s.farm.plots[0], plantedAt: Date.now() - 2 * 60000 };
+  assert(Object.values(engine.FARM_CROPS).every((c) => c.growMs === 5 * 60000), 'every crop grows in 5 minutes');
+
+  const grew = { ...s.farm.plots[0], plantedAt: Date.now() - 3 * 60000 };
   s.farm.plots[0] = grew;
   const prog = engine.farmProgressOf(grew, s.farm, Date.now());
-  assert(prog > 0.45 && prog < 0.55, '2 minutes of a 4 minute crop is ~50%');
+  assert(prog > 0.55 && prog < 0.65, '3 minutes of a 5 minute crop is ~60%');
+  assert(grew.readyAt === undefined, 'growing crop has no readyAt yet');
 
   engine.farmAction(s, { op: 'water', plot: 0 });
   const progWet = engine.farmProgressOf(s.farm.plots[0], s.farm, Date.now());
-  assert(progWet > 0.9, 'watering doubles elapsed growth');
+  assert(progWet >= 1, 'watering doubles elapsed growth');
 
   const harvestWatered = engine.farmAction(s, { op: 'harvest', plot: 0 });
   assert(harvestWatered.ok, 'watered crop can be harvested');
@@ -100,6 +103,27 @@ console.log('home & farm tests');
   s.meters.hunger = 50;
   const snack = engine.farmAction(s, { op: 'eatSnack' });
   assert(snack.ok && s.farm.snacks === 1 && s.meters.hunger > 50, 'harvested snack feeds the pet for free');
+
+  s.farm.plots[2] = { cropId: 'berry', plantedAt: Date.now() - 12 * 60000, watered: false };
+  const ready = engine.farmProgressOf(s.farm.plots[2], s.farm, Date.now());
+  assert(ready >= 1 && typeof s.farm.plots[2].readyAt === 'number', 'ready crop stamps a backdated readyAt');
+  assert(Date.now() - s.farm.plots[2].readyAt > 6 * 60000, 'backdated readyAt reflects time since ready');
+
+  s.farm.plots[3] = { cropId: 'berry', plantedAt: Date.now() - 12 * 60000, watered: false, readyAt: Date.now() - 6 * 60000 };
+  const wiltHarvest = engine.farmAction(s, { op: 'harvest', plot: 3 });
+  assert(!wiltHarvest.ok && !s.farm.plots[3], 'harvesting a wilted crop fails and clears the plot');
+
+  s.farm.plots[4] = { cropId: 'flower', plantedAt: Date.now() - 12 * 60000, watered: false, readyAt: Date.now() - 6 * 60000 };
+  const wiltWater = engine.farmAction(s, { op: 'water', plot: 4 });
+  assert(!wiltWater.ok && !s.farm.plots[4], 'wilted crop cannot be watered and gets auto-cleared');
+
+  s.farm.plots[5] = { cropId: 'flower', plantedAt: Date.now() - 12 * 60000, watered: false, readyAt: Date.now() - 6 * 60000 };
+  engine.ensureHomeFarm(s);
+  assert(!s.farm.plots[5], 'ensureHomeFarm clears wilted plots');
+
+  const freshPlot = { cropId: 'berry', plantedAt: Date.now() - 60000, watered: false };
+  engine.ensureHomeFarm({ ...s, farm: { ...s.farm, plots: [freshPlot, null, null, null, null, null] } });
+  assert(!freshPlot.readyAt, 'ensureHomeFarm keeps growing crops untouched');
 }
 
 {

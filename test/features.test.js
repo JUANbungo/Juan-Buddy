@@ -277,15 +277,18 @@ check('forced mythic roll unlocks cosmic skin + Chosen One achievement', () => {
   }
 });
 
-check('cosmic skin cannot be bought, only pulled', () => {
+check('cosmic skin is buyable at 100,000 gold', () => {
   const s = engine.defaultState();
   s.coins = 99999;
   const res = engine.buySkin(s, 'cosmic');
-  assert(res.ok === false, 'buying cosmic should fail');
-  assert(!s.skinsOwned.includes('cosmic'), 'cosmic should not be owned');
+  assert(res.ok === false, 'buying cosmic without enough gold should fail');
+  assert(!s.skinsOwned.includes('cosmic'), 'cosmic should not be owned yet');
   const d = engine.derivedStats(s);
   const cosmic = d.skins.find((sk) => sk.id === 'cosmic');
-  assert(cosmic && cosmic.gachaOnly && !cosmic.owned, 'cosmic derived as gachaOnly');
+  assert(cosmic && !cosmic.gachaOnly && !cosmic.owned, 'cosmic derived as buyable, not gachaOnly');
+  s.coins = 100000;
+  const buy = engine.buySkin(s, 'cosmic');
+  assert(buy.ok && s.skinsOwned.includes('cosmic') && s.coins === 0, 'cosmic purchasable at 100,000 gold');
 });
 
 check('RPG unlocks gate battle/gear/path by days played', () => {
