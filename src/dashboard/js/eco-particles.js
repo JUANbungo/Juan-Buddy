@@ -80,6 +80,12 @@
   }
 
   function loop() {
+    // skip all work when the tab is hidden or the overlay is not on screen —
+    // keeps phones cool and batteries alive
+    if (document.hidden || !canvas || canvas.clientWidth === 0) {
+      animId = requestAnimationFrame(loop);
+      return;
+    }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Draw ambient leaves or fireflies

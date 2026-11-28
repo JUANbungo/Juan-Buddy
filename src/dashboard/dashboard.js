@@ -4003,6 +4003,11 @@ let stageLoopErrors = 0;
 (function stageLoop() {
   try {
   const stageNow = performance.now();
+  // When the stage canvas is hidden (battle arena, feature panels open, tab in
+  // background) skip all drawing + walk-step work — phones waste real battery
+  // repainting a canvas nobody can see. The reaper tick below must keep running.
+  const stageVisible = !document.hidden && petStageCanvas && petStageCanvas.offsetParent !== null;
+  if (stageVisible) {
   drawStagePet(stageNow);
   const stepSpecies = latest && latest.state && latest.state.pet ? sprites.normalizeSpeciesId(latest.state.pet.species || 'kala') : 'kala';
   const stepEvo = latest && latest.state && latest.state.pet && latest.state.pet.evolved;
@@ -4023,6 +4028,7 @@ let stageLoopErrors = 0;
     lastFed = null;
   }
   eatPrevState = nowState;
+  } // end stageVisible
   // Juan Bungo Reaper event (secret hazard boss): trigger watcher + overlays
   if (window.JuanBungoReaper) {
     try {

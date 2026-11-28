@@ -2458,3 +2458,50 @@ button, .btn, .scene-btn, .farm-tool, .topbar-quick, .tab-btn {
     padding-bottom: calc(8px + env(safe-area-inset-bottom));
   }
 }
+
+/* ==== v0.1.33 phone fit + smoothness pass (mobile only — desktop untouched) ==== */
+@media (max-width: 560px) {
+  /* compact topbar: pills were wrapping to 2 tall rows (~92px) — tighten so the
+     header shrinks from ~223px to ~150px and more of the stage fits on screen */
+  .hud-pills { gap: 5px; }
+  .hud-pill { padding: 3px 8px; gap: 6px; border-radius: 10px; }
+  .hud-pill .hud-ico { font-size: 13px; }
+  .hud-pill .hud-img { width: 16px; height: 16px; }
+  .hud-pill .hud-txt b { font-size: 11.5px; }
+  .hud-pill .hud-sub { font-size: 8.5px; }
+  .hud-streak { font-size: 10px; padding: 3px 8px; }
+  .brand-badge { width: 38px; height: 38px; }
+  .brand-badge .hud-img { width: 30px; height: 30px; }
+
+  /* settings rows overflowed 360px screens (445px wide) — let them wrap */
+  .settings-row { flex-wrap: wrap; row-gap: 6px; }
+  .settings-controls { flex-wrap: wrap; max-width: 100%; min-width: 0; }
+  .settings-controls input[type="range"] { width: min(130px, 44vw); }
+  .settings-controls .btn { min-width: 0; }
+
+  /* feature tabs + panels: a bit more breathing room */
+  .layout { gap: 8px; }
+
+  /* stat points row (+ATK/+DEF/+SPD): wrap + roomier tap targets */
+  .battle-points { flex-wrap: wrap; row-gap: 6px; }
+  .btn-stat { padding: 7px 11px; font-size: 11.5px; }
+}
+@media (pointer: coarse) {
+  /* backdrop blur is the most expensive effect on phone GPUs — the overlays all
+     have solid rgba backgrounds, so the blur can go on touch devices */
+  .stage-hint, .death-overlay, .gacha-result, .wish-overlay, .jb-death-overlay {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  /* stop long-press text selection / callouts on the game UI */
+  .playground, .playground-wrap, .stage, .tab-panel, .stage-menu, .scene-nav,
+  .hud-pills, .topbar-quick, .arena-place, .jb-arena-stage, .jb-enemy-grid {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  /* smoother scrolling in long lists (achievements, shop, selector) */
+  .tab-panel, .achv-grid, .jb-enemy-grid, .settings-panel {
+    -webkit-overflow-scrolling: touch;
+  }
+}
