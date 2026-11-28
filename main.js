@@ -65,6 +65,7 @@ function runAction(action, payload) {
     case 'toggleSleep': result = engine.toggleSleep(state); break;
     case 'buyUpgrade': result = engine.buyUpgrade(state, payload && payload.upgradeId); break;
     case 'startActivity': result = engine.startActivity(state, payload && payload.activityId); break;
+    case 'stopActivity': result = engine.stopActivity(state); break;
     case 'setSpecies':
       if (payload && typeof payload.speciesId === 'string' && setSpeciesId(payload.speciesId)) {
         result = { ok: true, message: 'Buddy chosen!' };
@@ -73,7 +74,6 @@ function runAction(action, payload) {
       }
       break;
     case 'claimDaily': result = engine.claimDaily(state); break;
-    case 'claimFreeFood': result = engine.claimFreeFood(state); break;
     case 'claimQuest': result = engine.claimQuest(state, payload ? payload.questId : undefined); break;
     case 'pullGacha': result = engine.pullGacha(state, payload && payload.times); break;
     case 'pullGearGacha': result = engine.pullGearGacha(state, payload && payload.times); break;
@@ -83,6 +83,8 @@ function runAction(action, payload) {
     case 'equipItem': result = engine.equipItem(state, payload && payload.itemId); break;
     case 'useEvoStone': result = engine.useEvoStone(state); break;
     case 'battleMonster': result = engine.battleMonster(state, payload && payload.monsterId); break;
+    case 'arenaResult': result = engine.arenaResult(state, payload); break;
+    case 'arenaRevive': result = engine.arenaRevive(state, payload); break;
     case 'buyGear': result = engine.buyGear(state, payload && payload.gearId); break;
     case 'equipGear': result = engine.equipGear(state, payload && payload.gearId); break;
     case 'choosePath': result = engine.choosePath(state, payload && payload.pathId); break;
@@ -91,6 +93,8 @@ function runAction(action, payload) {
     case 'choosePerk': result = engine.choosePerk(state, payload ? payload.index : undefined); break;
     case 'buySkin': result = engine.buySkin(state, payload && payload.skinId); break;
     case 'setSkin': result = engine.setSkin(state, payload && payload.skinId); break;
+    case 'homeAction': result = engine.homeAction(state, payload); break;
+    case 'farmAction': result = engine.farmAction(state, payload); break;
     case 'exportSave':
       result = { ok: true, code: engine.saveCode(state), message: 'Save code copied!' };
       break;
@@ -98,12 +102,19 @@ function runAction(action, payload) {
       result = engine.importSave(state, payload && payload.code);
       break;
     case 'newGame': result = engine.newGame(state); break;
-    case 'rename':
+    case 'rename': {
       if (payload && typeof payload.name === 'string' && payload.name.trim().length > 0) {
-        state.pet.name = payload.name.trim().slice(0, 16);
-        result = { ok: true, message: `Renamed to ${state.pet.name}.` };
+        const milestoneFree = !!(state.milestones && state.milestones.rename60);
+        if (!milestoneFree && state.coins < 10000) {
+          result = { ok: false, message: 'Renaming costs 10,000 gold \u2014 keep working and battling!' };
+        } else {
+          if (!milestoneFree) state.coins -= 10000;
+          state.pet.name = payload.name.trim().slice(0, 16);
+          result = { ok: true, message: milestoneFree ? `Renamed to ${state.pet.name}.` : `Renamed to ${state.pet.name} for 10,000 gold.` };
+        }
       }
       break;
+    }
     case 'setOpenAtLogin':
       app.setLoginItemSettings({ openAtLogin: !!(payload && payload.open) });
       result = { ok: true, message: payload && payload.open ? 'Will open at login.' : 'Autostart disabled.' };

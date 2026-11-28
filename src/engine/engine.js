@@ -1,13 +1,17 @@
 'use strict';
 
 (function (root, factory) {
-  const api = factory(typeof module !== 'undefined' && module.exports ? require('../pet/sprites.js') : root.JBSprites);
+  const api = factory(
+    typeof module !== 'undefined' && module.exports ? require('../pet/sprites.js') : root.JBSprites,
+    typeof module !== 'undefined' && module.exports ? require('../pet/battle-skills.js') : root.JBBattleSkills
+  );
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = api;
   }
   root.JBEngine = api;
-})(typeof self !== 'undefined' ? self : this, function (spritesApi) {
+})(typeof self !== 'undefined' ? self : this, function (spritesApi, battleApi) {
 const DELICACIES = spritesApi.DELICACIES;
+const BS = battleApi || null;
 
 const FOODS = Object.fromEntries(DELICACIES.map((d) => [d.id, {
   id: d.id,
@@ -42,61 +46,251 @@ const UPGRADES = {
   },
 };
 
+const HOME_WALLS = [
+  { id: 'classic', name: 'Classic Room', cost: 0 },
+  { id: 'wall_pastel_cream', name: 'Pastel Cream', cost: 0 },
+  { id: 'wall_cozy_night', name: 'Cozy Night', cost: 0 },
+  { id: 'wall_bamboo_zen', name: 'Bamboo Zen', cost: 0 },
+  { id: 'wall_sky_clouds', name: 'Sky Clouds', cost: 0 },
+];
+
+const FURNITURE = [
+  { id: 'cozy_bed', name: 'Cozy Bed', cost: 240, desc: 'A soft 16-bit bed. Stats included: energy drains 12% slower (max level).' },
+  { id: 'toy_box', name: 'Toy Box', cost: 180, desc: 'Keeps toys tidy. Stats included: play gives +25% happiness (max level).' },
+  { id: 'flower_vase', name: 'Flower Vase', cost: 120, desc: 'A fresh vase of flowers for the room.' },
+];
+
+const FARM_CROPS = {
+  berry: { id: 'berry', name: 'Berries', seed: 20, growMs: 4 * 60000, coins: [26, 44], xp: 6, snacks: 1, eco: 2 },
+  flower: { id: 'flower', name: 'Flowers', seed: 35, growMs: 7 * 60000, coins: [46, 72], xp: 10, snacks: 1, eco: 4 },
+  plant: { id: 'plant', name: 'Plants', seed: 55, growMs: 10 * 60000, coins: [70, 110], xp: 16, snacks: 2, eco: 7 },
+};
+
+const FARM_PLOT_COUNT = 6;
+const FARM_BEEHIVE_COST = 400;
+const FARM_FERTILIZER_COST = 30;
+const FARM_WATER_SPEED = 2;
+const FARM_BEEHIVE_SPEED = 1.15;
+const FARM_BEEHIVE_HARVEST = 1.15;
+
+function defaultHomeState() {
+  return { wall: 'classic', owned: [], layout: {} };
+}
+
+function defaultFarmState() {
+  return { plots: new Array(FARM_PLOT_COUNT).fill(null), beehive: false, fertilizer: 1, snacks: 0, harvests: 0, eco: 0 };
+}
+
+function farmProgressOf(plot, farm, now) {
+  if (!plot || !FARM_CROPS[plot.cropId]) return 0;
+  const crop = FARM_CROPS[plot.cropId];
+  let elapsed = Math.max(0, now - plot.plantedAt) * (plot.watered ? FARM_WATER_SPEED : 1);
+  if (farm && farm.beehive) elapsed *= FARM_BEEHIVE_SPEED;
+  return Math.min(1, elapsed / crop.growMs);
+}
+
+function homeAction(state, payload) {
+  const gate = deadGate(state);
+  if (gate) return gate;
+  ensureHomeFarm(state);
+  const home = state.home;
+  const op = payload && payload.op;
+  if (op === 'setWall') {
+    const wall = HOME_WALLS.find((w) => w.id === payload.wallId);
+    if (!wall) return { ok: false, message: 'Unknown wall design.' };
+    home.wall = wall.id;
+    return { ok: true, message: `Wall design: ${wall.name}.` };
+  }
+  if (op === 'buyFurniture') {
+    const item = FURNITURE.find((f) => f.id === payload.itemId);
+    if (!item) return { ok: false, message: 'Unknown furniture.' };
+    if (home.owned.includes(item.id)) return { ok: false, message: `You already own the ${item.name}.` };
+    if (state.coins < item.cost) return { ok: false, message: `Not enough coins for the ${item.name}.` };
+    state.coins -= item.cost;
+    home.owned.push(item.id);
+    if (item.id === 'cozy_bed' && UPGRADES.bed) state.upgrades.bed = UPGRADES.bed.max;
+    if (item.id === 'toy_box' && UPGRADES.toys) state.upgrades.toys = UPGRADES.toys.max;
+    return { ok: true, message: `${item.name} delivered to Buddy's Home!` };
+  }
+  if (op === 'saveLayout') {
+    const layout = payload && payload.layout;
+    if (!layout || typeof layout !== 'object') return { ok: false, message: 'No layout given.' };
+    const clean = {};
+    for (const item of FURNITURE) {
+      const pos = layout[item.id];
+      if (!pos) continue;
+      const x = Math.round(Number(pos.x));
+      const y = Math.round(Number(pos.y));
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+      clean[item.id] = { x: Math.max(30, Math.min(450, x)), y: Math.max(150, Math.min(352, y)) };
+    }
+    home.layout = clean;
+    return { ok: true, message: 'Home layout saved.' };
+  }
+  return { ok: false, message: 'Unknown home action.' };
+}
+
+function farmAction(state, payload) {
+  const gate = deadGate(state);
+  if (gate) return gate;
+  ensureHomeFarm(state);
+  const farm = state.farm;
+  const now = Date.now();
+  const op = payload && payload.op;
+  const plotIndex = Math.round(Number(payload && payload.plot));
+  const plot = farm.plots[plotIndex];
+  if (op === 'plant') {
+    if (Number.isNaN(plotIndex) || plotIndex < 0 || plotIndex >= FARM_PLOT_COUNT) return { ok: false, message: 'No such plot.' };
+    if (plot && plot.cropId) return { ok: false, message: 'That plot is already growing.' };
+    const crop = FARM_CROPS[payload.cropId];
+    if (!crop) return { ok: false, message: 'Unknown crop.' };
+    if (state.coins < crop.seed) return { ok: false, message: `Not enough coins for ${crop.name} seeds.` };
+    state.coins -= crop.seed;
+    farm.plots[plotIndex] = { cropId: crop.id, plantedAt: now, watered: false };
+    return { ok: true, message: `Planted ${crop.name}!` };
+  }
+  if (op === 'water') {
+    if (!plot || !plot.cropId) return { ok: false, message: 'Nothing to water there.' };
+    if (plot.watered) return { ok: false, message: 'Already watered.' };
+    plot.watered = true;
+    return { ok: true, message: 'Watered! Growth sped up 2x.' };
+  }
+  if (op === 'fertilize') {
+    if (!plot || !plot.cropId) return { ok: false, message: 'Nothing to fertilize there.' };
+    if (farmProgressOf(plot, farm, now) >= 1) return { ok: false, message: 'Already ready to harvest!' };
+    if (farm.fertilizer < 1) return { ok: false, message: 'No fertilizer left. Buy some in the farm bar.' };
+    farm.fertilizer -= 1;
+    plot.plantedAt = Math.min(plot.plantedAt, now - FARM_CROPS[plot.cropId].growMs);
+    return { ok: true, message: 'Fertilizer applied \u2014 instantly ready!' };
+  }
+  if (op === 'harvest') {
+    if (!plot || !plot.cropId) return { ok: false, message: 'Nothing planted there.' };
+    if (farmProgressOf(plot, farm, now) < 1) return { ok: false, message: 'Still growing...' };
+    const crop = FARM_CROPS[plot.cropId];
+    const bonus = farm.beehive ? FARM_BEEHIVE_HARVEST : 1;
+    const coins = Math.round((crop.coins[0] + Math.random() * (crop.coins[1] - crop.coins[0])) * bonus);
+    state.coins += coins;
+    state.stats.coinsEarned += coins;
+    state.pet.xp += crop.xp * currentXpMul(state);
+    farm.snacks += crop.snacks + (farm.beehive ? 1 : 0);
+    farm.harvests += 1;
+    farm.eco += crop.eco;
+    farm.plots[plotIndex] = null;
+    applyLevelUps(state);
+    return { ok: true, message: `Harvested ${crop.name}! +${coins} coins +${crop.xp} XP +${crop.eco} eco` };
+  }
+  if (op === 'buyBeehive') {
+    if (farm.beehive) return { ok: false, message: 'You already have a beehive.' };
+    if (state.coins < FARM_BEEHIVE_COST) return { ok: false, message: 'Not enough coins for the Beehive.' };
+    state.coins -= FARM_BEEHIVE_COST;
+    farm.beehive = true;
+    return { ok: true, message: 'Beehive placed! Bees boost growth (+15%) and harvests (+15% coins, +1 snack).' };
+  }
+  if (op === 'buyFertilizer') {
+    if (state.coins < FARM_FERTILIZER_COST) return { ok: false, message: 'Not enough coins for fertilizer.' };
+    state.coins -= FARM_FERTILIZER_COST;
+    farm.fertilizer += 1;
+    return { ok: true, message: 'Bought 1 fertilizer.' };
+  }
+  if (op === 'eatSnack') {
+    if (farm.snacks < 1) return { ok: false, message: 'No harvested snacks left.' };
+    if (state.flags.sleeping) return { ok: false, message: `${state.pet.name} is sleeping...` };
+    const cheapest = DELICACIES.reduce((a, d) => (d.cost > 0 && d.cost < a.cost ? d : a));
+    const food = FOODS[cheapest.id];
+    if (!food) return { ok: false, message: 'No snack food defined.' };
+    const res = applyFood(state, food, { free: true });
+    if (res && res.ok) farm.snacks -= 1;
+    return res;
+  }
+  return { ok: false, message: 'Unknown farm action.' };
+}
+
+function ensureHomeFarm(state) {
+  if (!state.home || typeof state.home !== 'object') state.home = defaultHomeState();
+  if (!HOME_WALLS.some((w) => w.id === state.home.wall)) state.home.wall = 'classic';
+  if (!Array.isArray(state.home.owned)) state.home.owned = [];
+  state.home.owned = state.home.owned.filter((id) => FURNITURE.some((f) => f.id === id));
+  if (state.home.owned.includes('cozy_bed') && UPGRADES.bed) state.upgrades.bed = UPGRADES.bed.max;
+  if (state.home.owned.includes('toy_box') && UPGRADES.toys) state.upgrades.toys = UPGRADES.toys.max;
+  if (!state.home.layout || typeof state.home.layout !== 'object') state.home.layout = {};
+  if (!state.farm || typeof state.farm !== 'object') state.farm = defaultFarmState();
+  const farm = state.farm;
+  if (!Array.isArray(farm.plots) || farm.plots.length !== FARM_PLOT_COUNT) {
+    const plots = new Array(FARM_PLOT_COUNT).fill(null);
+    if (Array.isArray(farm.plots)) plots.splice(0, Math.min(farm.plots.length, FARM_PLOT_COUNT), ...farm.plots.slice(0, FARM_PLOT_COUNT));
+    farm.plots = plots;
+  }
+  for (let i = 0; i < farm.plots.length; i += 1) {
+    const p = farm.plots[i];
+    if (p && p.cropId && FARM_CROPS[p.cropId] && typeof p.plantedAt === 'number') {
+      p.watered = !!p.watered;
+    } else {
+      farm.plots[i] = null;
+    }
+  }
+  farm.beehive = !!farm.beehive;
+  farm.fertilizer = Math.max(0, Math.round(Number(farm.fertilizer) || 0));
+  farm.snacks = Math.max(0, Math.round(Number(farm.snacks) || 0));
+  farm.harvests = Math.max(0, Math.round(Number(farm.harvests) || 0));
+  farm.eco = Math.max(0, Math.round(Number(farm.eco) || 0));
+  return state;
+}
+
 const ACTIVITIES = {
   walk: {
     id: 'walk', name: 'Tara, Lakwatsa!', icon: '🚶',
-    desc: 'A quick stroll around the barangay.',
-    duration: 20, energy: 8, coins: [5, 9], xp: 4, cooldown: 30,
+    desc: 'A quick stroll around Buddy Park.',
+    duration: 20, energy: 8, coins: [10, 18], xp: 4, cooldown: 30,
   },
   cook: {
     id: 'cook', name: 'Cook Adobo', icon: '🍳',
     desc: 'Simmer a pot of adobo to sell.',
-    duration: 30, energy: 12, coins: [9, 15], xp: 6, cooldown: 45,
+    duration: 30, energy: 12, coins: [18, 30], xp: 6, cooldown: 45,
   },
   videoke: {
     id: 'videoke', name: 'Videoke Night', icon: '🎤',
     desc: 'Belt out power ballads. Standing ovation.',
-    duration: 45, energy: 18, coins: [14, 22], xp: 9, cooldown: 60,
+    duration: 45, energy: 18, coins: [28, 44], xp: 9, cooldown: 60,
   },
   study: {
     id: 'study', name: 'Study Session', icon: '📚',
     desc: 'Cram for exams. Brain gains.',
-    duration: 60, energy: 20, coins: [20, 32], xp: 12, cooldown: 90,
+    duration: 60, energy: 20, coins: [40, 64], xp: 12, cooldown: 90,
   },
   fish: {
     id: 'fish', name: 'Fishing Trip', icon: '🎣',
     desc: 'Patience may land a big, lucky catch.',
-    duration: 90, energy: 25, coins: [28, 45], xp: 16, cooldown: 120, lucky: 0.15,
+    duration: 90, energy: 25, coins: [56, 90], xp: 16, cooldown: 120, lucky: 0.15,
   },
   park: {
-    id: 'park', name: 'Barangay Park', icon: '🌳',
+    id: 'park', name: 'Buddy Park', icon: '🌳',
     desc: 'Run around the park. Fresh air + sniffy trees.',
-    duration: 40, energy: 12, coins: [10, 18], xp: 9, cooldown: 60, outdoor: 'park',
+    duration: 40, energy: 12, coins: [20, 36], xp: 9, cooldown: 60, outdoor: 'park',
   },
   baywalk: {
     id: 'baywalk', name: 'Manila Baywalk', icon: '🌅',
     desc: 'Sunset by the bay. Peak Filipino romanticism.',
-    duration: 55, energy: 16, coins: [18, 30], xp: 12, cooldown: 90, outdoor: 'baywalk',
+    duration: 55, energy: 16, coins: [36, 60], xp: 12, cooldown: 90, outdoor: 'baywalk',
   },
   market: {
     id: 'market', name: 'Floating Market', icon: '🚣',
     desc: 'Bangkok canals full of mangoes and boat noodles.',
-    duration: 65, energy: 18, coins: [24, 38], xp: 14, cooldown: 100, outdoor: 'market',
+    duration: 65, energy: 18, coins: [48, 76], xp: 14, cooldown: 100, outdoor: 'market',
   },
   temple: {
     id: 'temple', name: 'Kyoto Zen Garden', icon: '⛩',
     desc: 'Rake sand, pet a lucky cat, find inner peace.',
-    duration: 70, energy: 14, coins: [20, 34], xp: 16, cooldown: 110, outdoor: 'temple',
+    duration: 70, energy: 14, coins: [40, 68], xp: 16, cooldown: 110, outdoor: 'temple',
   },
   terraces: {
     id: 'terraces', name: 'Rice Terraces', icon: '🌾',
     desc: 'Climb the emerald steps of Banaue.',
-    duration: 85, energy: 26, coins: [34, 52], xp: 20, cooldown: 130, outdoor: 'terraces',
+    duration: 85, energy: 26, coins: [68, 104], xp: 20, cooldown: 130, outdoor: 'terraces',
   },
   beach: {
     id: 'beach', name: 'Boracay Beach', icon: '🏖️',
     desc: 'Powder sand, clear water, pure island bliss.',
-    duration: 95, energy: 24, coins: [40, 60], xp: 22, cooldown: 150, outdoor: 'beach',
+    duration: 95, energy: 24, coins: [80, 120], xp: 22, cooldown: 150, outdoor: 'beach',
   },
 };
 
@@ -104,7 +298,7 @@ const MAX_METERS = 100;
 const OFFLINE_CAP_SECONDS = 24 * 60 * 60;
 const OFFLINE_RATE = 0.05;
 const LEVEL_XP_BASE = 40;
-const LEVEL_XP_GROWTH = 1.6;
+const LEVEL_XP_GROWTH = 1.3;
 
 const STAGES = [
   { id: 'egg', name: 'Egg', minLevel: 1, scale: 0.42 },
@@ -113,6 +307,24 @@ const STAGES = [
   { id: 'adult', name: 'Adult', minLevel: 10, scale: 1 },
 ];
 const DEATH_SECONDS = 60 * 60;
+const ARENA = {
+  GHOST_MS: 60 * 60 * 1000,
+  TOMBSTONE_MS: 24 * 60 * 60 * 1000,
+  STONE_COST_FIRST: 1000,
+  STONE_COST_REPEAT: 24000,
+  SPECIAL_STONE_COST: 150000,
+};
+
+const ARENA_MONSTER_ALIASES = {
+  guard_slime: 'slime',
+  cave_bat: 'bat',
+  wild_boar: 'boar',
+  ridge_wolf: 'wolf',
+  kumiho: 'kumiho',
+  oni_brute: 'oni',
+  ember_wyvern: 'wyvern',
+  void_titan: 'titan',
+};
 
 const SKINS = {
   classic: { id: 'classic', name: 'Classic', cost: 0, tint: null },
@@ -153,18 +365,6 @@ const ITEMS = [
   { id: 'eq_hermes_boots', kind: 'equipment', type: 'Relic', icon: '\ud83d\udc62', name: 'Swift Wind Boots', cost: 1150, agi: 5 },
   { id: 'eq_evo_stone', kind: 'special', type: 'Special', icon: '\ud83d\udd2e', name: 'Ascension Evo Stone', cost: 1500 },
   { id: 'eq_promise_ring', kind: 'special', type: 'Special', icon: '\ud83d\udc8d', name: 'Couple Promise Ring', cost: 2000 },
-  { id: 'cos_witch_hat', kind: 'cosmetic', slot: 'Head', icon: '\ud83e\uddd9', name: 'Mini Witch Hat', cost: 420, mag: 2, luk: 1 },
-  { id: 'cos_salakot', kind: 'cosmetic', slot: 'Head', icon: '\ud83c\udffa', name: 'Golden Salakot', cost: 380, def: 2, luk: 1 },
-  { id: 'cos_sakura_crown', kind: 'cosmetic', slot: 'Head', icon: '\ud83c\udf38', name: 'Sakura Crown', cost: 420, agi: 2, luk: 1 },
-  { id: 'cos_gold_crown', kind: 'cosmetic', slot: 'Head', icon: '\ud83d\udc51', name: 'Royal Gold Crown', cost: 760, str: 2, mag: 2 },
-  { id: 'cos_ushanka', kind: 'cosmetic', slot: 'Head', icon: '\ud83e\udde2', name: 'Cozy Ushanka', cost: 380, def: 2, str: 1 },
-  { id: 'cos_shades', kind: 'cosmetic', slot: 'Head', icon: '\ud83d\ude0e', name: 'Cool Pixel Shades', cost: 400, agi: 2, str: 1 },
-  { id: 'cos_red_scarf', kind: 'cosmetic', slot: 'Neck', icon: '\ud83e\uddf0', name: 'Hero Red Scarf', cost: 360, str: 2, def: 1 },
-  { id: 'cos_bell_collar', kind: 'cosmetic', slot: 'Neck', icon: '\ud83d\dd14', name: 'Gold Bell Collar', cost: 360, luk: 2, agi: 1 },
-  { id: 'cos_bowtie', kind: 'cosmetic', slot: 'Neck', icon: '\ud83c\udf73', name: 'Dapper Bowtie', cost: 340, agi: 2, luk: 1 },
-  { id: 'cos_angel_wings', kind: 'cosmetic', slot: 'Back', icon: '\ud83d\udc7c', name: 'Angel Wings', cost: 820, agi: 2, def: 2 },
-  { id: 'cos_lantern', kind: 'cosmetic', slot: 'Back', icon: '\ud83c\udfee', name: 'Floating Lantern', cost: 780, mag: 2, luk: 2 },
-  { id: 'cos_parol_aura', kind: 'cosmetic', slot: 'Back', icon: '\u2b50', name: 'Parol Star Aura', cost: 900, luk: 3, mag: 1 },
 ];
 const ITEM_SLOTS = ['Head', 'Neck', 'Back', 'Weapon', 'Armor', 'Relic'];
 
@@ -185,14 +385,14 @@ const ITEM_GACHA_POOL = {
 
 
 const MONSTERS = [
-  { id: 'slime', name: 'Guard Slime', icon: '\ud83d\udfe2', lvl: 1, hp: 26, atk: 7, def: 2, energy: 8, coins: [12, 20], xp: 6 },
-  { id: 'bat', name: 'Cave Bat', icon: '\ud83e\udd87', lvl: 4, hp: 40, atk: 12, def: 5, energy: 12, coins: [22, 34], xp: 12 },
-  { id: 'boar', name: 'Wild Boar', icon: '\ud83d\udc17', lvl: 8, hp: 62, atk: 19, def: 9, energy: 16, coins: [38, 55], xp: 20 },
-  { id: 'wolf', name: 'Ridge Wolf', icon: '\ud83d\udc3a', lvl: 13, hp: 90, atk: 28, def: 14, energy: 20, coins: [55, 80], xp: 32 },
-  { id: 'kumiho', name: 'Kumiho', icon: '\ud83e\udd8a', lvl: 18, hp: 120, atk: 38, def: 20, energy: 26, coins: [80, 115], xp: 48 },
-  { id: 'oni', name: 'Oni Brute', icon: '\ud83d\udc79', lvl: 24, hp: 165, atk: 50, def: 28, energy: 32, coins: [115, 160], xp: 70 },
-  { id: 'wyvern', name: 'Ember Wyvern', icon: '\ud83d\udc09', lvl: 30, hp: 220, atk: 66, def: 38, energy: 40, coins: [160, 230], xp: 100 },
-  { id: 'titan', name: 'Void Titan', icon: '\ud83d\udc7e', lvl: 40, hp: 320, atk: 88, def: 52, energy: 50, coins: [240, 340], xp: 150 },
+  { id: 'slime', name: 'Guard Slime', icon: '\ud83d\udfe2', lvl: 1, hp: 65, atk: 7, def: 2, energy: 8, coins: [30, 50], xp: 6 },
+  { id: 'bat', name: 'Cave Bat', icon: '\ud83e\udd87', lvl: 4, hp: 115, atk: 12, def: 5, energy: 12, coins: [55, 85], xp: 12 },
+  { id: 'boar', name: 'Wild Boar', icon: '\ud83d\udc17', lvl: 8, hp: 190, atk: 19, def: 9, energy: 16, coins: [95, 140], xp: 20 },
+  { id: 'wolf', name: 'Ridge Wolf', icon: '\ud83d\udc3a', lvl: 13, hp: 290, atk: 28, def: 14, energy: 20, coins: [145, 200], xp: 32 },
+  { id: 'kumiho', name: 'Kumiho', icon: '\ud83e\udd8a', lvl: 18, hp: 420, atk: 38, def: 20, energy: 26, coins: [200, 290], xp: 48 },
+  { id: 'oni', name: 'Oni Brute', icon: '\ud83d\udc79', lvl: 24, hp: 600, atk: 50, def: 28, energy: 32, coins: [290, 400], xp: 70 },
+  { id: 'wyvern', name: 'Ember Wyvern', icon: '\ud83d\udc09', lvl: 30, hp: 850, atk: 66, def: 38, energy: 40, coins: [400, 575], xp: 100 },
+  { id: 'titan', name: 'Void Titan', icon: '\ud83d\udc7e', lvl: 40, hp: 1300, atk: 88, def: 52, energy: 50, coins: [600, 850], xp: 150 },
 ];
 
 const GEAR = [
@@ -377,8 +577,9 @@ function itemBonus(state) {
 function evolvePet(state) {
   if (state.pet.evolved) return false;
   state.pet.evolved = true;
-  state.meters.happiness = clamp100(Math.min(100, state.meters.happiness + 20));
-  state.meters.energy = clamp100(Math.min(100, state.meters.energy + 20));
+  state.meters.happiness = clampMeter(state, 'happiness', state.meters.happiness + 20);
+  state.meters.energy = clampMeter(state, 'energy', state.meters.energy + 20);
+  markCollection(state);
   return true;
 }
 
@@ -476,7 +677,7 @@ function equipItem(state, itemId) {
   const it = ITEMS.find((x) => x.id === itemId);
   if (!it) return { ok: false, message: 'Unknown item.' };
   if (!state.items.owned.includes(it.id)) return { ok: false, message: 'Not owned yet.' };
-  const key = it.kind === 'cosmetic' ? it.slot : it.type;
+  const key = it.type;
   if (!ITEM_SLOTS.includes(key)) return { ok: false, message: '\ud83d\udd2e Use this stone from the Bag tab instead!' };
   if (state.items.equipped[key] === it.id) {
     state.items.equipped[key] = null;
@@ -534,7 +735,7 @@ function battleMonster(state, monsterId) {
     state.stats.coinsEarned += coins;
     state.pet.xp += mon.xp * currentXpMul(state);
     state.battle.wins += 1;
-    state.meters.happiness = clamp100(Math.min(100, state.meters.happiness + 4));
+    state.meters.happiness = clampMeter(state, 'happiness', state.meters.happiness + 4);
     if (!state.items) state.items = { owned: [], equipped: { Head: null, Neck: null, Back: null, Weapon: null, Armor: null, Relic: null } };
     if (!Array.isArray(state.items.owned)) state.items.owned = [];
     const dropChance = Math.min(0.35, 0.12 + (bs.luk || 0) * 0.015);
@@ -718,6 +919,8 @@ function defaultState() {
     coins: 20,
     flags: { sleeping: false, working: false },
     upgrades: { bed: 0, toys: 0, job: 1, feeder: 0 },
+    home: defaultHomeState(),
+    farm: defaultFarmState(),
     activity: null,
     activityCooldowns: {},
     effects: { happyUntil: 0, eatUntil: 0, xpMulUntil: 0, xpMul: 1, buffUntil: 0, buffLabel: null },
@@ -745,14 +948,21 @@ function defaultState() {
     epicPerks: 0,
     neglect: 0,
     dead: null,
+    arena: { deaths: 0, status: 'alive', ghostUntil: 0, resetAt: 0 },
+    collection: { seen: {} },
     lastSeen: Date.now(),
   };
 }
 
 function ensureState(state) {
   const fresh = defaultState();
-  for (const key of ['stats', 'achievements', 'daily', 'gacha', 'playdays', 'allocated', 'gear', 'gearOwned', 'gearGacha', 'battle', 'waste', 'skin', 'skinsOwned', 'neglect', 'dead', 'settings', 'perks', 'items', 'milestones', 'freePulls', 'freeFood', 'quests']) {
+  for (const key of ['stats', 'achievements', 'daily', 'gacha', 'playdays', 'allocated', 'gear', 'gearOwned', 'gearGacha', 'battle', 'waste', 'skin', 'skinsOwned', 'neglect', 'dead', 'settings', 'perks', 'items', 'milestones', 'freePulls', 'freeFood', 'quests', 'collection']) {
     if (state[key] === undefined) state[key] = fresh[key];
+  }
+  if (!state.collection || typeof state.collection !== 'object' || !state.collection.seen || typeof state.collection.seen !== 'object') state.collection = { seen: {} };
+  if (typeof state.pet.species === 'string' && state.pet.species && state.pet.stage !== 'egg') {
+    const colEntry = state.collection.seen[state.pet.species] || {};
+    state.collection.seen[state.pet.species] = { evolved: !!state.pet.evolved || !!colEntry.evolved };
   }
   if (state.pendingPerk === undefined) state.pendingPerk = null;
   if (state.epicPerks === undefined) state.epicPerks = 0;
@@ -778,8 +988,17 @@ function ensureState(state) {
     state.pet.stage = state.pet.species ? 'adult' : 'egg';
   }
   if (state.pet.stage !== 'egg' && !state.pet.species) state.pet.species = 'kala';
+  if (typeof state.pet.species === 'string' && state.pet.species) {
+    state.pet.species = spritesApi.normalizeSpeciesId ? spritesApi.normalizeSpeciesId(state.pet.species) : state.pet.species;
+  }
   if (!(state.pet.name)) state.pet.name = fresh.pet.name;
   if (!state.dead) state.dead = null;
+  if (!state.arena || typeof state.arena !== 'object') state.arena = { deaths: 0, status: 'alive', ghostUntil: 0, resetAt: 0 };
+  if (state.arena.status !== 'alive' && state.arena.status !== 'ghost' && state.arena.status !== 'tombstone') state.arena.status = 'alive';
+  state.arena.deaths = Math.max(0, Math.round(Number(state.arena.deaths) || 0));
+  state.arena.ghostUntil = Math.max(0, Math.round(Number(state.arena.ghostUntil) || 0));
+  state.arena.resetAt = Math.max(0, Math.round(Number(state.arena.resetAt) || 0));
+  ensureHomeFarm(state);
   return state;
 }
 
@@ -801,6 +1020,56 @@ function clamp100(value) {
   return value;
 }
 
+function normalizeSpecies(id) {
+  return spritesApi.normalizeSpeciesId ? spritesApi.normalizeSpeciesId(id) : id;
+}
+
+function markCollection(state) {
+  if (!state.collection || typeof state.collection !== 'object') state.collection = { seen: {} };
+  if (!state.collection.seen || typeof state.collection.seen !== 'object') state.collection.seen = {};
+  const sp = state.pet && state.pet.species;
+  if (typeof sp !== 'string' || !sp || state.pet.stage === 'egg') return;
+  const prev = state.collection.seen[sp] || {};
+  state.collection.seen[normalizeSpecies(sp)] = { evolved: !!state.pet.evolved || !!prev.evolved };
+}
+
+function collectionOf(state) {
+  const seen = state.collection && state.collection.seen ? state.collection.seen : {};
+  const list = [];
+  const push = (id, evolved) => {
+    if (typeof id !== 'string' || !id) return;
+    const norm = normalizeSpecies(id);
+    const existing = list.find((u) => u.id === norm);
+    if (existing) existing.evolved = existing.evolved || !!evolved;
+    else list.push({ id: norm, evolved: !!evolved });
+  };
+  for (const [id, entry] of Object.entries(seen)) push(id, entry && entry.evolved);
+  if (state.pet && state.pet.stage !== 'egg') push(state.pet.species, state.pet.evolved);
+  return list;
+}
+
+function collectionBonusesOf(state) {
+  if (!BS || typeof BS.collectionBonuses !== 'function') return { totals: {}, contributors: [] };
+  const b = BS.collectionBonuses(collectionOf(state));
+  return b && b.totals ? b : { totals: {}, contributors: [] };
+}
+
+function activePetKitOf(state) {
+  if (!BS || typeof BS.petKit !== 'function' || !state.pet || state.pet.stage === 'egg') return null;
+  return BS.petKit(state.pet.species, state.pet.evolved);
+}
+
+function meterCap(state, key) {
+  const totals = collectionBonusesOf(state).totals;
+  if (key === 'energy') return MAX_METERS + Math.round(totals.maxEnergyFlat || 0);
+  if (key === 'happiness') return MAX_METERS + Math.round(totals.maxHappinessFlat || 0);
+  return MAX_METERS;
+}
+
+function clampMeter(state, key, value) {
+  return Math.max(0, Math.min(meterCap(state, key), value));
+}
+
 function upgradeCost(id, currentLevel) {
   const u = UPGRADES[id];
   return Math.round(u.baseCost * Math.pow(u.growth, currentLevel));
@@ -813,6 +1082,7 @@ function coinRate(state) {
   if (state.meters.happiness < 25) rate *= 0.6;
   if (state.path === 'work') rate *= 1.5;
   rate *= 1 + perkPct(state, 'coins');
+  rate *= 1 + (collectionBonusesOf(state).totals.coinBonusPct || 0);
   rate += itemBonus(state).luk * 0.02;
   return rate;
 }
@@ -820,6 +1090,8 @@ function coinRate(state) {
 function statusText(state) {
   const m = state.meters;
   if (state.dead) return 'Passed away...';
+  if (state.arena && state.arena.status === 'tombstone') return 'Tombstone...';
+  if (state.arena && state.arena.status === 'ghost') return 'Ghost...';
   const danger = (state.neglect || 0) > 0.4 * DEATH_SECONDS;
   if (state.flags.sleeping) return 'Sleeping zZz';
   if (state.activity) return ACTIVITIES[state.activity.id].name;
@@ -834,6 +1106,25 @@ function statusText(state) {
 function tick(state, dtSeconds, offline) {
   const dt = Math.max(0, Math.min(dtSeconds, offline ? OFFLINE_CAP_SECONDS : 3600));
   if (dt === 0) return [];
+  const arenaNow = Date.now();
+  if (state.arena && state.arena.status !== 'alive') {
+    if (state.arena.status === 'ghost' && state.arena.ghostUntil && arenaNow >= state.arena.ghostUntil) {
+      state.arena.status = 'alive';
+      state.arena.ghostUntil = 0;
+      return [{ ok: true, message: `✨ ${state.pet.name} revived on their own after the rest period! Welcome back.` }];
+    }
+    if (state.arena.status === 'tombstone' && state.arena.resetAt && arenaNow >= state.arena.resetAt) {
+      const name = state.pet.name;
+      resetToEgg(state);
+      state.flags.sleeping = false;
+      state.flags.working = false;
+      state.activity = null;
+      state.activityCooldowns = {};
+      return [{ ok: true, message: `🪦 24 hours passed since ${name}'s full death... the Tombstone claimed the save. A fresh egg awaits!`, arenaReset: true }];
+    }
+    if (offline) state.lastSeen = Date.now();
+    return [];
+  }
   const scale = offline ? 0.35 : 1;
   const m = state.meters;
   const f = state.flags;
@@ -863,8 +1154,14 @@ function tick(state, dtSeconds, offline) {
   if (m.energy < 20) happinessDrain += 0.02;
   if ((state.waste || []).length > 0) happinessDrain += 0.02 * state.waste.length;
 
+  const col = collectionBonusesOf(state);
+  const decayMul = 1 - Math.min(0.9, col.totals.decayReductionPct || 0);
+  energyDrain *= decayMul;
+  hungerDrain *= decayMul;
+  happinessDrain *= decayMul;
+
   if (f.sleeping) {
-    m.energy = clamp100(m.energy + 0.8 * (1 + perkPct(state, 'rest')) * dt);
+    m.energy = clampMeter(state, 'energy', m.energy + 0.8 * (1 + perkPct(state, 'rest')) * (1 + Math.min(0.9, col.totals.recoverySpeedPct || 0)) * dt);
     hungerDrain = 0.02;
   } else if (offline) {
     const gained = coinRate(state) * OFFLINE_RATE * dt;
@@ -906,7 +1203,7 @@ function tick(state, dtSeconds, offline) {
         return events;
       }
     } else if (state.neglect > 0) {
-      state.neglect = Math.max(0, state.neglect - dt * 0.7);
+      state.neglect = Math.max(0, state.neglect - dt * 2);
     }
   }
 
@@ -967,9 +1264,20 @@ function completeActivity(state) {
   state.coins += coins;
   state.pet.xp += a.xp * currentXpMul(state);
   state.activity = null;
-  state.activityCooldowns[a.id] = Date.now() + a.cooldown * 1000;
+  const cdMul = 1 - Math.min(0.9, collectionBonusesOf(state).totals.workCooldownReductionPct || 0);
+  state.activityCooldowns[a.id] = Date.now() + a.cooldown * 1000 * cdMul;
   state.effects.happyUntil = Date.now() + 5000;
   return message;
+}
+
+function stopActivity(state) {
+  const gate = deadGate(state);
+  if (gate) return gate;
+  if (!state.activity) return { ok: true, message: 'Already home.' };
+  const a = ACTIVITIES[state.activity.id];
+  state.activity = null;
+  state.activityCooldowns[a.id] = Date.now() + Math.round(a.cooldown * 1000 * 0.5);
+  return { ok: true, message: `\u2302\uFE0F Went back home from ${a.name}.` };
 }
 
 function startActivity(state, id) {
@@ -979,12 +1287,14 @@ function startActivity(state, id) {
   if (!a) return { ok: false, message: 'Unknown activity.' };
   if (state.activity) return { ok: false, message: 'Already busy with an activity!' };
   if (state.flags.sleeping) return { ok: false, message: 'Wake up first!' };
-  if (state.meters.energy < a.energy) return { ok: false, message: `Not enough energy (needs ${a.energy} ⚡).` };
+  const colCost = collectionBonusesOf(state).totals.energyCostReductionPct || 0;
+  const cost = Math.max(1, Math.round(a.energy * (1 - Math.min(0.9, colCost))));
+  if (state.meters.energy < cost) return { ok: false, message: `Not enough energy (needs ${cost} ⚡).` };
   const cd = state.activityCooldowns[id] || 0;
   if (Date.now() < cd) {
     return { ok: false, message: `${a.name} is on cooldown (${Math.ceil((cd - Date.now()) / 1000)}s).` };
   }
-  state.meters.energy = clamp100(state.meters.energy - a.energy);
+  state.meters.energy = clamp100(state.meters.energy - cost);
   state.activity = { id, endsAt: Date.now() + a.duration * 1000 };
   state.flags.working = false;
   return { ok: true, message: `${a.icon} ${a.name} started!` };
@@ -1029,11 +1339,12 @@ function applyLevelUps(state) {
       state.stats.coinsEarned += 25;
     }
     state.pet.stage = target.id;
+    markCollection(state);
     state.effects.happyUntil = Math.max(state.effects.happyUntil, Date.now() + 8000);
   }
 }
 
-const HATCH_RARITY_WEIGHTS = { pusa: 0.35, agila: 0.35, uwak: 0.35, ahas: 0.35 };
+const HATCH_RARITY_WEIGHTS = { muning: 0.35, banog: 0.35, gagak: 0.35, ran: 0.35 };
 function rollHatchSpecies() {
   const roster = (spritesApi.PET_ROSTER || []).filter((pt) => !pt.shopOnly);
   if (!roster.length) return 'kala';
@@ -1048,7 +1359,91 @@ function rollHatchSpecies() {
 
 function deadGate(state) {
   if (state.dead) return { ok: false, message: `🕊️ ${state.pet.name} has passed away. Start a new game in the ✨ Life tab.` };
+  const a = state.arena;
+  if (a && a.status === 'tombstone') {
+    return { ok: false, dead: true, message: `🪦 ${state.pet.name} is dead! Revive with the Special Reincarnation Stone (150,000 gold) — the game resets in ${formatArenaCountdown(a.resetAt - Date.now())}.` };
+  }
+  if (a && a.status === 'ghost') {
+    return { ok: false, dead: true, message: `👻 ${state.pet.name} is dead! Buy a Reincarnation Stone in the Shop to revive (${formatArenaCountdown(a.ghostUntil - Date.now())} left).` };
+  }
   return null;
+}
+
+function formatArenaCountdown(ms) {
+  const total = Math.max(0, Math.ceil((Number(ms) || 0) / 1000));
+  const h = Math.floor(total / 3600);
+  const mm = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h >= 24) return `${Math.floor(h / 24)}d ${h % 24}h`;
+  return `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function arenaSnapshot(state) {
+  const a = state.arena || {};
+  const now = Date.now();
+  return {
+    deaths: a.deaths || 0,
+    status: a.status || 'alive',
+    ghostUntil: a.ghostUntil || 0,
+    resetAt: a.resetAt || 0,
+    lockoutRemainingMs: a.status === 'ghost' ? Math.max(0, (a.ghostUntil || 0) - now) : 0,
+    resetRemainingMs: a.status === 'tombstone' ? Math.max(0, (a.resetAt || 0) - now) : 0,
+  };
+}
+
+function arenaResult(state, payload) {
+  payload = payload || {};
+  const mon = MONSTERS.find((mo) => mo.id === (ARENA_MONSTER_ALIASES[payload.monsterId] || payload.monsterId));
+  if (!mon) return { ok: false, message: 'Unknown monster.' };
+  const a = state.arena || (state.arena = { deaths: 0, status: 'alive', ghostUntil: 0, resetAt: 0 });
+  if (a.status !== 'alive') return { ok: false, message: 'Your buddy cannot fight while dead \u2014 revive first!' };
+  if (!payload.win) {
+    a.deaths += 1;
+    const now = Date.now();
+    if (a.deaths >= 2) {
+      a.status = 'tombstone';
+      a.resetAt = now + ARENA.TOMBSTONE_MS;
+      a.ghostUntil = 0;
+    } else {
+      a.status = 'ghost';
+      a.ghostUntil = now + ARENA.GHOST_MS;
+      a.resetAt = 0;
+    }
+    state.battle.losses = (state.battle.losses || 0) + 1;
+    state.flags.working = false;
+    state.flags.sleeping = false;
+    state.activity = null;
+    const msg = a.status === 'tombstone'
+      ? `🪦 ${state.pet.name} FULLY died fighting ${mon.name}! Buy the Special Reincarnation Stone (150,000 gold) in the Shop — or the game resets in 24h!`
+      : `👻 ${state.pet.name} died fighting ${mon.name}! Ghost mode for 1 hour — buy a Reincarnation Stone (1,000 gold) in the Shop to revive instantly.`;
+    return { ok: true, arena: arenaSnapshot(state), message: msg };
+  }
+  const goldFloor = Math.max(1, Math.round(mon.coins[0] * 0.25));
+  const xpFloor = Math.max(1, Math.round(mon.xp * 0.25));
+  const gold = Math.max(goldFloor, Math.min(Math.round(Number(payload.gold) || 0), mon.coins[1]));
+  const xp = Math.max(xpFloor, Math.min(Math.round(Number(payload.xp) || 0), mon.xp));
+  const preLevel = state.pet.level;
+  if (state.pet.stage !== 'egg') state.pet.xp += xp * currentXpMul(state);
+  state.coins += gold;
+  state.stats.coinsEarned += gold;
+  applyLevelUps(state);
+  state.battle.wins = (state.battle.wins || 0) + 1;
+  return { ok: true, arena: arenaSnapshot(state), gold, xp, leveledUp: state.pet.level > preLevel, message: gold || xp ? `🏆 Victory over ${mon.name}! +🪙${gold} +${xp} XP` : null };
+}
+
+function arenaRevive(state, payload) {
+  const a = state.arena || (state.arena = { deaths: 0, status: 'alive', ghostUntil: 0, resetAt: 0 });
+  if (a.status === 'alive') return { ok: false, message: `${state.pet.name} is alive and well!` };
+  const kind = payload && payload.kind;
+  if (a.status === 'ghost' && kind !== 'reincarnation') return { ok: false, message: 'A Reincarnation Stone revives a Ghost — the Special Stone is for Tombstones.' };
+  if (a.status === 'tombstone' && kind !== 'special') return { ok: false, message: 'Only the Special Reincarnation Stone can revive a Tombstone.' };
+  const price = a.status === 'tombstone' ? ARENA.SPECIAL_STONE_COST : (a.deaths <= 1 ? ARENA.STONE_COST_FIRST : ARENA.STONE_COST_REPEAT);
+  if ((state.coins || 0) < price) return { ok: false, message: `🪙 Not enough gold — the stone costs ${price.toLocaleString('en-US')}.` };
+  state.coins -= price;
+  a.status = 'alive';
+  a.ghostUntil = 0;
+  a.resetAt = 0;
+  return { ok: true, arena: arenaSnapshot(state), message: `✨ ${state.pet.name} was reborn! (-🪙${price.toLocaleString('en-US')})` };
 }
 
 const PERK_TYPES = {
@@ -1070,7 +1465,7 @@ function currentXpMul(state) {
   const effectMul = state.effects.xpMulUntil && Date.now() < state.effects.xpMulUntil
     ? state.effects.xpMul || 1
     : 1;
-  return effectMul * (1 + perkPct(state, 'xp'));
+  return effectMul * (1 + perkPct(state, 'xp') + (collectionBonusesOf(state).totals.xpBonusPct || 0));
 }
 
 function perkDesc(perk) {
@@ -1164,9 +1559,11 @@ function applyFood(state, food, opts) {
   const speciesPet = spritesApi.getPetById(state.pet.species);
   const isFavorite = speciesPet && speciesPet.favoriteFood === food.id;
   const happyGain = food.happiness * (isFavorite ? 1.5 : 1);
+  const colFood = collectionBonusesOf(state);
+  const recMul = 1 + Math.min(0.9, colFood.totals.recoverySpeedPct || 0);
   state.meters.hunger = clamp100(state.meters.hunger + food.hunger);
-  state.meters.happiness = clamp100(state.meters.happiness + happyGain);
-  if (food.energy) state.meters.energy = clamp100(state.meters.energy + food.energy);
+  state.meters.happiness = clampMeter(state, 'happiness', state.meters.happiness + happyGain);
+  if (food.energy) state.meters.energy = clampMeter(state, 'energy', state.meters.energy + food.energy * recMul);
   state.pet.xp += isFavorite ? 4 : 2;
   if (food.buff && food.buff.stat === 'EXP') {
     state.effects.xpMul = 1 + food.buff.val / 100;
@@ -1199,7 +1596,7 @@ function play(state) {
   if (state.flags.sleeping) return { ok: false, message: `${state.pet.name} is sleeping...` };
   if (state.meters.energy < 8) return { ok: false, message: 'Too tired to play.' };
   state.meters.energy = clamp100(state.meters.energy - 8);
-  state.meters.happiness = clamp100(state.meters.happiness + 10 * (1 + 0.25 * state.upgrades.toys));
+  state.meters.happiness = clampMeter(state, 'happiness', state.meters.happiness + 10 * (1 + 0.25 * state.upgrades.toys));
   state.stats.playCount += 1;
   bumpQuest(state, 'play');
   state.pet.xp += 4 * currentXpMul(state);
@@ -1212,8 +1609,15 @@ function petPat(state) {
   const gate = deadGate(state);
   if (gate) return gate;
   if (state.flags.sleeping) return { ok: false, message: 'Shh... sleeping.' };
-  state.meters.happiness = clamp100(state.meters.happiness + 1.5);
-  return { ok: true, message: '' };
+  state.meters.happiness = clampMeter(state, 'happiness', state.meters.happiness + 1.5);
+  let msg = '';
+  if (state.pet.stage === 'egg') {
+    state.pet.xp += 1;
+    applyLevelUps(state);
+    const prog = Math.min(100, Math.round((state.pet.xp / 14) * 100));
+    msg = state.pet.stage !== 'egg' ? null : `🥚 ${prog}% — keep patting!`;
+  }
+  return { ok: true, message: msg };
 }
 
 function toggleWork(state) {
@@ -1344,21 +1748,6 @@ function fireStageEvents(state, out) {
   }
 }
 
-function claimFreeFood(state) {
-  const gate = deadGate(state);
-  if (gate) return gate;
-  if (!state.freeFood) state.freeFood = { last: null };
-  const tk = todayKey(Date.now());
-  if (state.freeFood.last === tk) return { ok: false, message: '\ud83c\udf81 Free meal na-claim na today \u2014 balik ka ng 12:00mn!' };
-  const foodIds = Object.keys(FOODS);
-  const pick = foodIds[Math.floor(Math.random() * foodIds.length)];
-  const food = FOODS[pick];
-  const res = applyFood(state, food, { free: true });
-  if (!res.ok) return res;
-  state.freeFood.last = tk;
-  return { ok: true, message: `\ud83c\udf81 FREE meal today: ${food.flag || ''} ${food.name}! ${res.message}` };
-}
-
 function buySkin(state, skinId) {
   const skin = SKINS[skinId];
   if (!skin) return { ok: false, message: 'Unknown skin.' };
@@ -1450,9 +1839,8 @@ function importSave(state, code) {
   return { ok: true, message: `Save imported! Welcome back, ${state.pet.name}.` };
 }
 
-function newGame(state) {
-  if (!state.dead) return { ok: false, message: 'Your buddy is still alive! (Reset progress in footer if you really want to start over.)' };
-  const kept = { achievements: state.achievements, daily: state.daily, skinsOwned: state.skinsOwned, gacha: state.gacha, skin: state.skin, gearGacha: state.gearGacha, itemsOwned: state.items ? state.items.owned : [] };
+function resetToEgg(state) {
+  const kept = { achievements: state.achievements, daily: state.daily, skinsOwned: state.skinsOwned, gacha: state.gacha, skin: state.skin, gearGacha: state.gearGacha, itemsOwned: state.items ? state.items.owned : [], collection: state.collection };
   const fresh = defaultState();
   Object.keys(state).forEach((key) => { delete state[key]; });
   Object.assign(state, fresh);
@@ -1463,11 +1851,18 @@ function newGame(state) {
   state.gearGacha = kept.gearGacha;
   state.skin = kept.skinsOwned.includes(kept.skin) ? kept.skin : 'classic';
   state.items = { owned: kept.itemsOwned || [], equipped: fresh.items.equipped };
+  state.collection = kept.collection && kept.collection.seen ? kept.collection : { seen: {} };
+}
+
+function newGame(state) {
+  if (!state.dead) return { ok: false, message: 'Your buddy is still alive! (Reset progress in footer if you really want to start over.)' };
+  resetToEgg(state);
   return { ok: true, message: '🌱 A new egg awaits! Take good care of your next buddy.' };
 }
 
 const SHOP_PETS = [
   { id: 'dragon', name: 'Dragon', icon: '\ud83d\udc09', cost: 1000000, desc: 'Legendary Flame Dragon \u2014 Bakunawa kin. NEVER in eggs, only here!' },
+  { id: 'nila', name: 'Nila', icon: '\ud83e\udd9a', cost: 1000000, desc: 'Royal Indian Peacock \u2014 Feather Storm royalty. NEVER in eggs, only here!' },
 ];
 
 function buyShopPet(state, petId) {
@@ -1479,6 +1874,7 @@ function buyShopPet(state, petId) {
   if (state.coins < def.cost) return { ok: false, message: `\ud83e\ude99 Not enough coins \u2014 ${def.name} costs ${def.cost.toLocaleString('en-US')}! Work + battle + invest para sa 1,000,000!` };
   state.coins -= def.cost;
   state.pet.species = def.id;
+  markCollection(state);
   checkAchievements(state, []);
   if (state.pet.stage !== 'egg') {
     return { ok: true, message: `\ud83d\udc09 ADOPTED! ${def.name} joins as your active buddy \u2014 same level, same heart, new flames!` };
@@ -1491,6 +1887,7 @@ function derivedStats(state) {
   const stage = stageOf(state);
   const nextStage = STAGES.find((st) => st.minLevel > state.pet.level) || null;
   return {
+    arena: arenaSnapshot(state),
     coinRate: state.flags.working ? coinRate(state) : 0,
     statusText: statusText(state),
     nextLevelXp: xpForNextLevel(state.pet.level),
@@ -1526,7 +1923,6 @@ function derivedStats(state) {
     },
     rewards: {
       freePullAvailable: !(state.freePulls && state.freePulls.last === todayKey(now)),
-      freeFoodAvailable: !(state.freeFood && state.freeFood.last === todayKey(now)),
     },
     quests: (function () {
       const q = questsOf(state);
@@ -1561,6 +1957,23 @@ function derivedStats(state) {
     stats: state.stats,
     waste: (state.waste || []).map((w, i) => ({ ...w, index: i })),
     rpg: rpgStats(state),
+    collection: (function () {
+      const bonuses = collectionBonusesOf(state);
+      const kit = activePetKitOf(state);
+      return {
+        totals: bonuses.totals,
+        caps: BS && BS.GLOBAL_CAPS ? BS.GLOBAL_CAPS : {},
+        count: collectionOf(state).length,
+        activeKit: kit ? {
+          source: kit.source,
+          isEvo: kit.isEvo,
+          skill: { ...kit.skill },
+          talent: { ...kit.talent },
+          passive: { ...kit.passive },
+        } : null,
+        eggCharm: (!kit && state.pet.stage === 'egg' && BS && BS.EGG_CHARM) ? BS.EGG_CHARM : null,
+      };
+    })(),
     perks: {
       bonuses: state.perks ? { ...state.perks } : { coins: 0, xp: 0, energy: 0, rest: 0 },
       pending: state.pendingPerk && Array.isArray(state.pendingPerk.choices) ? {
@@ -1602,7 +2015,7 @@ function spawnWaste(state) {
   state.waste.push({
     kind: Math.random() < 0.55 ? 'poop' : 'pee',
     x: 60 + Math.floor(Math.random() * 360),
-    y: 240 + Math.floor(Math.random() * 52),
+    y: 300 + Math.floor(Math.random() * 48),
     at: Date.now(),
   });
 }
@@ -1615,7 +2028,7 @@ function cleanWaste(state, index) {
   const w = state.waste[idx];
   if (!w) return { ok: false, message: '\u2728 Already squeaky clean!' };
   state.waste.splice(idx, 1);
-  state.meters.happiness = clamp100(Math.min(100, state.meters.happiness + 2));
+  state.meters.happiness = clampMeter(state, 'happiness', state.meters.happiness + 2);
   state.pet.xp += 1;
   applyLevelUps(state);
   bumpQuest(state, 'clean');
@@ -1623,7 +2036,7 @@ function cleanWaste(state, index) {
 }
 
 function slotKeyOf(it) {
-  return it.kind === 'cosmetic' ? it.slot : it.type;
+  return it.type;
 }
 
 function itemsStats(state) {
@@ -1714,7 +2127,7 @@ return {
   stageOf,
   stageForLevel,
   claimDaily,
-  claimFreeFood,
+  stopActivity,
   claimQuest,
   buyShopPet,
   pullGacha,
@@ -1735,6 +2148,11 @@ return {
   ITEMS,
   ITEM_SLOTS,
   SHOP_PETS,
+  markCollection,
+  collectionOf,
+  collectionBonusesOf,
+  activePetKitOf,
+  meterCap,
   EVOLVE_LEVEL,
   EVO_STONE_ID,
   buyItem,
@@ -1742,11 +2160,25 @@ return {
   useEvoStone,
   itemBonus,
   setSettings,
+  homeAction,
+  farmAction,
+  ensureHomeFarm,
+  farmProgressOf,
+  HOME_WALLS,
+  FURNITURE,
+  FARM_CROPS,
+  FARM_PLOT_COUNT,
+  FARM_BEEHIVE_COST,
+  FARM_FERTILIZER_COST,
   choosePerk,
   PERK_TYPES,
   PERK_EPIC_CHANCE,
   allocateStat,
   battleMonster,
+  arenaResult,
+  arenaRevive,
+  arenaSnapshot,
+  ARENA,
   buyGear,
   equipGear,
   pullGearGacha,

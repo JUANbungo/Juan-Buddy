@@ -35,20 +35,6 @@ console.log('dashboard ui ids');
   assert(missing.length === 0, `dashboard.js references missing ids: ${missing.join(', ') || 'none'}`);
 }
 
-console.log('mobile ui ids');
-{
-  const js = fs.readFileSync(path.join(root, 'mobile', 'app.js'), 'utf8');
-  const html = fs.readFileSync(path.join(root, 'mobile', 'index.html'), 'utf8');
-  const ids = new Set();
-  for (const m of js.matchAll(/\$\('([a-z0-9-]+)'\)/g)) ids.add(m[1]);
-  for (const m of js.matchAll(/getElementById\((['"`])([^'"`]+)\1\)/g)) {
-    if (/^[a-z0-9-]+$/.test(m[2])) ids.add(m[2]);
-  }
-  const present = htmlIds(html);
-  const missing = [...ids].filter((id) => !present.has(id));
-  assert(missing.length === 0, `mobile/app.js references missing ids: ${missing.join(', ') || 'none'}`);
-}
-
 console.log('sprite asset coverage');
 {
   const sprites = fs.readFileSync(path.join(root, 'src', 'pet', 'sprites.js'), 'utf8');
@@ -90,8 +76,7 @@ console.log('food icon asset coverage');
 console.log('effect timers use Date.now');
 {
   const dash = fs.readFileSync(path.join(root, 'src', 'dashboard', 'dashboard.js'), 'utf8');
-  const mob = fs.readFileSync(path.join(root, 'mobile', 'app.js'), 'utf8');
-  for (const [name, js] of [['dashboard.js', dash], ['mobile/app.js', mob]]) {
+  for (const [name, js] of [['dashboard.js', dash]]) {
     assert(!/eatUntil > now/.test(js), `${name} compares eatUntil with performance.now (stuck EAT bug)`);
     assert(!/happyUntil > now/.test(js), `${name} compares happyUntil with performance.now (stuck HAPPY bug)`);
   }

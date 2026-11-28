@@ -2,15 +2,16 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src 'self' data: file:" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file: blob:; media-src 'self' data: blob:; script-src 'self'" />
   <link rel="stylesheet" href="dashboard.css" />
   <link rel="stylesheet" href="css/eco-theme.css" />
+  <link rel="stylesheet" href="css/battle-arena.css" />
 </head>
 <body class="eco-polished">
   <div id="splash" class="splash">
     <div class="splash-card">
       <img class="splash-logo pixelated" src="../../assets/branding/juan_buddy_logo.png" alt="Juan Buddy" />
-      <div class="splash-title">JUAN BUDDY</div>
       <div class="splash-tag">Your cozy idle pet buddy 🐾</div>
       <div class="splash-load"><div id="splash-fill"></div></div>
       <div id="splash-status" class="muted small">Loading…</div>
@@ -18,10 +19,8 @@
         <button id="btn-splash-start" class="btn btn-amber" disabled>▶ Start</button>
         <button id="btn-splash-exit" class="btn btn-danger">✖ Exit</button>
       </div>
-      <div class="splash-links">
-        <button id="btn-splash-credits" class="link">📝 Credits</button>
-        <button id="btn-splash-updates" class="link">🔄 Updates</button>
-      </div>
+        <button id="btn-splash-credits" class="btn btn-primary">📝 Credits</button>
+        <button id="btn-splash-updates" class="btn btn-gold">🔄 Updates</button>
       <div id="splash-credits" class="splash-credits hidden">
         <p><strong>Created &amp; developed by Juan Bungo</strong></p>
         <p class="muted small">John Albert Tancio Datu — a cozy idle pet RPG. Feed, play, explore, and grow together.</p>
@@ -108,6 +107,10 @@
         </div>
         <div class="playground-wrap">
           <canvas id="dash-pet" width="480" height="360"></canvas>
+          <div id="arena-lock-badge" class="arena-lock-badge hidden">
+            <div class="arena-lock-msg">💀 Your pet is dead! Buy a Reincarnation Stone in the Shop to revive.</div>
+            <div id="arena-lock-clock" class="arena-lock-clock">01:00:00</div>
+          </div>
           <button id="stage-menu-btn" class="stage-menu-btn" title="Open the feature menu">☰ <span>Menu</span></button>
           <div id="stage-menu" class="stage-menu hidden">
             <button class="stage-menu-item" data-menu-tab="food"><img class="eco-pixel" src="assets/icons/tab_delicacies.png" alt="" draggable="false"> Delicacies</button>
@@ -115,9 +118,6 @@
             <button class="stage-menu-item" data-menu-tab="shop"><img class="eco-pixel" src="assets/icons/tab_shop_bazaar.png" alt="" draggable="false"> Shop</button>
             <button class="stage-menu-item" data-menu-tab="petshop"><img class="eco-pixel" src="assets/icons/tab_petshop_nest.png" alt="" draggable="false"> Pet Shop</button>
             <button class="stage-menu-item" data-menu-tab="battle"><img class="eco-pixel" src="assets/icons/tab_battle_bamboo.png" alt="" draggable="false"> Battle</button>
-            <button class="stage-menu-item" data-menu-tab="gear"><img class="eco-pixel" src="assets/icons/tab_gear_forge.png" alt="" draggable="false"> Gear</button>
-            <button class="stage-menu-item" data-menu-tab="bag"><img class="eco-pixel" src="assets/icons/tab_bag_satchel.png" alt="" draggable="false"> Bag</button>
-            <button class="stage-menu-item" data-menu-tab="explore"><img class="eco-pixel" src="assets/icons/tab_explore_globe.png" alt="" draggable="false"> Explore</button>
             <button class="stage-menu-item" data-menu-tab="path"><img class="eco-pixel" src="assets/icons/tab_path_roots.png" alt="" draggable="false"> Path</button>
             <button class="stage-menu-item" data-menu-tab="gacha"><img class="eco-pixel" src="assets/icons/tab_wishing_tree.png" alt="" draggable="false"> Gacha</button>
             <button class="stage-menu-item" data-menu-tab="pets"><img class="eco-pixel" src="assets/icons/tab_buddies_paw.png" alt="" draggable="false"> Buddies</button>
@@ -125,7 +125,48 @@
             <button class="stage-menu-item" data-menu-tab="settings"><img class="eco-pixel" src="assets/icons/tab_options_woodgear.png" alt="" draggable="false"> Options</button>
           </div>
           <div class="stage-hint">Tap pet = greet 💕 · Tap floor = walk 🚶 · Tap 💩💧 = clean it 🧹</div>
-          <div id="danger-banner" class="danger-banner eco-care-warning hidden"><img class="eco-pixel" src="assets/icons/warning_wilted_leaf.png" alt="" draggable="false"> ⚠️ Your buddy needs care NOW — feed them or let them sleep!</div>
+          <div id="scene-nav" class="scene-nav">
+            <button class="scene-btn on" data-scene="home" title="Buddy's Home">🏠 Home</button>
+            <button class="scene-btn" data-scene="park" title="Buddy Park">🌳 Park</button>
+            <button class="scene-btn" data-scene="farm" title="Eco-Farm">🌾 Farm</button>
+            <button id="edit-home-btn" class="scene-btn hidden" title="Edit Home">🛠️ Edit Home</button>
+          </div>
+          <div id="edit-home-bar" class="edit-home-bar hidden">
+            <span class="small">Drag furniture, then save.</span>
+            <button id="btn-save-layout" class="btn btn-amber">Save Layout</button>
+            <button id="btn-cancel-layout" class="btn">Cancel</button>
+          </div>
+          <div id="farm-topbar" class="farm-topbar hidden">
+            <button class="farm-tool on" data-farm-tool="plant" title="Plant selected crop">🌱 Plant</button>
+            <button class="farm-tool" data-farm-tool="water" title="Water a plot (2x growth)"><img class="pixelated farm-tool-ico" src="../../assets/stardew/farm/tool_watering_can.png" alt="" draggable="false"> Water</button>
+            <button class="farm-tool" data-farm-tool="fertilize" title="Use fertilizer (instant ready)"><img class="pixelated farm-tool-ico" src="../../assets/stardew/farm/tool_fertilizer.png" alt="" draggable="false"> Fertilizer (<span id="farm-fert-count">0</span>)</button>
+          </div>
+          <button id="farm-plus-tab" class="farm-plus-tab hidden" title="Seeds, fertilizer & farm shop">+</button>
+          <div id="farm-plus-drawer" class="farm-plus-drawer hidden">
+            <div class="farm-row">
+              <button class="farm-crop on" data-farm-crop="berry" title="Berries - 20 coin seeds">🫐 Berries (20)</button>
+              <button class="farm-crop" data-farm-crop="flower" title="Flowers - 35 coin seeds">🌸 Flowers (35)</button>
+              <button class="farm-crop" data-farm-crop="plant" title="Plants - 55 coin seeds">🌿 Plants (55)</button>
+            </div>
+            <div class="farm-row">
+              <span id="farm-eco" class="chip">🌿 Eco 0</span>
+              <span id="farm-snacks" class="chip">🍓 Snacks 0</span>
+            </div>
+            <div class="farm-row">
+              <button id="btn-eat-snack" class="btn">Eat Snack</button>
+              <button id="btn-buy-fertilizer" class="btn">+ Fertilizer (30)</button>
+              <button id="btn-buy-beehive" class="btn">🐝 Beehive (400)</button>
+            </div>
+          </div>
+          <div id="portal-modal" class="portal-modal hidden">
+            <div class="portal-card">
+              <h3>🌏 Explore Asia</h3>
+              <p class="muted small">Pick a destination — your buddy travels there right away.</p>
+              <div id="portal-destinations" class="portal-destinations"></div>
+              <button id="btn-portal-close" class="btn">Stay in Park</button>
+            </div>
+          </div>
+          <div id="danger-banner" class="care-marquee hidden"><span class="marquee-track">⚠️ YOUR BUDDY NEEDS CARE — FEED THEM OR LET THEM SLEEP! · FEED THEM OR LET THEM SLEEP! · ⚠️ YOUR BUDDY NEEDS CARE — FEED THEM OR LET THEM SLEEP! · FEED THEM OR LET THEM SLEEP! · </span></div>
         </div>
         <div class="care-grid">
           <div class="care">
@@ -146,7 +187,12 @@
           <button id="btn-work" class="btn-graphic" title="Work (earn coins)"><img class="pixelated" src="../../assets/sprites/ui/buttons/work.png" alt="Work"></button>
           <button id="btn-sleep" class="btn-graphic" title="Rest / Wake"><img class="pixelated" src="../../assets/sprites/ui/buttons/sleep.png" alt="Sleep"></button>
           <button id="btn-cheer" class="btn-graphic" title="Cheer Me Up"><img class="pixelated" src="../../assets/sprites/ui/buttons/cheer_me_up.png" alt="Cheer Me Up"></button>
+          <button id="btn-title-screen" class="btn-title-screen" title="Return to Title Screen"><img class="pixelated" src="../../assets/sprites/ui/buttons/return_title_btn.png" alt="Return to Title Screen" draggable="false"></button>
         </div>
+      </div>
+      <div id="arena-place" class="arena-place hidden">
+        <div id="arena-stage"></div>
+        <div id="arena-selector"></div>
       </div>
       <div class="jb-ad eco-bulletin-banner jb-ad-bottom">
         <img class="pixelated" src="../../assets/ads/bottom_ad_promo/ad_bottom_promo.gif" alt="Juan Buddy updates and team coming soon" draggable="false">
@@ -160,10 +206,6 @@
           <section class="card">
             <h2>🍜 Delicacies <small class="muted">— feed your buddy world foods</small></h2>
             <div id="food-filters" class="filter-row"></div>
-            <div class="free-row">
-              <button id="btn-free-food" class="btn btn-teal">🎁 Free Daily Meal</button>
-              <span id="free-food-note" class="muted small"></span>
-            </div>
             <input id="food-search" class="search-box" type="text" placeholder="Search foods... (e.g. pad thai, samosa)" />
             <div id="food-grid" class="food-grid"></div>
           </section>
@@ -180,6 +222,7 @@
           <section class="card">
             <h2>🛠️ Shop</h2>
             <div id="shop" class="shop-grid"></div>
+            <div id="home-shop"></div>
           </section>
         </div>
 
@@ -237,43 +280,7 @@
                 <button class="btn-stat" data-stat="def" title="+Defense">🛡️ +DEF</button>
                 <button class="btn-stat" data-stat="spd" title="+Speed">💨 +SPD</button>
               </div>
-              <div id="monster-grid" class="monster-grid"></div>
-              <div id="battle-record" class="muted small"></div>
-            </div>
-          </section>
-        </div>
-
-        <div class="tab-panel hidden panel-gear">
-          <section class="card">
-            <h2>🛡️ Gear Forge <small class="muted">— 14-day unlock · strongest gear hides in the wish</small></h2>
-            <div id="gear-lock" class="rpg-lock hidden"></div>
-            <div id="gear-body" class="hidden">
-              <div id="gear-slots" class="gear-slots"></div>
-              <h3 class="gear-sub">🎰 Equipment Wish — mythic 0.0001%</h3>
-              <div id="gear-gacha-frame" class="gacha-frame">
-                <div id="gear-gacha-result" class="gacha-result hidden"></div>
-              </div>
-              <div class="gacha-actions">
-                <button id="btn-gear-gacha-free" class="btn btn-teal">🎁 Free Daily Wish</button>
-                <button id="btn-gear-gacha-1" class="btn btn-amber">🗡️ Wish ×1 — 💰100</button>
-                <button id="btn-gear-gacha-10" class="btn btn-violet">✨ Wish ×10 — 💰900</button>
-              </div>
-              <div id="gear-gacha-rates" class="gacha-rates muted small"></div>
-              <div id="gear-gacha-stats" class="muted small"></div>
-              <h3 class="gear-sub">🎯 Forge Inventory — win all gear in the Equipment Wish!</h3>
-              <div id="gear-shop" class="gear-shop"></div>
-            </div>
-          </section>
-        </div>
-
-        <div class="tab-panel hidden panel-bag">
-          <section class="card">
-            <h2>🎒 Cozy Bag <small class="muted">— cosmetics &amp; relic gear · unlocks day 3</small></h2>
-            <div id="bag-lock" class="rpg-lock hidden"></div>
-            <div id="bag-body">
-              <div id="bag-bonus" class="battle-stats"></div>
-              <div id="bag-evostone" class="muted hint"></div>
-              <div id="bag-grid" class="bag-grid"></div>
+              <div id="battle-arena-note" class="muted small" style="margin-top:8px;">⚔️ Fight in the Menu → Battle Arena — pick your enemy on the big stage!</div>
             </div>
           </section>
         </div>
@@ -283,13 +290,6 @@
             <h2>🛒 Pet Shop <small class="muted">— rare buddies sold only here, never in eggs</small></h2>
             <div id="pet-shop-info" class="muted small">Save your coins, work hard, battle hard — the legendary Dragon waits. 🐉</div>
             <div id="pet-shop" class="pet-shop"></div>
-          </section>
-        </div>
-
-        <div class="tab-panel hidden panel-explore">
-          <section class="card">
-            <h2>🌏 Explore Asia <small class="muted">— day trips na may coins, XP at sceneries</small></h2>
-            <div id="explore-grid" class="explore-grid"></div>
           </section>
         </div>
 
@@ -307,8 +307,9 @@
         <div class="tab-panel hidden panel-pets">
           <section class="card">
             <h2>🐾 Buddy Guide <small class="muted">— hatching is RANDOM, your egg decides!</small></h2>
-            <p class="muted" style="margin: 4px 0 10px;">Take care of your egg and feed it XP — one of these 14 buddies will hatch randomly. No picking, pure luck!</p>
+            <p class="muted" style="margin: 4px 0 10px;">Take care of your egg and feed it XP — one of these buddies will hatch randomly. No picking, pure luck!</p>
             <div id="buddy-grid" class="buddy-grid"></div>
+            <p class="muted small" style="margin: 8px 0 0;">💡 Click any buddy to preview its animations &amp; battle skills! Your active Collection Bonuses live at the top-left, under your buddy's name.</p>
           </section>
         </div>
 
@@ -409,6 +410,14 @@
     </div>
   </div>
 
+  <div id="buddy-profile-modal" class="evo-popup hidden">
+    <div class="evo-card eco-panel buddy-profile-card">
+      <div class="evo-banner">🐾 BUDDY PROFILE</div>
+      <div id="buddy-profile-body"></div>
+      <button id="bp-close" class="btn btn-amber">✖️ Close</button>
+    </div>
+  </div>
+
   <div id="death-overlay" class="death-overlay hidden">
     <div class="death-card">
       <div class="death-emoji">🕊️</div>
@@ -476,7 +485,7 @@
       <div id="wb-time" class="wb-time">4h 12m away</div>
       <div class="wb-badge">5% Offline Rate &middot; Keep the game open for 100%!</div>
       <div class="wb-rewards">
-        <div class="wb-reward"><span class="wb-ico">&#129689;</span><span id="wb-coins">+0</span> coins</div>
+        <div class="wb-reward"><span class="wb-ico">&#129689;</span><span id="wb-coins">+0</span><img class="coin-ico pixelated" src="assets/icons/coin_gold_leaf.png" draggable="false"></div>
         <div class="wb-reward"><span class="wb-ico">&#11088;</span><span id="wb-xp">+0</span> XP</div>
       </div>
       <div id="wb-stats-note" class="muted small wb-note">Your buddy missed you &mdash; care meters kept draining slowly while away.</div>
@@ -497,12 +506,14 @@
 
   <div id="toast" class="toast hidden"></div>
   <script src="../pet/sprites.js"></script>
+  <script src="../pet/battle-skills.js"></script>
   <script src="../pet/sfx.js"></script>
   <script src="../pet/bgm.js"></script>
   <script src="../engine/engine.js"></script>
   <script src="../pet/motivation.js"></script>
   <script src="js/eco-particles.js"></script>
   <script src="js/cute-sfx.js"></script>
+  <script src="js/battle-arena.js"></script>
   <script src="browser-api.js"></script>
   <script src="dashboard.js"></script>
 </body>

@@ -497,22 +497,24 @@ check('luck: LUK items boost daily reward and coin rate', () => {
   assert(d.rpg.items.bonus.luk === 6, `luk=6 exposed (${d.rpg.items.bonus.luk})`);
 });
 
-check('bag tab: gated at day 3, cosmetics equippable by slot', () => {
+check('bag tab: gated at day 3, equipment equippable by slot, cosmetics removed', () => {
   const s = engine.defaultState();
   s.pet.stage = 'adult';
   s.pet.species = 'tala';
   s.coins = 9999;
-  const blocked = engine.buyItem(s, 'cos_witch_hat');
+  const blocked = engine.buyItem(s, 'eq_kampilan_sword');
   assert(blocked.ok === false, 'blocked before day 3');
   s.playdays = { last: 't', count: 3 };
-  const ok = engine.buyItem(s, 'cos_witch_hat');
+  const ok = engine.buyItem(s, 'eq_kampilan_sword');
   assert(ok.ok === true, `after day 3=${ok.message}`);
-  const eq = engine.equipItem(s, 'cos_witch_hat');
-  assert(eq.ok === true, `equip cos=${eq.message}`);
-  assert(s.items.equipped.Head === 'cos_witch_hat', 'head slot filled');
+  const eq = engine.equipItem(s, 'eq_kampilan_sword');
+  assert(eq.ok === true, `equip eq=${eq.message}`);
+  assert(s.items.equipped.Weapon === 'eq_kampilan_sword', 'weapon slot filled');
+  assert(engine.buyItem(s, 'cos_witch_hat').ok === false, 'cosmetics removed from bag');
   const d = engine.derivedStats(s);
   const ms = d.rpg.unlocks.find((u) => u.id === 'items');
   assert(ms && ms.day === 3 && ms.unlocked, 'items unlock exposed at day 3');
+  assert(!d.rpg.items.shop.some((x) => x.kind === 'cosmetic'), 'no cosmetics in bag shop');
 });
 
 check('settings: defaults persist, setSettings clamps volumes and saves state', () => {
@@ -563,7 +565,7 @@ check('perk system: choosePerk applies coin/xp bonuses and clamps bad input', ()
   const ok = engine.choosePerk(s, 0);
   assert(ok.ok === true, `claim ok: ${ok.message}`);
   assert(s.perks.coins === 0.05, 'coins bonus stored');
-  const base = 0.5 * 1 * (1 + 0.05);
+  const base = 0.5 * 1 * (1 + 0.05) * (1 + 0.03);
   assert(Math.abs(engine.coinRate(s) - base) < 1e-9, `coinRate boosted (${engine.coinRate(s)})`);
   assert(Math.abs(engine.currentXpMul(s) - 1) < 1e-9, 'xp bonus not applied until chosen');
   s.pendingPerk = { at: 2, choices: [{ type: 'xp', rarity: 'epic', bonus: 0.15 }] };

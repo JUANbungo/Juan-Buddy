@@ -128,11 +128,10 @@ src/dashboard/          The RPG studio: pet room, care controls, tabbed panels
 src/pet/sprites.js      Pet roster, delicacies, baked sprite fallbacks
 src/pet/motivation.js   AI motivational events (Mistral API + offline fallback quotes)
 assets/sprites/         16-bit pet frame PNGs + food icons
-mobile/                 Phone version: tabs Home / Foods / Quests / Buddies (Capacitor web app + PWA)
                         (sprites.js / engine.js baked here by scripts/prep-mobile.js)
 assets/icons.js         Tray/app icons as base64 data URLs
 scripts/slice-sheets.js Slices sprite-sheet PNGs into per-frame animations
-scripts/prep-mobile.js  Copies engine + sprites into mobile/ and bakes phone icons (npm run mobile:sync)
+scripts/prep-mobile.js  Builds pages/ (browser + Android APK web app) from the desktop dashboard
 capacitor.config.json   Capacitor config (webDir: mobile)
 android/                Native Android project for the APK build
 test/                   Engine, UI, feature and smoke test suites (plain node, no deps)

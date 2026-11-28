@@ -102,6 +102,7 @@ function clearNamedFlag() {
   try {
     if (typeof localStorage !== 'undefined') localStorage.removeItem('juanbuddy-named');
   } catch (err) { /* ignore */ }
+  clearEvoPopupFlags();
 }
 
 function maybeShowNameModal() {
@@ -119,6 +120,8 @@ function maybeShowNameModal() {
     }
   }
 }
+
+const COIN_ICON_HTML = '<img class="coin-ico pixelated" src="assets/icons/coin_gold_leaf.png" alt="" draggable="false">';
 
 let perkKeyShown = null;
 
@@ -190,17 +193,14 @@ function playActionSound(action, res) {
     setSkin: 'happy', claimDaily: 'daily', newGame: 'hatch', startActivity: 'click',
     toggleWork: 'click', toggleSleep: 'click', exportSave: 'click', importSave: 'click',
     rename: 'click', setSpecies: 'happy',
-    battleMonster: 'happy', allocateStat: 'levelup', buyGear: 'buy', equipGear: 'happy',
-    pullGearGacha: 'coin', choosePath: 'achv', cleanWaste: 'click',
-    buyItem: 'buy', equipItem: 'happy', useEvoStone: 'evolve', choosePerk: 'levelup',
+    battleMonster: 'happy', allocateStat: 'levelup', useEvoStone: 'evolve', choosePerk: 'levelup',
+    choosePath: 'achv', cleanWaste: 'click',
   };
   sfxOnce(map[action] || 'click');
   if (action === 'feed' && cuteSfx) cuteSfx.play('munch');
   if (action === 'claimDaily' && cuteSfx) cuteSfx.play('stamp');
 }
 const UPGRADE_META = {
-  bed: { icon: '🛏', title: 'Cozy Bed', desc: 'Energy drains 12% slower per level' },
-  toys: { icon: '🧸', title: 'Toy Box', desc: 'Playing gives +25% happiness per level' },
   job: { icon: '📈', title: 'Job Promotion', desc: '+60% coins per level while working' },
   feeder: { icon: '🍽', title: 'Auto-Feeder', desc: 'Auto-feeds a Snack below 20 hunger' },
 };
@@ -256,9 +256,12 @@ function pct(v) {
   return `${Math.round(v)}%`;
 }
 
+const CONFIRM_ACTIONS = new Set(['buySkin', 'buyItem', 'buyUpgrade', 'buyShopPet', 'homeAction', 'farmAction', 'useEvoStone']);
+
 async function act(action, payload) {
   const res = await api.action(action, payload);
   playActionSound(action, res);
+  if (res && res.ok && CONFIRM_ACTIONS.has(action)) playWavSafe(WAV.confirm, 0.5);
   showToast(res && res.message);
   return res;
 }
@@ -285,6 +288,8 @@ function render(snapshot) {
   if (homeTitle) homeTitle.textContent = `🏠 ${s.pet.name}'s Home`;
   maybeShowNameModal();
   maybeShowPerkModal(d);
+  arenaSyncPack();
+  renderArenaLock(s);
 
   if (toast && sfx) {
     const msg = String(toast);
@@ -340,22 +345,25 @@ function render(snapshot) {
   if (questCountEl) questCountEl.textContent = `${questsDone}/3`;
   if (questsPopOpen) renderQuestsPop();
 
-  el('danger-banner').classList.toggle('hidden', !s.dead && !(d.danger > 0.25));
+  const metersNow = s.meters || {};
+  const careLow = metersNow.hunger <= 15 || metersNow.energy <= 10;
+  el('danger-banner').classList.toggle('hidden', !!(s.dead || (s.flags && s.flags.sleeping) || !careLow));
   el('death-overlay').classList.toggle('hidden', !s.dead);
   if (s.dead) {
     el('death-title').textContent = `${s.pet.name} passed away...`;
     el('death-cause').textContent = `Cause: ${s.dead.cause} — reached Lv ${s.dead.level}`;
   }
 
-  renderExtras(d);
-  renderRpg(d);
-  renderExplore(d);
-  renderBag(d);
-  renderPetShop(d);
+  safeRender('extras', () => renderExtras(d));
+  safeRender('rpg', () => renderRpg(d));
+  safeRender('petshop', () => renderPetShop(d));
 
   if (d.rpg.items.evolved && !evoTrack.shown) {
     evoTrack.shown = true;
-    showEvoPopup(s.pet.species);
+    if (!evoPopupAlreadyShown(s.pet.species)) {
+      markEvoPopupShown(s.pet.species);
+      showEvoPopup(s.pet.species);
+    }
   } else if (!d.rpg.items.evolved) {
     evoTrack.shown = false;
   }
@@ -365,11 +373,20 @@ function render(snapshot) {
 
   el('btn-play').disabled = s.flags.sleeping || s.meters.energy < 8;
 
-  renderShop(s, d);
-  renderFoods(s, d);
-  renderActivities(s, d);
-  renderBuddyPicker(s);
+  safeRender('shop', () => renderShop(s, d));
+  safeRender('homeFarm', () => renderHomeFarmHud(s));
+  safeRender('foods', () => renderFoods(s, d));
+  safeRender('activities', () => renderActivities(s, d));
+  safeRender('buddyPicker', () => renderBuddyPicker(s));
   if (toast) showToast(toast);
+}
+
+function safeRender(label, fn) {
+  try {
+    fn();
+  } catch (err) {
+    try { console.error(`[Juan Buddy] render("${label}") failed:`, err); } catch (e2) { /* ignore */ }
+  }
 }
 
 const FOOD_EMOJI = { pad_thai: '🍜', bamboo_stalks: '🎍', khao_lam: '🎋', mango_sticky_rice: '🥭' };
@@ -503,6 +520,44 @@ function renderFoodFilters() {
   }
 }
 
+const petShopTiles = {};
+function renderPetShop(d) {
+  const wrap = el('pet-shop');
+  if (!wrap || !d.petShop) return;
+  for (const pt of d.petShop) {
+    let card = petShopTiles[pt.id];
+    if (!card) {
+      card = document.createElement('div');
+      card.className = 'pet-shop-card';
+      card.dataset.shoppet = pt.id;
+      const img = document.createElement('img');
+      img.className = 'pixelated petshop-ico';
+      img.alt = pt.name;
+      img.src = PET_PREVIEW_PNG[pt.id] || '';
+      const body = document.createElement('div');
+      body.innerHTML = '<div class="b-name"></div><div class="b-bonus small muted"></div>';
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-violet b-btn';
+      card.appendChild(img);
+      card.appendChild(body);
+      card.appendChild(btn);
+      card._els = { name: body.querySelector('.b-name'), desc: body.querySelector('.b-bonus'), btn };
+      wrap.appendChild(card);
+      petShopTiles[pt.id] = card;
+    }
+    card._els.name.textContent = `${pt.icon} ${pt.name}`;
+    card._els.desc.textContent = pt.desc;
+    const btn = card._els.btn;
+    if (pt.owned) {
+      btn.textContent = '\u2713 Adopted!';
+      btn.disabled = true;
+    } else {
+      btn.innerHTML = `${COIN_ICON_HTML}${pt.cost.toLocaleString('en-US')}`;
+      btn.disabled = d.coins < pt.cost;
+    }
+  }
+}
+
 function renderFoods(s, d) {
   const grid = el('food-grid');
   const fav = sprites.getPetById(s.pet.species);
@@ -560,7 +615,7 @@ function renderFoods(s, d) {
     card._els.meta.textContent = `🍖${del.hunger} · 💖${del.happy}${del.energy ? ` · ⚡${del.energy}` : ''}${del.buff ? ` · ${del.buff.label}` : ''}`;
     card._els.favTag.textContent = isFav ? '★ ' + fav.name + "'s favorite!" : '';
     const afford = s.coins >= del.cost;
-    card._els.btn.textContent = del.cost === 0 ? 'FREE' : `💰${del.cost}`;
+    card._els.btn.innerHTML = del.cost === 0 ? 'FREE' : `${COIN_ICON_HTML}${del.cost}`;
     card._els.btn.disabled = s.flags.sleeping || !afford || s.meters.hunger >= 99;
   }
 }
@@ -571,6 +626,7 @@ function renderActivities(s, d) {
   const list = el('activities');
   if (!activityIndex) activityIndex = {};
   for (const a of d.activities) {
+    if (a.outdoor) continue;
     let row = activityIndex[a.id];
     if (!row) {
       row = document.createElement('div');
@@ -589,8 +645,8 @@ function renderActivities(s, d) {
     }
     row.querySelector('.a-name').textContent = `${a.icon} ${a.name}`;
     row.querySelector('.a-desc').textContent = a.desc;
-    row.querySelector('.a-rewards').textContent =
-      `⚡${a.energy} · 💰${a.coins[0]}–${a.coins[1]} · +${a.xp} XP · ${a.duration}s · CD ${a.cooldown}s`;
+    row.querySelector('.a-rewards').innerHTML =
+      `<span class="a-reward-line">⚡${a.energy} · ${COIN_ICON_HTML}${a.coins[0]}–${a.coins[1]} · +${a.xp} XP · ${a.duration}s · CD ${a.cooldown}s</span>`;
     const btn = row.querySelector('.a-btn');
     const anyActive = d.activities.some((x) => x.active);
     if (a.active) {
@@ -668,6 +724,7 @@ function renderBuddyPicker(s) {
       tile.appendChild(vis);
       tile.appendChild(name);
       tile.appendChild(flag);
+      tile.addEventListener('click', () => openBuddyPreview(p));
       grid.appendChild(tile);
     }
     buddyTilesBuilt = true;
@@ -675,6 +732,126 @@ function renderBuddyPicker(s) {
   for (const tile of grid.children) {
     tile.classList.toggle('selected', tile.dataset.species === s.pet.species);
   }
+}
+
+let buddyPreviewRaf = null;
+let buddyPreviewEl = null;
+
+function closeBuddyPreview() {
+  if (buddyPreviewRaf !== null) { cancelAnimationFrame(buddyPreviewRaf); buddyPreviewRaf = null; }
+  if (buddyPreviewEl) { buddyPreviewEl.remove(); buddyPreviewEl = null; }
+  document.removeEventListener('keydown', buddyPreviewEsc);
+}
+
+function buddyPreviewEsc(e) {
+  if (e.key === 'Escape') closeBuddyPreview();
+}
+
+function openBuddyPreview(p) {
+  closeBuddyPreview();
+  const BS = window.JBBattleSkills || null;
+  const isEvo = typeof p.id === 'string' && p.id.endsWith('_evo');
+  const kit = BS ? BS.petKit(p.id, isEvo) : null;
+  const battleBase = '../../assets/battle/';
+
+  const anims = (sprites.PET_SHEET_ANIMS[p.id] ? Object.keys(sprites.PET_SHEET_ANIMS[p.id]) : ['idle'])
+    .map((a) => ({ anim: a, label: a.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) }));
+
+  const kitHtml = kit ? `
+      <div class="jb-bp-kit">
+        ${[['Active Skill', kit.skill, 'skill'], ['Battle Talent', kit.talent, 'talent'], ['Collection Passive', kit.passive, 'passive']].map(([label, item, cls]) => `
+          <div class="jb-bp-item ${cls} ${kit.isEvo ? 'evo' : ''}" title="${item ? (item.desc || '').replace(/"/g, '&quot;') : ''}">
+            <img src="${battleBase}${item.iconUrl}" alt="${item.name}" draggable="false" />
+            <div class="jb-bp-item-txt">
+              <span class="jb-bp-label">${label}</span>
+              <span class="jb-bp-name">${item.name}${kit.isEvo ? ' \u2b50 Evo' : ''}</span>
+            </div>
+          </div>`).join('')}
+      </div>`
+    : '<p class="muted small" style="text-align:left;margin:6px 0 0;">No battle kit yet \u2014 this buddy fights with paws only! \ud83d\udc3e</p>';
+
+  const modal = document.createElement('div');
+  modal.id = 'buddy-preview';
+  modal.className = 'buddy-preview';
+  modal.innerHTML = `
+    <div class="buddy-preview-card">
+      <div class="bp-head">
+        <span class="bp-name">${p.name}</span>
+        <span class="bp-country">${p.flag || ''} ${p.country || ''}</span>
+        <button class="bp-close" title="Close" type="button">\u2715</button>
+      </div>
+      <div class="bp-stage-wrap">
+        <canvas class="bp-stage" width="192" height="192"></canvas>
+      </div>
+      <div class="bp-anim-btns">
+        ${anims.map((a, i) => `<button class="bp-anim-btn ${i === 0 ? 'on' : ''}" data-anim="${a.anim}" type="button">${a.label}</button>`).join('')}
+      </div>
+      <div class="bp-species muted small">${p.species || ''}${p.favoriteFood ? ` \u00b7 Favorite food: ${p.favoriteFood.replace(/_/g, ' ')}` : ''}</div>
+      <div class="bp-kit-left">${kitHtml}</div>
+    </div>`;
+  document.body.appendChild(modal);
+  buddyPreviewEl = modal;
+
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeBuddyPreview(); });
+  modal.querySelector('.bp-close').addEventListener('click', closeBuddyPreview);
+  document.addEventListener('keydown', buddyPreviewEsc);
+
+  const canvas = modal.querySelector('.bp-stage');
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  let curAnim = anims[0] ? anims[0].anim : 'idle';
+  let frames = null;
+  let fps = 8;
+  let frame = 0;
+  let acc = 0;
+  let last = 0;
+  let drewFallback = false;
+
+  function drawFallbackFrame() {
+    if (drewFallback) return;
+    try {
+      const bank = sprites.ensurePetSprites(p.id);
+      const src = bank[curAnim.toUpperCase()] || bank.IDLE;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(src[0], 0, 0, canvas.width, canvas.height);
+      drewFallback = true;
+    } catch (err) { /* preview only */ }
+  }
+
+  function loop(ts) {
+    if (!buddyPreviewEl || !buddyPreviewEl.isConnected) { buddyPreviewRaf = null; return; }
+    if (!frames) {
+      frames = sprites.petSheetFrames(p.id, curAnim);
+      if (frames) { fps = sprites.petSheetFps(p.id, curAnim); drewFallback = false; }
+      else drawFallbackFrame();
+    }
+    if (frames && frames.length) {
+      if (!last) last = ts;
+      acc += ts - last;
+      last = ts;
+      const step = 1000 / Math.max(1, fps);
+      while (acc >= step) { acc -= step; frame = (frame + 1) % frames.length; }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(frames[frame], 0, 0, canvas.width, canvas.height);
+    }
+    buddyPreviewRaf = requestAnimationFrame(loop);
+  }
+  buddyPreviewRaf = requestAnimationFrame(loop);
+
+  modal.querySelectorAll('.bp-anim-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      modal.querySelectorAll('.bp-anim-btn').forEach((b) => b.classList.remove('on'));
+      btn.classList.add('on');
+      curAnim = btn.dataset.anim;
+      frames = sprites.petSheetFrames(p.id, curAnim);
+      fps = sprites.petSheetFps(p.id, curAnim);
+      frame = 0;
+      acc = 0;
+      last = 0;
+      drewFallback = false;
+      if (!frames) drawFallbackFrame();
+    });
+  });
 }
 
 const BRAND_FACE_PAW = '../../assets/sprites/ui/hud_icons/icons_1x_native/icon_paw.png';
@@ -733,7 +910,7 @@ function renderShop(s, d) {
     card.querySelector('.desc').textContent = meta.desc;
     const btn = card.querySelector('.buy-btn');
     btn.disabled = maxed || s.coins < cost;
-    btn.textContent = maxed ? 'Maxed out' : `Upgrade — 💰${cost}`;
+    btn.innerHTML = maxed ? 'Maxed out' : `Upgrade — ${COIN_ICON_HTML}${cost}`;
   }
 }
 
@@ -750,10 +927,12 @@ on('btn-cheer','click', async () => {
   if (ev && ev.native) showToast(`✨ ${ev.native}\n${ev.romanization ? '(' + ev.romanization + ') — ' : ''}${ev.translation}`, 5000);
 });
 
-on('pet-name','click', () => {
-  const name = window.prompt('Rename your buddy:', latest ? latest.state.pet.name : 'Buddy');
-  if (name) act('rename', { name });
+on('btn-title-screen','click', () => {
+  if (cuteSfx) cuteSfx.play('click');
+  window.location.reload();
 });
+
+on('pet-name','click', () => openBuddyProfile());
 
 on('open-login','change', (e) => {
   api.action('setOpenAtLogin', { open: e.target.checked });
@@ -873,8 +1052,253 @@ function splashSetup() {
 }
 splashSetup();
 
+// ===== Battle Arena + Death/Revive integration (engine-authoritative economy) =====
+let arena = null;
+
+function arenaPetDead() {
+  const a = latest && latest.state && latest.state.arena;
+  return !!(a && (a.status === 'ghost' || a.status === 'tombstone'));
+}
+
+function fmtArenaClock(ms) {
+  const total = Math.max(0, Math.ceil((Number(ms) || 0) / 1000));
+  const h = Math.floor(total / 3600);
+  const mm = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h >= 24) return `${Math.floor(h / 24)}d ${h % 24}h`;
+  const pad = (v) => String(v).padStart(2, '0');
+  return `${pad(h)}:${pad(mm)}:${pad(s)}`;
+}
+
+function arenaDeathFromEngine(a) {
+  return {
+    status: a && a.status ? a.status : 'alive',
+    deathCount: (a && a.deaths) || 0,
+    lockoutUntil: (a && a.ghostUntil) || 0,
+    resetAt: (a && a.resetAt) || 0,
+    lastDeathAt: Date.now(),
+  };
+}
+
+function arenaSyncPack() {
+  if (!arena || !latest || !latest.state) return;
+  const snap = latest.derived ? latest.derived.arena : null;
+  const next = arenaDeathFromEngine(snap);
+  const cur = arena.deathState;
+  if (!cur || cur.status !== next.status || cur.deathCount !== next.deathCount || cur.lockoutUntil !== next.lockoutUntil || cur.resetAt !== next.resetAt) {
+    arena.deathState = next;
+    if (arena.inArena) arena.renderArenaStage();
+  }
+}
+
+function arenaMenuTab(name) {
+  if (!arena) return;
+  if (name === 'battle') {
+    const unlocks = latest && latest.derived && latest.derived.rpg && latest.derived.rpg.unlocks ? latest.derived.rpg.unlocks : [];
+    const bu = unlocks.find((u) => u.id === 'battle');
+    if (bu && bu.unlocked) {
+      arena.enterArena();
+      if (bgm) bgm.playCombatMusic();
+    } else if (arena.inArena) {
+      arena.exitArena();
+      if (bgm) bgm.stopCombatMusic();
+    }
+    return;
+  }
+  if (arena.inArena) {
+    arena.exitArena();
+    if (bgm) bgm.stopCombatMusic();
+  }
+}
+
+function renderArenaLock(s) {
+  const badge = el('arena-lock-badge');
+  if (!badge) return;
+  const dead = arenaPetDead();
+  badge.classList.toggle('hidden', !dead);
+  if (!dead) return;
+  const snap = latest && latest.derived ? latest.derived.arena : null;
+  const petName = s && s.pet ? s.pet.name : 'Your pet';
+  const msgEl = badge.querySelector('.arena-lock-msg');
+  const clockEl = el('arena-lock-clock');
+  if (msgEl) {
+    if (snap && snap.status === 'tombstone') {
+      msgEl.textContent = '🪦 FULL DEATH! Buy the Special Reincarnation Stone (150,000 gold) in the Shop — or the game resets in:';
+    } else {
+      msgEl.textContent = `👻 ${petName} is dead! Buy a Reincarnation Stone in the Shop to revive.`;
+    }
+  }
+  if (clockEl && snap) {
+    clockEl.textContent = fmtArenaClock(snap.status === 'tombstone' ? snap.resetRemainingMs : snap.lockoutRemainingMs);
+  }
+}
+
+const DEATH_SHEETS = {};
+function deathSheetFrames(sheetName) {
+  if (typeof Image === 'undefined') return null;
+  const url = `../../assets/death/${sheetName}.png`;
+  const entry = DEATH_SHEETS[url];
+  if (entry) return entry.ready ? entry.frames : null;
+  const rec = { ready: false, frames: [] };
+  DEATH_SHEETS[url] = rec;
+  const img = new Image();
+  img.onload = () => {
+    try {
+      const fw = Math.floor(img.naturalWidth / 4);
+      const fh = img.naturalHeight;
+      const fr = [];
+      for (let i = 0; i < 4; i += 1) {
+        const cv = document.createElement('canvas');
+        cv.width = fw;
+        cv.height = fh;
+        const g = cv.getContext('2d');
+        g.imageSmoothingEnabled = false;
+        g.drawImage(img, i * fw, 0, fw, fh, 0, 0, fw, fh);
+        fr.push(cv);
+      }
+      rec.frames = fr;
+      rec.ready = true;
+    } catch (err) { /* canvas unavailable */ }
+  };
+  img.onerror = () => { rec.failed = true; };
+  img.src = url;
+  return entry ? null : null;
+}
+
+function drawDeathPet(now, status) {
+  petWalk.target = null;
+  petWalk.x = STAGE_CX;
+  petWalk.y = 312;
+  petDraw = { cx: STAGE_CX, gy: 312, size: 96, dir: 1 };
+  const isGhost = status === 'ghost';
+  const frames = isGhost ? deathSheetFrames('pet_ghost_idle_sheet') : deathSheetFrames('pet_tombstone_idle_sheet');
+  stageCtx.save();
+  stageCtx.imageSmoothingEnabled = false;
+  if (frames && frames.length) {
+    const fr = frames[Math.floor((now * 6) / 1000) % frames.length];
+    const h = 88;
+    const bob = isGhost ? Math.round(Math.sin(now / 500) * 3) : Math.round(Math.sin(now / 700) * 1.5);
+    stageCtx.drawImage(fr, STAGE_CX - h / 2, 312 - h + bob, h, h);
+  }
+  stageCtx.restore();
+}
+
+function initArena() {
+  if (arena || typeof window.JuanBuddyBattleArena !== 'function' || typeof document === 'undefined') return;
+  const stageMount = el('arena-stage');
+  if (!stageMount) return;
+  arena = new window.JuanBuddyBattleArena({
+    assetBase: '../../assets',
+    stageMount,
+    selectorMount: el('arena-selector'),
+    homeElement: document.querySelector('.card.playground'),
+    getPlayer() {
+      const s = latest && latest.state;
+      const derived = latest && latest.derived ? latest.derived : null;
+      const rpg = derived && derived.rpg ? derived.rpg : null;
+      const bs = rpg && rpg.battle ? rpg.battle : {};
+      const level = s && s.pet ? s.pet.level : 1;
+      const totals = derived && derived.collection ? derived.collection.totals : {};
+      const arenaAtkMul = 1 + (totals.arenaAtkPct || 0);
+      const arenaHpMul = 1 + (totals.arenaHpPct || 0);
+      const maxHp = Math.round((40 + (bs.def || 2) * 4 + level * 6) * arenaHpMul);
+      const species = s && s.pet && s.pet.species ? sprites.normalizeSpeciesId(s.pet.species) : null;
+      const evolved = !!(s && s.pet && s.pet.evolved);
+      let sheetPetId = null;
+      if (species) {
+        const evoId = `${species}_evo`;
+        if (evolved && sprites.petSheetInfo(evoId, 'idle')) sheetPetId = evoId;
+        else if (sprites.petSheetInfo(species, 'idle')) sheetPetId = species;
+        else if (sprites.petSheetInfo(evoId, 'idle')) sheetPetId = evoId;
+      }
+      const sheetInfo = sheetPetId ? sprites.petSheetInfo(sheetPetId, 'idle') : null;
+      const sheetUrl = sheetInfo ? sprites.petSheetUrl(sheetPetId, 'idle') : null;
+      const kitRaw = derived && derived.collection ? derived.collection.activeKit : null;
+      const battleBase = `${this.assetBase}/battle/`;
+      const kit = kitRaw ? {
+        ...kitRaw,
+        skill: kitRaw.skill ? {
+          ...kitRaw.skill,
+          iconUrl: kitRaw.skill.iconUrl ? battleBase + kitRaw.skill.iconUrl : null,
+          vfxUrl: kitRaw.skill.vfxSheetUrl ? battleBase + kitRaw.skill.vfxSheetUrl : null,
+        } : null,
+        talent: kitRaw.talent ? { ...kitRaw.talent, iconUrl: kitRaw.talent.iconUrl ? battleBase + kitRaw.talent.iconUrl : null } : null,
+        passive: kitRaw.passive ? { ...kitRaw.passive, iconUrl: kitRaw.passive.iconUrl ? battleBase + kitRaw.passive.iconUrl : null } : null,
+      } : null;
+      return {
+        name: (s && s.pet && s.pet.name) || 'Buddy',
+        level,
+        maxHp,
+        hp: maxHp,
+        atk: Math.round(((bs.atk || 5) + level * 2) * arenaAtkMul),
+        def: bs.def || 2,
+        spd: bs.spd || 3,
+        gold: (s && s.coins) || 0,
+        sheetFrames: sheetInfo ? sheetInfo.frames : 0,
+        sheetUrl,
+        spriteUrl: (species && PET_PREVIEW_PNG[species]) || `${this.assetBase}/monsters/guard_slime/idle_sheet.png`,
+        kit,
+      };
+    },
+    setGold() { /* gold is engine-authoritative */ },
+    addReward(reward) {
+      return api.action('arenaResult', { monsterId: reward.monster.id, win: true, gold: reward.gold, xp: reward.xp }).then((res) => {
+        if (res && res.ok && window.JB_rollLimitedDrop) {
+          const drop = window.JB_rollLimitedDrop(reward.monster);
+          if (drop) showToast(`🎁 Limited drop found: ${drop.itemName}!`, 2600);
+        }
+        return res;
+      }).catch(() => null);
+    },
+    onResetGame() { /* the engine tick performs the tombstone reset */ },
+    onStateChange(info) {
+      const inArena = !!(info && info.inArena);
+      const place = el('arena-place');
+      if (place && place.classList) place.classList.toggle('hidden', !inArena);
+      const adRight = el('ad-right');
+      if (adRight && adRight.classList) adRight.classList.toggle('hidden', inArena);
+      if (bgm) {
+        if (inArena) bgm.playCombatMusic();
+        else bgm.stopCombatMusic();
+      }
+    },
+  });
+
+  arena.triggerPetDeath = function (forceFullDeath) {
+    api.action('arenaResult', { monsterId: this.selectedMonster.id, win: false, gold: 0, xp: 0 }).then((res) => {
+      if (res && res.arena) {
+        this.deathState = arenaDeathFromEngine(res.arena);
+        if (this.inArena) this.renderArenaStage();
+      }
+      if (res && res.message) showToast(res.message, 4200);
+    }).catch(() => {});
+  };
+
+  const reviveVia = (inst, kind) => api.action('arenaRevive', { kind }).then((res) => {
+    if (res && res.ok && res.arena) {
+      inst.deathState = arenaDeathFromEngine(res.arena);
+      inst.renderArenaStage();
+    }
+    return { ok: !!(res && res.ok), message: (res && res.message) || '' };
+  }).catch(() => ({ ok: false, message: 'Revival failed.' }));
+
+  arena.buyReincarnationStone = function () { return reviveVia(this, 'reincarnation'); };
+  arena.buySpecialReincarnationStone = function () { return reviveVia(this, 'special'); };
+
+  setInterval(() => {
+    if (arenaPetDead() && (!arena || !arena.inArena)) renderArenaLock(latest && latest.state);
+  }, 1000);
+}
+
+initArena();
+
 api.onState(render);
-api.getState().then((snap) => {
+if (api.isBrowser) {
+  const loginToggle = el('open-login');
+  const loginLabel = loginToggle && loginToggle.closest('label');
+  if (loginLabel) loginLabel.style.display = 'none';
+}
+Promise.resolve(api.getState()).then((snap) => {
   if (snap) el('open-login').checked = !!snap.openAtLogin;
   render(snap);
   splashReadyShown = true;
@@ -892,10 +1316,33 @@ const WALK_Y_MIN = 286;
 const WALK_Y_MAX = 348;
 
 const petWalk = { x: STAGE_CX, y: 312, dir: 1, target: null, moving: false };
+let petSwimActive = false;
+const WAV = {
+  button: 'wav_8bit/ui_movement/ui_button_click.wav',
+  tab: 'wav_8bit/ui_movement/ui_tab_pop.wav',
+  confirm: 'wav_8bit/ui_movement/ui_confirm_chime.wav',
+  step: 'wav_8bit/ui_movement/pet_walk_step.wav',
+  flap: 'wav_8bit/ui_movement/pet_fly_flap.wav',
+  tap: 'wav_8bit/ui_movement/pet_tap_pat.wav',
+};
+const FLYING_PETS = new Set(['banog', 'banog_evo', 'gagak', 'gagak_evo', 'dragon', 'dragon_evo']);
+let lastPetCryAt = 0;
+let farmDrawerOpen = false;
+
+function playWavSafe(rel, vol) {
+  if (sfx && sfx.playWav) sfx.playWav(rel, vol);
+}
+
+function walkBounds() {
+  if (stageScene === 'farm') return { x0: 44, x1: STAGE_W - 44, y0: 192, y1: 345 };
+  return { x0: 56, x1: STAGE_W - 56, y0: WALK_Y_MIN, y1: WALK_Y_MAX };
+}
+let eggExciteUntil = 0;
 const stageFx = [];
 let lastStageNow = 0;
 let petDraw = { cx: STAGE_CX, size: 264, dir: 1 };
 let petDrawInfo = null;
+let stageV2Key = null;
 
 function spawnFx(kind, x, y, opts) {
   const o = opts || {};
@@ -906,13 +1353,11 @@ const STAGE_STATE_FILE = { IDLE: 'idle', WALK: 'walk', HAPPY: 'happy', EAT: 'eat
 const stageFrames = {};
 
 const STAGE_PNG_ANIMS = {};
-const PET_PREVIEW_PNG = {
-  pusa: '../../assets/sprites/pusa_idle_0.png',
-  agila: '../../assets/sprites/agila_idle_0.png',
-  uwak: '../../assets/sprites/uwak_idle_0.png',
-  ahas: '../../assets/sprites/ahas_idle_0.png',
-  dragon: '../../assets/sprites/dragon_idle_0.png',
-};
+const PET_PREVIEW_PNG = {};
+for (const pid of Object.keys(sprites.PET_SHEET_ANIMS || {})) {
+  if (pid === 'egg') continue;
+  PET_PREVIEW_PNG[pid] = sprites.petSheetGif(pid, 'idle');
+}
 
 function stageFramesFor(id, state) {
   const anim = STAGE_PNG_ANIMS[id];
@@ -1420,11 +1865,11 @@ function drawRoom(now, phaseId, weatherId) {
   }
 }
 
-function drawFurniture() {
+function drawFurniture(skip) {
   if (!latest || !latest.state || !latest.state.upgrades) return;
   const up = latest.state.upgrades;
   stageCtx.save();
-  if (up.bed >= 1) {
+  if (up.bed >= 1 && !(skip && skip.has('bed'))) {
     const bx = 18;
     const bwy = 296 + Math.min(3, up.bed - 1) * 2;
     const h = 34 + up.bed * 5;
@@ -1440,7 +1885,7 @@ function drawFurniture() {
       stageCtx.fillRect(bx + 54, bwy + 8, 24, 10);
     }
   }
-  if (up.toys >= 1) {
+  if (up.toys >= 1 && !(skip && skip.has('toys'))) {
     stageCtx.fillStyle = '#dc2626';
     stageCtx.fillRect(404, 316, 44, 32);
     stageCtx.fillStyle = '#b91c1c';
@@ -1541,7 +1986,662 @@ function sceneImageFor(mode) {
   return img;
 }
 
+const SD_BASE = '../../assets/stardew';
+const SCENE_STORAGE_KEY = 'juanbuddy-scene-v1';
+const HOME_FURNITURE_ART = {
+  cozy_bed: { file: 'home/furniture/cozy_bed.png', w: 112, h: 80, icon: '\u{1F6CF}\uFE0F' },
+  toy_box: { file: 'home/furniture/toy_box.png', w: 96, h: 64, icon: '\u{1F9F8}' },
+  flower_vase: { file: 'home/furniture/flower_vase.png', w: 72, h: 68, icon: '\u{1F490}' },
+};
+const HOME_DOOR_ART = { closed: 'home/furniture/door_closed.png', open: 'home/furniture/door_open.png' };
+const DOOR_RECT = { x: 18, y: 104, w: 74, h: 70 };
+const DEFAULT_FURNITURE_LAYOUT = {
+  cozy_bed: { x: 96, y: 352 },
+  toy_box: { x: 432, y: 350 },
+  flower_vase: { x: 386, y: 340 },
+};
+const PORTAL_RECT = { x: 196, y: 112, w: 84, h: 74 };
+const FARM_PLOT_W = 64;
+const FARM_PLOTS = [
+  { x: 84, y: 232 }, { x: 220, y: 232 }, { x: 356, y: 232 },
+  { x: 84, y: 312 }, { x: 220, y: 312 }, { x: 356, y: 312 },
+];
+const FARM_HIVE_POS = { x: 420, y: 170 };
+const FARM_BEEHIVE_COST_UI = 400;
+const FARM_FERTILIZER_COST_UI = 30;
+const HF_ENGINE = (typeof window !== 'undefined' && window.JBEngine) || {};
+const FARM_CROPS_UI = HF_ENGINE.FARM_CROPS || {
+  berry: { growMs: 4 * 60000 }, flower: { growMs: 7 * 60000 }, plant: { growMs: 10 * 60000 },
+};
+
+let stageScene = 'home';
+let homeEditMode = false;
+let layoutDraft = null;
+let dragInfo = null;
+let doorOpenUntil = 0;
+let doorPending = false;
+let farmTool = 'plant';
+let farmCrop = 'berry';
+try {
+  const savedScene = localStorage.getItem(SCENE_STORAGE_KEY);
+  if (savedScene === 'park' || savedScene === 'farm') stageScene = savedScene;
+} catch (err) { stageScene = 'home'; }
+
+function setScene(scene) {
+  stageScene = scene === 'farm' || scene === 'park' ? scene : 'home';
+  playWavSafe(WAV.tab, 0.5);
+  if (stageScene !== 'home') {
+    homeEditMode = false;
+    layoutDraft = null;
+  }
+  try { localStorage.setItem(SCENE_STORAGE_KEY, stageScene); } catch (err) { stageScene = stageScene; }
+  updateHomeFarmBars();
+}
+
+const sdImages = {};
+function sdImage(rel) {
+  if (sdImages[rel] !== undefined) return sdImages[rel];
+  let img = null;
+  try {
+    img = new Image();
+    img.onerror = () => { img.bad = true; };
+    img.src = `${SD_BASE}/${rel}`;
+  } catch (err) { img = null; }
+  sdImages[rel] = img;
+  return img;
+}
+function sdReady(img) {
+  return img && !img.bad && img.complete && img.naturalWidth > 0;
+}
+
+function farmProgressUi(plot, farm, now) {
+  if (!plot || !FARM_CROPS_UI[plot.cropId]) return 0;
+  let elapsed = Math.max(0, now - plot.plantedAt) * (plot.watered ? 2 : 1);
+  if (farm && farm.beehive) elapsed *= 1.15;
+  return Math.min(1, elapsed / FARM_CROPS_UI[plot.cropId].growMs);
+}
+
+function homeLayoutOf() {
+  const s = latest && latest.state;
+  const owned = s && s.home && Array.isArray(s.home.owned) ? s.home.owned : [];
+  const saved = s && s.home && s.home.layout ? s.home.layout : {};
+  const layout = homeEditMode && layoutDraft ? layoutDraft : saved;
+  return owned
+    .map((id) => {
+      const art = HOME_FURNITURE_ART[id];
+      if (!art) return null;
+      const pos = layout[id] || DEFAULT_FURNITURE_LAYOUT[id] || { x: STAGE_CX, y: 330 };
+      return { id, x: pos.x, y: pos.y, w: art.w, h: art.h };
+    })
+    .filter(Boolean);
+}
+
+function drawHomeFloor(phaseId) {
+  const fy = STAGE_GROUND;
+  const floorTop = { day: '#c8a06a', dawn: '#c09068', dusk: '#8a6446', night: '#4a3a56' }[phaseId] || '#c8a06a';
+  const floorBot = { day: '#a87f4e', dawn: '#9c7248', dusk: '#6e4e38', night: '#3a2c44' }[phaseId] || '#a87f4e';
+  const grad = cachedGradient(`hfloor:${phaseId}`, () => {
+    const fg = stageCtx.createLinearGradient(0, fy - 12, 0, STAGE_H);
+    fg.addColorStop(0, floorTop);
+    fg.addColorStop(1, floorBot);
+    return fg;
+  });
+  stageCtx.fillStyle = grad;
+  stageCtx.fillRect(0, fy - 12, STAGE_W, STAGE_H - fy + 12);
+  stageCtx.fillStyle = 'rgba(0,0,0,0.10)';
+  stageCtx.fillRect(0, fy - 12, STAGE_W, 12);
+}
+
+function drawHomeFurnitureSet(now) {
+  const rects = homeLayoutOf();
+  const skip = new Set();
+  for (const r of rects) {
+    if (r.id === 'cozy_bed') skip.add('bed');
+    if (r.id === 'toy_box') skip.add('toys');
+  }
+  drawFurniture(skip);
+  stageCtx.imageSmoothingEnabled = false;
+  for (const r of rects) {
+    const art = HOME_FURNITURE_ART[r.id];
+    const img = sdImage(art.file);
+    if (!sdReady(img)) continue;
+    stageCtx.drawImage(img, r.x - r.w / 2, r.y - r.h, r.w, r.h);
+  }
+  const doorImg = sdImage(now < doorOpenUntil ? HOME_DOOR_ART.open : HOME_DOOR_ART.closed);
+  if (sdReady(doorImg)) {
+    stageCtx.drawImage(doorImg, DOOR_RECT.x, DOOR_RECT.y, DOOR_RECT.w, DOOR_RECT.h);
+  }
+  if (homeEditMode) {
+    stageCtx.save();
+    stageCtx.strokeStyle = 'rgba(255, 214, 102, 0.95)';
+    stageCtx.lineWidth = 2;
+    stageCtx.setLineDash([5, 4]);
+    for (const r of rects) stageCtx.strokeRect(r.x - r.w / 2, r.y - r.h, r.w, r.h);
+    stageCtx.restore();
+  }
+}
+
+function drawHomeScene(now, phaseId, weatherId) {
+  const s = latest && latest.state;
+  const wallId = s && s.home && s.home.wall ? s.home.wall : 'classic';
+  const wall = wallId === 'classic' ? null : sdImage(`home/walls/${wallId}.png`);
+  if (wall && sdReady(wall)) {
+    stageCtx.imageSmoothingEnabled = false;
+    stageCtx.drawImage(wall, 0, 0, STAGE_W, STAGE_H);
+    drawHomeFloor(phaseId);
+  } else {
+    drawRoom(now, phaseId, weatherId);
+  }
+  drawHomeFurnitureSet(now);
+}
+
+function drawParkScene(now, phaseId) {
+  const bg = sdImage('park/park_bg.png');
+  if (sdReady(bg)) {
+    stageCtx.imageSmoothingEnabled = false;
+    stageCtx.drawImage(bg, 0, 0, STAGE_W, STAGE_H);
+  } else {
+    drawPark(now, phaseId, 'park');
+    return;
+  }
+  const portal = sdImage('park/explore_portal.png');
+  const pcx = PORTAL_RECT.x + PORTAL_RECT.w / 2;
+  const pcy = PORTAL_RECT.y + PORTAL_RECT.h / 2;
+  const pulse = 0.5 + 0.5 * Math.sin(now / 420);
+  const hoverBoost = parkPortalHover ? 0.22 : 0;
+  const glow = cachedGradient('portal-glow', () => {
+    const rg = stageCtx.createRadialGradient(pcx, pcy, 6, pcx, pcy, 70);
+    rg.addColorStop(0, 'rgba(140, 220, 255, 0.85)');
+    rg.addColorStop(1, 'rgba(140, 220, 255, 0)');
+    return rg;
+  });
+  stageCtx.save();
+  stageCtx.globalAlpha = 0.3 + 0.3 * pulse + hoverBoost;
+  stageCtx.fillStyle = glow;
+  stageCtx.fillRect(pcx - 70, pcy - 70, 140, 140);
+  stageCtx.restore();
+  stageCtx.imageSmoothingEnabled = false;
+  if (sdReady(portal)) stageCtx.drawImage(portal, PORTAL_RECT.x, PORTAL_RECT.y, PORTAL_RECT.w, PORTAL_RECT.h);
+  stageCtx.save();
+  stageCtx.font = 'bold 12px sans-serif';
+  stageCtx.textAlign = 'center';
+  stageCtx.fillStyle = 'rgba(20, 16, 10, 0.78)';
+  stageCtx.fillText(parkPortalHover ? 'Explore Asia Portal' : 'Explore Asia \u2192', pcx, PORTAL_RECT.y - 8);
+  stageCtx.restore();
+}
+
+function drawFarmScene(now, phaseId) {
+  const bg = sdImage('farm/farm_bg.png');
+  if (sdReady(bg)) {
+    stageCtx.imageSmoothingEnabled = false;
+    stageCtx.drawImage(bg, 0, 0, STAGE_W, STAGE_H);
+  } else {
+    stageCtx.fillStyle = '#7cc46b';
+    stageCtx.fillRect(0, 0, STAGE_W, STAGE_H);
+  }
+  const farm = latest && latest.state && latest.state.farm ? latest.state.farm : { plots: [] };
+  const dry = sdImage('farm/soil_dry.png');
+  const wet = sdImage('farm/soil_wet.png');
+  stageCtx.imageSmoothingEnabled = false;
+  FARM_PLOTS.forEach((pos, i) => {
+    if (!pos) return;
+    const plot = farm.plots && farm.plots[i];
+    const soil = plot && plot.watered ? wet : dry;
+    if (sdReady(soil)) {
+      stageCtx.drawImage(soil, pos.x - FARM_PLOT_W / 2, pos.y - FARM_PLOT_W / 2, FARM_PLOT_W, FARM_PLOT_W);
+    } else {
+      stageCtx.fillStyle = plot && plot.watered ? '#6b4a2f' : '#8a6a45';
+      stageCtx.fillRect(pos.x - 30, pos.y - 30, 60, 60);
+    }
+    if (plot && plot.cropId) {
+      const prog = farmProgressUi(plot, farm, now);
+      const stage = prog >= 1 ? 2 : 1;
+      const cropImg = sdImage(`farm/crop_${plot.cropId}_stage${stage}.png`);
+      const ch = stage === 2 ? 52 : 36;
+      if (sdReady(cropImg)) stageCtx.drawImage(cropImg, pos.x - ch / 2, pos.y - FARM_PLOT_W / 2 - ch + 8, ch, ch);
+      stageCtx.save();
+      stageCtx.font = 'bold 11px sans-serif';
+      stageCtx.textAlign = 'center';
+      stageCtx.lineWidth = 3;
+      stageCtx.strokeStyle = 'rgba(255, 250, 235, 0.9)';
+      stageCtx.fillStyle = 'rgba(40, 28, 12, 0.95)';
+      const label = prog >= 1 ? 'READY!' : `${Math.round(prog * 100)}%`;
+      stageCtx.strokeText(label, pos.x, pos.y + FARM_PLOT_W / 2 + 12);
+      stageCtx.fillText(label, pos.x, pos.y + FARM_PLOT_W / 2 + 12);
+      stageCtx.restore();
+    }
+  });
+  if (farm.beehive) {
+    const hive = sdImage('farm/beehive.png');
+    if (sdReady(hive)) stageCtx.drawImage(hive, FARM_HIVE_POS.x - 35, FARM_HIVE_POS.y - 22, 70, 45);
+    const beeFrame = Math.floor(now / 180) % 2 === 0 ? 'farm/bee_frame1.png' : 'farm/bee_frame2.png';
+    const bee = sdImage(beeFrame);
+    if (sdReady(bee)) {
+      const bx = FARM_HIVE_POS.x - 66 + Math.sin(now / 900) * 58;
+      const by = FARM_HIVE_POS.y - 34 + Math.sin(now / 620) * 16;
+      stageCtx.drawImage(bee, bx, by, 50, 30);
+    }
+  }
+}
+
+function handleHomeFarmClick(x, y) {
+  if (!latest || !latest.state || homeEditMode) return false;
+  if (activeOutdoorAct()) {
+    const r = RETURN_PORTAL_RECT;
+    if (x >= r.x - 10 && x <= r.x + r.w + 10 && y >= r.y - 12 && y <= r.y + r.h + 8) {
+      exp8FlashHome();
+      return true;
+    }
+  }
+  if (latest.state.dead || arenaPetDead()) return false;
+  if (stageScene === 'home') {
+    if (x >= DOOR_RECT.x - 6 && x <= DOOR_RECT.x + DOOR_RECT.w + 6 && y >= DOOR_RECT.y - 8 && y <= DOOR_RECT.y + DOOR_RECT.h + 22) {
+      goThroughDoor();
+      return true;
+    }
+    return false;
+  }
+  if (stageScene === 'park') {
+    if (x >= PORTAL_RECT.x - 12 && x <= PORTAL_RECT.x + PORTAL_RECT.w + 12 && y >= PORTAL_RECT.y - 12 && y <= PORTAL_RECT.y + PORTAL_RECT.h + 12) {
+      openPortalModal();
+      return true;
+    }
+    return false;
+  }
+  if (stageScene === 'farm') {
+    const idx = FARM_PLOTS.findIndex((p) => Math.abs(x - p.x) < 36 && Math.abs(y - p.y) < 36);
+    if (idx >= 0) {
+      farmPlotClick(idx);
+      return true;
+    }
+  }
+  return false;
+}
+
+function goThroughDoor() {
+  if (doorPending) return;
+  doorPending = true;
+  doorOpenUntil = performance.now() + 900;
+  petWalk.target = { x: Math.max(60, DOOR_RECT.x + DOOR_RECT.w / 2 + 8), y: 330 };
+  if (sfx) sfx.play('click');
+  if (cuteSfx) cuteSfx.play('plop');
+  setTimeout(() => {
+    doorPending = false;
+    setScene('park');
+    petWalk.target = null;
+  }, 700);
+}
+
+async function farmPlotClick(idx) {
+  const s = latest && latest.state;
+  const farm = s && s.farm;
+  if (!farm) return;
+  const plot = farm.plots && farm.plots[idx];
+  if (farmTool === 'water') {
+    await act('farmAction', { op: 'water', plot: idx });
+    return;
+  }
+  if (farmTool === 'fertilize') {
+    await act('farmAction', { op: 'fertilize', plot: idx });
+    return;
+  }
+  if (!plot || !plot.cropId) {
+    await act('farmAction', { op: 'plant', plot: idx, cropId: farmCrop });
+    return;
+  }
+  await act('farmAction', { op: 'harvest', plot: idx });
+}
+
+function updateHomeFarmBars() {
+  const nav = el('scene-nav');
+  if (nav) nav.querySelectorAll('.scene-btn[data-scene]').forEach((b) => b.classList.toggle('on', b.dataset.scene === stageScene));
+  const editBtn = el('edit-home-btn');
+  if (editBtn) {
+    editBtn.classList.toggle('hidden', stageScene !== 'home');
+    editBtn.classList.toggle('on', homeEditMode);
+  }
+  const editBar = el('edit-home-bar');
+  if (editBar) editBar.classList.toggle('hidden', !(homeEditMode && stageScene === 'home'));
+  const topBar = el('farm-topbar');
+  if (topBar) topBar.classList.toggle('hidden', stageScene !== 'farm');
+  const plusTab = el('farm-plus-tab');
+  if (plusTab) plusTab.classList.toggle('hidden', stageScene !== 'farm');
+  if (stageScene !== 'farm') {
+    farmDrawerOpen = false;
+    const drawer = el('farm-plus-drawer');
+    if (drawer) drawer.classList.add('hidden');
+  }
+}
+
+function openPortalModal() {
+  const modal = el('portal-modal');
+  if (!modal) return;
+  const list = el('portal-destinations');
+  if (list && !list.dataset.built) {
+    const acts = (latest && latest.derived && latest.derived.activities) || [];
+    for (const id of ['park', 'baywalk', 'market', 'temple', 'terraces', 'beach']) {
+      const a = acts.find((x) => x.id === id) || {};
+      const btn = document.createElement('button');
+      btn.className = 'portal-dest';
+      btn.dataset.activityId = id;
+      btn.innerHTML = `<span class="pd-name">${a.name || id}</span><span class="pd-meta muted small">${a.desc || ''}</span>`;
+      btn.addEventListener('click', async () => {
+        closePortalModal();
+        portalFlashUntil = performance.now() + PORTAL_FLASH_MS;
+        const res = await act('startActivity', { activityId: id });
+        if (res && res.ok) setScene('home');
+      });
+      list.appendChild(btn);
+    }
+    list.dataset.built = '1';
+  }
+  modal.classList.remove('hidden');
+}
+
+function closePortalModal() {
+  const modal = el('portal-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function renderHomeFarmHud(s) {
+  updateHomeFarmBars();
+  const farm = s.farm || { fertilizer: 0, snacks: 0, eco: 0, beehive: false };
+  const fert = el('farm-fert-count');
+  if (fert) fert.textContent = String(farm.fertilizer);
+  const eco = el('farm-eco');
+  if (eco) eco.textContent = `\ud83c\udf3f Eco ${farm.eco}`;
+  const snacks = el('farm-snacks');
+  if (snacks) snacks.textContent = `\ud83e\udd5d Snacks ${farm.snacks}`;
+  const hiveBtn = el('btn-buy-beehive');
+  if (hiveBtn) {
+    hiveBtn.disabled = !!farm.beehive || s.coins < FARM_BEEHIVE_COST_UI;
+    hiveBtn.textContent = farm.beehive ? '\ud83d\udc1d Beehive active' : `\ud83d\udc1d Beehive (${FARM_BEEHIVE_COST_UI})`;
+  }
+  const fertBtn = el('btn-buy-fertilizer');
+  if (fertBtn) fertBtn.disabled = s.coins < FARM_FERTILIZER_COST_UI;
+  const snackBtn = el('btn-eat-snack');
+  if (snackBtn) snackBtn.disabled = farm.snacks < 1;
+  renderHomeShop(s);
+}
+
+const homeShopCards = {};
+function renderHomeShop(s) {
+  const host = el('home-shop');
+  if (!host) return;
+  const home = s.home || { owned: [], wall: 'classic' };
+  if (!host.dataset.built) {
+    host.innerHTML = '<h3 class="home-shop-title">\ud83c\udfe0 Home & Farm</h3><div class="wall-row" id="home-walls"></div><div class="shop-grid" id="home-furniture"></div>';
+    const walls = host.querySelector('#home-walls');
+    const wallsList = HF_ENGINE.HOME_WALLS || [];
+    for (const w of wallsList) {
+      const b = document.createElement('button');
+      b.className = 'wall-swatch';
+      b.dataset.wallId = w.id;
+      if (w.id !== 'classic') {
+        const thumb = document.createElement('span');
+        thumb.className = 'wall-thumb pixelated';
+        thumb.style.backgroundImage = `url('${SD_BASE}/home/walls/${w.id}.png')`;
+        b.appendChild(thumb);
+      }
+      const label = document.createElement('span');
+      label.className = 'wall-label';
+      label.textContent = w.name;
+      b.appendChild(label);
+      b.addEventListener('click', () => act('homeAction', { op: 'setWall', wallId: w.id }));
+      walls.appendChild(b);
+    }
+    const grid = host.querySelector('#home-furniture');
+    for (const f of HF_ENGINE.FURNITURE || []) {
+      const card = document.createElement('div');
+      card.className = 'shop-item';
+      card.dataset.furniture = f.id;
+      const art = HOME_FURNITURE_ART[f.id];
+      const artHtml = art && art.file ? `<div class="shop-art"><img class="pixelated" src="${SD_BASE}/${art.file}" alt="" draggable="false"></div>` : '';
+      card.innerHTML = `${artHtml}<div class="name"></div><div class="desc"></div><button class="btn buy-btn"></button>`;
+      card.querySelector('.buy-btn').addEventListener('click', () => act('homeAction', { op: 'buyFurniture', itemId: f.id }));
+      grid.appendChild(card);
+      homeShopCards[f.id] = card;
+    }
+    host.dataset.built = '1';
+  }
+  host.querySelectorAll('.wall-swatch').forEach((b) => b.classList.toggle('on', b.dataset.wallId === home.wall));
+  for (const f of HF_ENGINE.FURNITURE || []) {
+    const card = homeShopCards[f.id];
+    if (!card) continue;
+    const art = HOME_FURNITURE_ART[f.id] || { icon: '\u{1F9FD}' };
+    const owned = home.owned.includes(f.id);
+    card.querySelector('.name').innerHTML = `${art.icon} ${f.name}${owned ? ' <span class="lvl-tag">Owned</span>' : ''}`;
+    card.querySelector('.desc').textContent = f.desc;
+    const btn = card.querySelector('.buy-btn');
+    btn.disabled = owned || s.coins < f.cost;
+    btn.innerHTML = owned ? 'Placed in Home' : `Buy \u2014 ${COIN_ICON_HTML}${f.cost}`;
+  }
+}
+
+const EXP8_BASE = '../../assets/explore_8bit';
+const EXP8_MODE_KEY = {
+  park: '01_buddy_park',
+  baywalk: '02_manila_baywalk',
+  market: '03_floating_market',
+  temple: '04_kyoto_zen_garden',
+  terraces: '05_rice_terraces',
+  beach: '06_boracay_beach',
+};
+const EXP8_S = 0.9;
+const EXP8_OX = -48;
+const EXP8_W = 640;
+const EXP8_H = 400;
+const RETURN_PORTAL_RECT = { x: 16, y: 268, w: 56, h: 70 };
+const PORTAL_FLASH_MS = 620;
+let portalFlashUntil = 0;
+let parkPortalHover = false;
+
+const exp8Images = {};
+function exp8Image(rel) {
+  if (exp8Images[rel] !== undefined) return exp8Images[rel];
+  let img = null;
+  try {
+    img = new Image();
+    img.onerror = () => { img.bad = true; };
+    img.src = `${EXP8_BASE}/${rel}`;
+  } catch (err) { img = null; }
+  exp8Images[rel] = img;
+  return img;
+}
+function exp8Ready(img) {
+  return img && !img.bad && img.complete && img.naturalWidth > 0;
+}
+function exp8Blit(img, frames, now, x640, y640, w640, h640, flip, step) {
+  if (!exp8Ready(img) || !frames) return;
+  const fw = img.naturalWidth / frames;
+  const fh = img.naturalHeight;
+  const f = Math.floor(now / (step || 140)) % frames;
+  const dw = (w640 || fw) * EXP8_S;
+  const dh = (h640 || fh) * EXP8_S;
+  const dx = x640 * EXP8_S + EXP8_OX;
+  const dy = y640 * EXP8_S;
+  stageCtx.imageSmoothingEnabled = false;
+  if (flip) {
+    stageCtx.save();
+    stageCtx.translate(dx + dw, dy);
+    stageCtx.scale(-1, 1);
+    stageCtx.drawImage(img, f * fw, 0, fw, fh, 0, 0, dw, dh);
+    stageCtx.restore();
+    return;
+  }
+  stageCtx.drawImage(img, f * fw, 0, fw, fh, dx, dy, dw, dh);
+}
+function exp8DayProgress(now) {
+  const d = new Date(now);
+  const h = d.getHours() + d.getMinutes() / 60;
+  if (h >= 8 && h < 17) return (h - 8) / 9;
+  if (h >= 17 && h < 20) return (h - 17) / 3;
+  return h >= 20 ? (h - 20) / 9 : (h + 4) / 9;
+}
+function exp8Celestial(now, bucket) {
+  const sheet = exp8Image(bucket === 'night' ? 'shared_effects/moon_anim_4f.png' : 'shared_effects/sun_anim_4f.png');
+  if (!exp8Ready(sheet)) return;
+  const t = exp8DayProgress(now);
+  let x640;
+  let y640;
+  if (bucket === 'day') {
+    x640 = 90 + t * 460;
+    y640 = 96 - Math.sin(t * Math.PI) * 58;
+  } else if (bucket === 'sunset') {
+    x640 = 300 + t * 60;
+    y640 = 84 + t * 108;
+  } else {
+    x640 = 120 + t * 400;
+    y640 = 90 - Math.sin(t * Math.PI) * 52;
+  }
+  exp8Blit(sheet, 4, now, x640 - 48, y640 - 48, 96, 96, false, 320);
+}
+function exp8PingPong(now, i, span, speed) {
+  const t = (now / 1000) * speed + i * 2.13;
+  const cyc = t % 2;
+  const p = cyc < 1 ? cyc : 2 - cyc;
+  return { pos: p * span, dir: cyc < 1 ? 1 : -1 };
+}
+function exp8Roam(cfg, now, i) {
+  const img = exp8Image(cfg.file);
+  if (!exp8Ready(img)) return;
+  const span = EXP8_W + cfg.w;
+  const dirI = i % 2 === 0 ? 1 : -1;
+  let prog = (((now / 1000) * cfg.speed * dirI + i * span * 0.47) % span + span) % span;
+  const x640 = dirI > 0 ? prog - cfg.w : span - prog;
+  const midY = (cfg.y0 + cfg.y1) / 2;
+  const y640 = midY + Math.sin(now / 1400 + i * 2.4) * ((cfg.y1 - cfg.y0) / 2);
+  exp8Blit(img, cfg.frames, now, x640, y640, cfg.w, cfg.h, dirI < 0);
+}
+function exp8Patrol(cfg, now, i) {
+  const img = exp8Image(cfg.file);
+  if (!exp8Ready(img)) return;
+  const span = Math.max(10, cfg.x1 - cfg.x0 - cfg.w);
+  const pp = exp8PingPong(now, i, span, cfg.speed);
+  const y640 = cfg.y + Math.round(Math.sin(now / 260 + i * 3) * (cfg.bob || 0));
+  exp8Blit(img, cfg.frames, now, cfg.x0 + pp.pos, y640, cfg.w, cfg.h, pp.dir < 0);
+}
+const EXP8_SCENES = {
+  '01_buddy_park': [
+    { file: '01_buddy_park/dating_animals_bench_4f.png', frames: 4, x: 160, y: 224 },
+    { type: 'roam', file: '01_buddy_park/butterflies_4f.png', frames: 4, w: 64, h: 64, count: 2, y0: 108, y1: 168, speed: 20 },
+    { type: 'roam', file: '01_buddy_park/dragonflies_4f.png', frames: 4, w: 64, h: 64, count: 2, y0: 182, y1: 228, speed: 32 },
+    { file: '01_buddy_park/lamps_night_glow_4f.png', frames: 4, nightOnly: true },
+  ],
+  '02_manila_baywalk': [
+    { file: '02_manila_baywalk/water_shimmer_4f.png', frames: 4, x: 0, y: 192, step: 200 },
+    { type: 'roam', file: '02_manila_baywalk/sea_birds_4f.png', frames: 4, w: 64, h: 48, count: 2, y0: 36, y1: 104, speed: 40 },
+    { type: 'patrol', file: '02_manila_baywalk/walking_people_4f.png', frames: 4, w: 64, h: 96, count: 2, x0: 50, x1: 590, y: 272, speed: 9, bob: 2 },
+    { type: 'patrol', file: '02_manila_baywalk/kalesa_4f.png', frames: 4, w: 176, h: 104, count: 1, x0: 30, x1: 440, y: 280, speed: 5.5 },
+  ],
+  '03_floating_market': [
+    { file: '03_floating_market/canal_water_4f.png', frames: 4, x: 0, y: 200, step: 200 },
+    { type: 'patrol', file: '03_floating_market/vendor_boats_4f.png', frames: 4, w: 168, h: 96, count: 2, x0: 16, x1: 280, y: 296, speed: 4, bob: 2 },
+    { file: '03_floating_market/coffee_monitor_lizard_4f.png', frames: 4, x: 528, y: 216 },
+  ],
+  '04_kyoto_zen_garden': [
+    { file: '04_kyoto_zen_garden/windy_trees_4f.png', frames: 4 },
+    { file: '04_kyoto_zen_garden/shiba_inu_4f.png', frames: 4, x: 296, y: 288 },
+    { file: '04_kyoto_zen_garden/falling_sakura_8f.png', frames: 8, step: 120 },
+  ],
+  '05_rice_terraces': [
+    { file: '05_rice_terraces/windy_rice_4f.png', frames: 4 },
+    { file: '05_rice_terraces/farmers_planting_4f.png', frames: 4, x: 128, y: 248 },
+    { file: '05_rice_terraces/farmers_planting_4f.png', frames: 4, x: 256, y: 296, flip: true },
+    { file: '05_rice_terraces/carabao_4f.png', frames: 4, x: 416, y: 296 },
+  ],
+  '06_boracay_beach': [
+    { file: '06_boracay_beach/windy_coconuts_4f.png', frames: 4 },
+    { file: '06_boracay_beach/swimmers_kayak_4f.png', frames: 4, x: 104, y: 200 },
+    { file: '06_boracay_beach/beach_volleyball_4f.png', frames: 4, x: 260, y: 232 },
+    { file: '06_boracay_beach/tree_climber_4f.png', frames: 4, x: 72, y: 152 },
+  ],
+};
+function exp8WeatherKey() {
+  const w = latest && latest.derived && latest.derived.weather ? latest.derived.weather.id : 'clear';
+  return w;
+}
+function exp8ReturnPortal(now) {
+  const portal = sdImage('park/explore_portal.png');
+  const r = RETURN_PORTAL_RECT;
+  const cx = r.x + r.w / 2;
+  const cy = r.y + r.h / 2;
+  const pulse = 0.5 + 0.5 * Math.sin(now / 420);
+  const glow = cachedGradient('return-portal-glow', () => {
+    const rg = stageCtx.createRadialGradient(cx, cy, 4, cx, cy, 52);
+    rg.addColorStop(0, 'rgba(140, 220, 255, 0.85)');
+    rg.addColorStop(1, 'rgba(140, 220, 255, 0)');
+    return rg;
+  });
+  stageCtx.save();
+  stageCtx.globalAlpha = 0.24 + 0.3 * pulse;
+  stageCtx.fillStyle = glow;
+  stageCtx.fillRect(cx - 52, cy - 52, 104, 104);
+  stageCtx.restore();
+  stageCtx.imageSmoothingEnabled = false;
+  if (sdReady(portal)) stageCtx.drawImage(portal, r.x, r.y, r.w, r.h);
+  stageCtx.save();
+  stageCtx.font = 'bold 10px sans-serif';
+  stageCtx.textAlign = 'center';
+  stageCtx.fillStyle = 'rgba(10, 14, 22, 0.78)';
+  stageCtx.fillText('Return to Home', cx, r.y - 6);
+  stageCtx.restore();
+}
+function drawExplore8(now, phaseId, mode) {
+  const key = EXP8_MODE_KEY[mode];
+  if (!key) return false;
+  const bucket = phaseId === 'night' ? 'night' : (phaseId === 'dawn' || phaseId === 'dusk') ? 'sunset' : 'day';
+  const bg = exp8Image(`${key}/bg_${bucket}.png`);
+  if (!exp8Ready(bg)) return false;
+  stageCtx.imageSmoothingEnabled = false;
+  stageCtx.drawImage(bg, EXP8_OX, 0, EXP8_W * EXP8_S, EXP8_H * EXP8_S);
+  exp8Celestial(now, bucket);
+  const layers = EXP8_SCENES[key] || [];
+  for (const cfg of layers) {
+    if (cfg.nightOnly && bucket !== 'night') continue;
+    if (cfg.type === 'roam') {
+      for (let i = 0; i < cfg.count; i += 1) exp8Roam(cfg, now, i);
+    } else if (cfg.type === 'patrol') {
+      for (let i = 0; i < cfg.count; i += 1) exp8Patrol(cfg, now, i);
+    } else {
+      exp8Blit(exp8Image(cfg.file), cfg.frames, now, cfg.x || 0, cfg.y || 0, null, null, cfg.flip, cfg.step);
+    }
+  }
+  const wid = exp8WeatherKey();
+  if (wid === 'rainy' || wid === 'stormy') {
+    exp8Blit(exp8Image('shared_effects/weather_rain_4f.png'), 4, now, 0, 0, null, null, false, 120);
+  } else if (wid === 'cloudy' && key === '01_buddy_park') {
+    exp8Blit(exp8Image('shared_effects/weather_wind_4f.png'), 4, now, 0, 0, null, null, false, 160);
+  }
+  exp8ReturnPortal(now);
+  petSwimActive = mode === 'market' && (petWalk.x + EXP8_OX) / EXP8_S < 456 && petWalk.y >= 200 * EXP8_S;
+  return true;
+}
+function exp8FlashHome() {
+  portalFlashUntil = performance.now() + PORTAL_FLASH_MS;
+  if (sfx) sfx.play('click');
+  if (cuteSfx) cuteSfx.play('plop');
+  setTimeout(() => {
+    const st = latest && latest.state;
+    if (st && !st.dead && !arenaPetDead()) act('stopActivity');
+    setScene('home');
+    petWalk.target = null;
+    petWalk.x = STAGE_CX;
+    petWalk.y = 312;
+  }, 240);
+}
+function activeOutdoorAct() {
+  const pre = latest && latest.derived;
+  const act0 = pre && pre.activities ? pre.activities.find((a) => a.active) : null;
+  return act0 && act0.outdoor ? act0 : null;
+}
 function drawPark(now, phaseId, mode) {
+  petSwimActive = false;
+  if (drawExplore8(now, phaseId, mode)) return;
+  drawParkLegacy(now, phaseId, mode);
+}
+
+function drawParkLegacy(now, phaseId, mode) {
   const scene = sceneImageFor(mode);
   if (scene && !scene.bad && scene.complete && scene.naturalWidth > 0) {
     const sw2 = scene.naturalWidth;
@@ -1689,13 +2789,14 @@ function drawPark(now, phaseId, mode) {
 
 const footFracCache = new Map();
 function spriteFootFrac(img) {
-  if (!img || !img.naturalWidth || !img.complete) return 1;
+  if (!img) return 1;
+  const w = img.naturalWidth || img.width;
+  const h = img.naturalHeight || img.height;
+  if (!w || !h || img.complete === false) return 1;
   const key = img.src || img;
   if (footFracCache.has(key)) return footFracCache.get(key);
   let frac = 1;
   try {
-    const w = img.naturalWidth;
-    const h = img.naturalHeight;
     const cv = document.createElement('canvas');
     cv.width = w;
     cv.height = h;
@@ -1723,8 +2824,7 @@ const COSMETIC_PNG = new Set([
   'cos_witch_hat', 'cos_salakot', 'cos_sakura_crown', 'cos_gold_crown', 'cos_ushanka', 'cos_shades',
   'cos_red_scarf', 'cos_bell_collar', 'cos_bowtie', 'cos_angel_wings', 'cos_lantern', 'cos_parol_aura',
 ]);
-// Gear (weapons/armor/charms) adds stat bonuses but no longer renders on the pet —
-// only cosmetics (cos_*) wear on the buddy.
+// Gear (weapons/armor/charms) feature is disabled for rework — only cosmetics (cos_*) wear on the buddy.
 
 function equippedOverlays(d2) {
   if (!latest || !latest.state) return [];
@@ -1733,21 +2833,12 @@ function equippedOverlays(d2) {
   const r = latest.derived;
   const rpg = r && r.rpg;
   const shop = rpg && rpg.items ? rpg.items.shop : null;
-  const gearList = rpg && rpg.gearShop ? rpg.gearShop : null;
-  const poolList = rpg && rpg.gearGacha ? rpg.gearGacha.poolPreview || [] : [];
   const iconOf = (id) => {
     if (!id) return null;
     const it = shop ? shop.find((x) => x.id === id) : null;
     return it ? it.icon : null;
   };
-  const gearIconOf = (id) => {
-    if (!id) return null;
-    const gd = gearList ? gearList.find((x) => x.id === id) : null;
-    const pd = !gd ? poolList.find((x) => x.id === id) : null;
-    return gd ? gd.icon : (pd ? pd.icon : null);
-  };
   const eq = (st2.items && st2.items.equipped) || {};
-  const ge = (r && r.gear && r.gear.equipped) || {};
   const out = [];
   const listOf = (iconFn, id, slot) => {
     if (!id || !iconFn(id)) return;
@@ -1760,9 +2851,6 @@ function equippedOverlays(d2) {
   listOf(iconOf, eq.Armor, 'Armor');
   listOf(iconOf, eq.Relic, 'Relic');
   listOf(iconOf, eq.Weapon, 'Weapon');
-  listOf(gearIconOf, ge.weapon, 'Weapon');
-  listOf(gearIconOf, ge.armor, 'Armor');
-  listOf(gearIconOf, ge.charm, 'Relic');
   return out.filter((o) => o.pngId);
 }
 
@@ -1775,10 +2863,10 @@ const PET_ANCHORS = {
     Armor: { fx: -0.22, fy: 0.52, w: 0.44 },
     Relic: { fx: -0.56, fy: 0.74, w: 0.36 },
   },
-  pusa: { Head: { fx: 0.02, fy: 0.02, w: 0.46, snug: 0.07 } },
-  agila: { Head: { fx: 0.0, fy: 0.03, w: 0.44, snug: 0.08 } },
-  uwak: { Head: { fx: 0.0, fy: 0.02, w: 0.42, snug: 0.06 } },
-  ahas: { Head: { fx: 0.06, fy: 0.18, w: 0.4, snug: 0.05 } },
+  muning: { Head: { fx: 0.02, fy: 0.02, w: 0.46, snug: 0.07 } },
+  banog: { Head: { fx: 0.0, fy: 0.03, w: 0.44, snug: 0.08 } },
+  gagak: { Head: { fx: 0.0, fy: 0.02, w: 0.42, snug: 0.06 } },
+  ran: { Head: { fx: 0.06, fy: 0.18, w: 0.4, snug: 0.05 } },
   dragon: { Head: { fx: 0.0, fy: 0.03, w: 0.5, snug: 0.08 } },
   kala: { Head: { fx: 0.0, fy: 0.04, w: 0.48, snug: 0.06 } },
   bantay: { Head: { fx: 0.0, fy: 0.05, w: 0.46, snug: 0.06 } },
@@ -1796,11 +2884,13 @@ const PET_ANCHORS = {
 
 const contentBoxCache = new WeakMap();
 function contentBoxOf(img) {
-  if (!img || !img.naturalWidth) return { top: 0.06, bottom: 0.94 };
+  const w0 = img ? (img.naturalWidth || img.width) : 0;
+  const h0 = img ? (img.naturalHeight || img.height) : 0;
+  if (!img || !w0 || (!img.naturalWidth && !img.height)) return { top: 0.06, bottom: 0.94, left: 0.25, right: 0.75 };
   if (contentBoxCache.has(img)) return contentBoxCache.get(img);
-  let out = { top: 0.06, bottom: 0.94 };
+  let out = { top: 0.06, bottom: 0.94, left: 0.25, right: 0.75 };
   try {
-    const s = Math.min(64, img.naturalWidth);
+    const s = Math.min(64, w0, h0) || 64;
     const c = document.createElement('canvas');
     c.width = s;
     c.height = s;
@@ -1810,13 +2900,21 @@ function contentBoxOf(img) {
     const data = icmp.getImageData(0, 0, s, s).data;
     let top = null;
     let bottom = null;
-    for (let y = 0; y < s && top === null; y += 1) {
-      for (let x = 0; x < s; x += 1) if (data[(y * s + x) * 4 + 3] > 24) { top = y; break; }
+    let left = null;
+    let right = null;
+    for (let y = 0; y < s; y += 1) {
+      for (let x = 0; x < s; x += 1) {
+        if (data[(y * s + x) * 4 + 3] > 24) {
+          if (top === null) top = y;
+          bottom = y;
+          if (left === null || x < left) left = x;
+          if (right === null || x > right) right = x;
+        }
+      }
     }
-    for (let y = s - 1; y >= 0 && bottom === null; y -= 1) {
-      for (let x = 0; x < s; x += 1) if (data[(y * s + x) * 4 + 3] > 24) { bottom = y; break; }
+    if (top !== null && bottom !== null && left !== null) {
+      out = { top: top / s, bottom: (bottom + 1) / s, left: left / s, right: (right + 1) / s };
     }
-    if (top !== null && bottom !== null) out = { top: top / s, bottom: (bottom + 1) / s };
   } catch (err) { /* tainted or missing frame */ }
   contentBoxCache.set(img, out);
   return out;
@@ -2098,11 +3196,16 @@ function drawStagePet(now) {
   }
   const pre = latest && latest.derived;
   const activeAct = pre && pre.activities ? pre.activities.find((a) => a.active) : null;
+  const activePhase = pre && pre.phase ? pre.phase.id : 'day';
+  const activeWeather = pre && pre.weather ? pre.weather.id : 'clear';
   if (activeAct && activeAct.outdoor) {
-    drawPark(now, pre && pre.phase ? pre.phase.id : 'day', activeAct.outdoor);
+    drawPark(now, activePhase, activeAct.outdoor);
+  } else if (stageScene === 'farm') {
+    drawFarmScene(now, activePhase);
+  } else if (stageScene === 'park') {
+    drawParkScene(now, activePhase);
   } else {
-    drawRoom(now, pre && pre.phase ? pre.phase.id : 'day', pre && pre.weather ? pre.weather.id : 'clear');
-    drawFurniture();
+    drawHomeScene(now, activePhase, activeWeather);
     drawWaste(now, pre ? pre.waste : []);
   }
 
@@ -2122,8 +3225,9 @@ function drawStagePet(now) {
       if (Math.abs(dx) > 2) petWalk.dir = dx > 0 ? 1 : -1;
       const len = Math.hypot(dx, dy) || 1;
       const speed = 95 * dt;
-      petWalk.x = Math.max(56, Math.min(STAGE_W - 56, petWalk.x + (dx / len) * speed));
-      petWalk.y = Math.max(WALK_Y_MIN, Math.min(WALK_Y_MAX, petWalk.y + (dy / len) * speed));
+      const wb = walkBounds();
+      petWalk.x = Math.max(wb.x0, Math.min(wb.x1, petWalk.x + (dx / len) * speed));
+      petWalk.y = Math.max(wb.y0, Math.min(wb.y1, petWalk.y + (dy / len) * speed));
       petWalk.moving = true;
     } else {
       petWalk.target = null;
@@ -2133,24 +3237,40 @@ function drawStagePet(now) {
     petWalk.moving = false;
   }
   if (st0 === 'IDLE' && !petWalk.target && !s.flags.working && !s.activity && Math.random() < 0.004) {
-    petWalk.target = { x: 110 + Math.random() * 260, y: WALK_Y_MIN + Math.random() * (WALK_Y_MAX - WALK_Y_MIN) };
+    const wb = walkBounds();
+    petWalk.target = { x: wb.x0 + Math.random() * (wb.x1 - wb.x0), y: wb.y0 + Math.random() * (wb.y1 - wb.y0) };
   }
 
   const st = petWalk.moving ? 'WALK' : st0;
   const stageScale = d.stage ? d.stage.scale : 1;
   const depthF = (petWalk.y - WALK_Y_MIN) / (WALK_Y_MAX - WALK_Y_MIN);
-  const boxSize = Math.round(264 * stageScale * (0.8 + 0.28 * depthF));
+  const evoShrink = s.pet.evolved ? 0.8 : 1;
+  const boxSize = Math.round(264 * stageScale * evoShrink);
   petDraw = { cx: petWalk.x, gy: petWalk.y, size: boxSize, dir: petWalk.dir };
+  const stageSpeciesKey = sprites.normalizeSpeciesId(s.pet.species || 'kala');
+  if (stageV2Key !== stageSpeciesKey) {
+    stageV2Key = stageSpeciesKey;
+    sprites.prewarmPetSheets(stageSpeciesKey);
+  }
   // keep petDrawInfo from the previous frame — the back-layer cosmetics pass
   // renders before this frame's sprite is measured (1-frame staleness is invisible)
 
-  stageCtx.save();
-  stageCtx.globalAlpha = 0.22;
-  stageCtx.fillStyle = '#000';
-  stageCtx.beginPath();
-  stageCtx.ellipse(petWalk.x, petWalk.y + 4, 30 + 26 * depthF, 8 + 3 * depthF, 0, 0, Math.PI * 2);
-  stageCtx.fill();
-  stageCtx.restore();
+  let shadowCx = petWalk.x;
+  let shadowRx = Math.max(10, Math.min(boxSize * 0.24, 38));
+  if (petDrawInfo && typeof petDrawInfo.contentL === 'number' && !(latest && latest.state && latest.state.pet && latest.state.pet.stage === 'egg')) {
+    const cc = (petDrawInfo.contentL + petDrawInfo.contentR) / 2;
+    shadowCx = petWalk.x + petWalk.dir * (cc - 0.5) * boxSize;
+    shadowRx = Math.max(10, Math.min(boxSize * 0.2, ((petDrawInfo.contentR - petDrawInfo.contentL) * boxSize) / 2));
+  }
+  if (!petSwimActive) {
+    stageCtx.save();
+    stageCtx.globalAlpha = 0.2;
+    stageCtx.fillStyle = '#000';
+    stageCtx.beginPath();
+    stageCtx.ellipse(shadowCx, petWalk.y + 4, shadowRx, 7 + 2 * depthF, 0, 0, Math.PI * 2);
+    stageCtx.fill();
+    stageCtx.restore();
+  }
 
   if (latest && !latest.state.dead && petWalk.target !== null) {
     const pulse = 0.5 + 0.5 * Math.sin(now / 170);
@@ -2192,6 +3312,11 @@ function drawStagePet(now) {
     return;
   }
 
+  if (arenaPetDead()) {
+    drawDeathPet(now, latest.state.arena.status);
+    return;
+  }
+
   const isEgg = s.pet.stage === 'egg';
   const skinDef = d.skins ? d.skins.find((sk) => sk.equipped) : null;
   const tint = skinDef ? skinDef.tint : null;
@@ -2206,8 +3331,16 @@ function drawStagePet(now) {
     stageCtx.save();
     stageCtx.imageSmoothingEnabled = smoothGraphics;
     const shake = prog > 0.6 ? Math.sin(now / 55) * 4 * prog : 0;
+    const eggAnim = prog > 0.92 ? 'crack' : (now < eggExciteUntil || prog > 0.6 ? 'shaking' : 'idle');
+    const eggFrames = sprites.petSheetFrames('egg', eggAnim);
     const eggOk = !eggSprite.bad && eggSprite.complete && eggSprite.naturalWidth > 0;
-    if (eggOk) {
+    if (eggFrames && eggFrames.length) {
+      const fps = sprites.petSheetFps('egg', eggAnim);
+      const fr = eggFrames[Math.floor((now * fps) / 1000) % eggFrames.length];
+      const eggH = 118;
+      stageCtx.imageSmoothingEnabled = false;
+      stageCtx.drawImage(fr, STAGE_CX - eggH / 2, petWalk.y - eggH + Math.round(Math.sin(now / 500) * 2), eggH, eggH);
+    } else if (eggOk) {
       const eggH = 100;
       const eggW = Math.round(eggH * eggSprite.naturalWidth / eggSprite.naturalHeight);
       stageCtx.drawImage(eggSprite, STAGE_CX + shake - eggW / 2, petWalk.y - eggH + Math.round(Math.sin(now / 500) * 2), eggW, eggH);
@@ -2223,7 +3356,8 @@ function drawStagePet(now) {
     stageCtx.restore();
   } else {
     const bobbing = st === 'HAPPY' || st === 'WALK' || st === 'EAT';
-    const yOff = bobbing ? Math.round(Math.sin(now / (st === 'EAT' ? 130 : 260)) * (st === 'EAT' ? 2 : 4)) : 0;
+    let yOff = bobbing ? Math.round(Math.sin(now / (st === 'EAT' ? 130 : 260)) * (st === 'EAT' ? 2 : 4)) : 0;
+    if (petSwimActive) yOff += Math.round(Math.sin(now / 320) * 3);
 
     stageCtx.save();
     stageCtx.imageSmoothingEnabled = smoothGraphics;
@@ -2234,43 +3368,70 @@ function drawStagePet(now) {
       if (petWalk.dir < 0) g.scale(-1, 1);
       const bx = -boxSize / 2;
       const speciesId = s.pet.species || 'kala';
-      const evoSingle = s.pet.evolved ? evoSingleFor(speciesId, st) : null;
-      const evoFrame = s.pet.evolved && !evoSingle ? evoSheetFrameFor(speciesId, st) : null;
+      const speciesKey = sprites.normalizeSpeciesId(speciesId);
+      const isEvo = s.pet.evolved;
+      const v2Try = (pid, stateOverride) => {
+        const anim = sprites.petSheetAnim(stateOverride || st, pid);
+        const frames = anim ? sprites.petSheetFrames(pid, anim) : null;
+        if (frames && frames.length) {
+          const fps = sprites.petSheetFps(pid, anim);
+          return { frames, idx: Math.floor((now * fps) / 1000) % frames.length };
+        }
+        return null;
+      };
+      let v2hit = null;
+      if (battleFx && speciesKey === 'dragon') v2hit = v2Try('dragon', 'FIRE_BREATH');
+      if (!v2hit && isEvo) v2hit = v2Try(`${speciesKey}_evo`);
+      if (!v2hit) v2hit = v2Try(speciesId);
+      const isV2Pet = !!sprites.petSheetInfo(speciesKey, 'idle');
+      if (!v2hit && isV2Pet) {
+        v2hit = v2Try(speciesKey, 'IDLE');
+        if (!v2hit && isEvo) v2hit = v2Try(`${speciesKey}_evo`, 'IDLE');
+      }
       let img = null;
       let sub = null;
-      if (evoSingle) {
-        img = evoSingle;
-      } else if (evoFrame) {
-        img = evoFrame.img;
-        sub = { sx: evoFrame.idx * evoFrame.frameW, sy: 0, sw: evoFrame.frameW, sh: evoFrame.frameH };
-      } else {
-        const pngs = stageFramesFor(speciesId, st);
-        const single = stageSingleFor(speciesId, st);
-        if (pngs.length > 0) {
-          img = pngs[Math.floor(now / 170) % pngs.length];
-        } else if (single) {
-          img = single;
+      if (v2hit) {
+        img = v2hit.frames[v2hit.idx];
+      } else if (!isV2Pet) {
+        const evoSingle = s.pet.evolved ? evoSingleFor(speciesId, st) : null;
+        const evoFrame = s.pet.evolved && !evoSingle ? evoSheetFrameFor(speciesId, st) : null;
+        if (evoSingle) {
+          img = evoSingle;
+        } else if (evoFrame) {
+          img = evoFrame.img;
+          sub = { sx: evoFrame.idx * evoFrame.frameW, sy: 0, sw: evoFrame.frameW, sh: evoFrame.frameH };
         } else {
-          let bank = null;
-          try {
-            bank = sprites.ensurePetSprites(s.pet.species || 'kala');
-          } catch (err) {
-            bank = null;
+          const pngs = stageFramesFor(speciesId, st);
+          const single = stageSingleFor(speciesId, st);
+          if (pngs.length > 0) {
+            img = pngs[Math.floor(now / 170) % pngs.length];
+          } else if (single) {
+            img = single;
+          } else {
+            let bank = null;
+            try {
+              bank = sprites.ensurePetSprites(s.pet.species || 'kala');
+            } catch (err) {
+              bank = null;
+            }
+            if (bank && bank[st]) img = bank[st][Math.floor(now / 170) % bank[st].length];
           }
-          if (bank && bank[st]) img = bank[st][Math.floor(now / 170) % bank[st].length];
         }
       }
       if (img) {
+        g.imageSmoothingEnabled = false;
         const by = petWalk.y - Math.round(boxSize * spriteFootFrac(img)) + yOff;
         if (sub) g.drawImage(img, sub.sx, sub.sy, sub.sw, sub.sh, bx, by, boxSize, boxSize);
         else g.drawImage(img, bx, by, boxSize, boxSize);
-        const cb = sub ? { top: 0.06, bottom: 0.94 } : contentBoxOf(img);
+        const cb = sub ? { top: 0.06, bottom: 0.94, left: 0.25, right: 0.75 } : contentBoxOf(img);
         petDrawInfo = {
           cx: petWalk.x,
           topY: by + boxSize * cb.top,
           contentH: Math.max(20, boxSize * (cb.bottom - cb.top)),
           yOff,
           dir: petWalk.dir,
+          contentL: cb.left,
+          contentR: cb.right,
         };
       }
       g.restore();
@@ -2280,6 +3441,21 @@ function drawStagePet(now) {
     else drawPath(stageCtx);
     stageCtx.restore();
 
+    if (petSwimActive) {
+      const rip = exp8Image('shared_effects/pet_swim_ripple_4f.png');
+      if (exp8Ready(rip)) {
+        const rw = Math.max(64, Math.min(110, boxSize * 0.5));
+        const rh = rw / 2;
+        const f = Math.floor(now / 180) % 4;
+        const fw = rip.naturalWidth / 4;
+        stageCtx.save();
+        stageCtx.imageSmoothingEnabled = false;
+        stageCtx.globalAlpha = 0.85;
+        stageCtx.drawImage(rip, f * fw, 0, fw, rip.naturalHeight, petDraw.cx - rw / 2, petDraw.gy - rh * 0.62, rw, rh);
+        stageCtx.restore();
+      }
+    }
+
     if (st === 'SLEEP' && Math.random() < 0.02) spawnFx('z', petWalk.x + 20, petWalk.y - boxSize + 24, { vy: -0.35, size: 15 });
     if ((s.flags.working || s.activity) && Math.random() < 0.012) spawnFx('coin', petWalk.x + (Math.random() < 0.5 ? -50 : 50), 90, { vy: -0.4, size: 18 });
     if (petWalk.moving && Math.random() < 0.09) spawnFx('spark', petWalk.x - petWalk.dir * boxSize * 0.3, petWalk.y - 4, { vy: -0.15, size: 10 });
@@ -2287,6 +3463,16 @@ function drawStagePet(now) {
 
   drawEquippedOnPet(now, 'front');
   drawBattleFx(now);
+
+  if (now < portalFlashUntil) {
+    const ft = 1 - (portalFlashUntil - now) / PORTAL_FLASH_MS;
+    const fa = ft < 0.5 ? ft * 2 : (1 - ft) * 2;
+    stageCtx.save();
+    stageCtx.globalAlpha = 0.8 * Math.max(0, Math.min(1, fa));
+    stageCtx.fillStyle = '#eaf7ff';
+    stageCtx.fillRect(0, 0, petStageCanvas.width, petStageCanvas.height);
+    stageCtx.restore();
+  }
 
   for (let i = stageFx.length - 1; i >= 0; i -= 1) {
     const p2 = stageFx[i];
@@ -2418,7 +3604,9 @@ petStageCanvas.addEventListener('click', async (e) => {
   const rect = petStageCanvas.getBoundingClientRect();
   const x = ((e.clientX - rect.left) / rect.width) * STAGE_W;
   const y = ((e.clientY - rect.top) / rect.height) * STAGE_H;
-  if (latest && latest.state.dead) return;
+  if (handleHomeFarmClick(x, y)) return;
+  if (homeEditMode) return;
+  if (latest && (latest.state.dead || arenaPetDead())) return;
   const wastes = (latest.derived && latest.derived.waste) || [];
   let nearest = null;
   let nd = 1e9;
@@ -2443,6 +3631,9 @@ petStageCanvas.addEventListener('click', async (e) => {
     const now = performance.now();
     if (now - lastStagePat < 900) return;
     lastStagePat = now;
+    if (latest && latest.state && latest.state.pet && latest.state.pet.stage === 'egg') {
+      eggExciteUntil = now + 1400;
+    }
     for (let i = 0; i < 3; i += 1) {
       stageFx.push({ kind: 'heart', x: petDraw.cx + (Math.random() * 26 - 13), y: STAGE_GROUND - petDraw.size * 0.3, vy: -0.9, life: 1, size: 14 + Math.random() * 10, wobble: Math.random() * 6 });
     }
@@ -2450,7 +3641,14 @@ petStageCanvas.addEventListener('click', async (e) => {
     if (cuteSfx) cuteSfx.play('chirp');
     try {
       const sid2 = latest && latest.state && latest.state.pet ? latest.state.pet.species : null;
-      if (sfx && sfx.petVoice) sfx.petVoice(sid2 || 'kala');
+      if (sfx && sfx.playWav) {
+        sfx.playWav(WAV.tap, 0.55);
+        const cryNow = performance.now();
+        if (cryNow - lastPetCryAt > 1500) {
+          lastPetCryAt = cryNow;
+          sfx.playWav(sfx.cryFor(sid2 || 'kala'), 0.6);
+        }
+      } else if (sfx && sfx.petVoice) sfx.petVoice(sid2 || 'kala');
     } catch (err) { /* voice unavailable */ }
     const res = await api.action('pat');
     showToast((res && res.message) || 'hehe~', 1500);
@@ -2460,9 +3658,10 @@ petStageCanvas.addEventListener('click', async (e) => {
     showToast('Shhh... your buddy is sleeping! \u{1F4A4}', 1600);
     return;
   }
+  const wbClick = walkBounds();
   petWalk.target = {
-    x: Math.max(70, Math.min(STAGE_W - 70, x)),
-    y: Math.max(WALK_Y_MIN, Math.min(WALK_Y_MAX, y)),
+    x: Math.max(wbClick.x0 + 14, Math.min(wbClick.x1 - 14, x)),
+    y: Math.max(wbClick.y0, Math.min(wbClick.y1, y)),
   };
   if (cuteSfx) cuteSfx.play('plop');
 });
@@ -2476,6 +3675,7 @@ function activateTab(name) {
     panel.classList.add('panel-anim');
     panel.classList.remove('hidden');
   }
+  playWavSafe(WAV.tab, 0.5);
   if (cuteSfx) cuteSfx.play('rustle');
   document.querySelectorAll('#stage-menu .stage-menu-item').forEach((b) => {
     b.classList.toggle('on', b.dataset && b.dataset.menuTab === name);
@@ -2491,7 +3691,10 @@ if (stageMenuBtn && stageMenu) {
   });
   stageMenu.querySelectorAll('.stage-menu-item').forEach((b) => {
     b.addEventListener('click', () => {
-      if (b.dataset && b.dataset.menuTab) activateTab(b.dataset.menuTab);
+      if (b.dataset && b.dataset.menuTab) {
+        activateTab(b.dataset.menuTab);
+        arenaMenuTab(b.dataset.menuTab);
+      }
       stageMenu.classList.add('hidden');
     });
   });
@@ -2503,16 +3706,141 @@ if (stageMenuBtn && stageMenu) {
   });
 }
 
+document.querySelectorAll('#scene-nav .scene-btn[data-scene]').forEach((b) => {
+  b.addEventListener('click', () => {
+    setScene(b.dataset.scene);
+    if (b.dataset.scene === 'home') petWalk.target = null;
+    if (sfx) sfx.play('click');
+  });
+});
+
+on('edit-home-btn', 'click', () => {
+  if (stageScene !== 'home') setScene('home');
+  homeEditMode = !homeEditMode;
+  layoutDraft = homeEditMode ? JSON.parse(JSON.stringify((latest && latest.state && latest.state.home && latest.state.home.layout) || {})) : null;
+  updateHomeFarmBars();
+  if (sfx) sfx.play('click');
+});
+
+on('btn-save-layout', 'click', async () => {
+  const res = await act('homeAction', { op: 'saveLayout', layout: layoutDraft || {} });
+  if (res && res.ok) {
+    homeEditMode = false;
+    layoutDraft = null;
+    updateHomeFarmBars();
+  }
+});
+
+on('btn-cancel-layout', 'click', () => {
+  homeEditMode = false;
+  layoutDraft = null;
+  updateHomeFarmBars();
+  if (sfx) sfx.play('click');
+});
+
+document.querySelectorAll('.farm-tool').forEach((b) => {
+  b.addEventListener('click', () => {
+    farmTool = b.dataset.farmTool || 'plant';
+    document.querySelectorAll('.farm-tool').forEach((x) => x.classList.toggle('on', x === b));
+    if (sfx) sfx.play('click');
+  });
+});
+
+document.querySelectorAll('.farm-crop').forEach((b) => {
+  b.addEventListener('click', () => {
+    farmCrop = b.dataset.farmCrop || 'berry';
+    farmTool = 'plant';
+    document.querySelectorAll('.farm-crop').forEach((x) => x.classList.toggle('on', x === b));
+    document.querySelectorAll('.farm-tool').forEach((x) => x.classList.toggle('on', x.dataset.farmTool === 'plant'));
+    if (sfx) sfx.play('click');
+  });
+});
+
+on('btn-buy-fertilizer', 'click', () => act('farmAction', { op: 'buyFertilizer' }));
+on('btn-buy-beehive', 'click', () => act('farmAction', { op: 'buyBeehive' }));
+on('btn-eat-snack', 'click', () => act('farmAction', { op: 'eatSnack' }));
+on('btn-portal-close', 'click', () => closePortalModal());
+
+on('farm-plus-tab', 'click', () => {
+  farmDrawerOpen = !farmDrawerOpen;
+  const drawer = el('farm-plus-drawer');
+  if (drawer) drawer.classList.toggle('hidden', !farmDrawerOpen);
+  playWavSafe(WAV.tab, 0.5);
+});
+
+const portalModalEl = el('portal-modal');
+if (portalModalEl) {
+  portalModalEl.addEventListener('click', (e) => {
+    if (e.target === portalModalEl) closePortalModal();
+  });
+}
+
+petStageCanvas.addEventListener('pointerdown', (e) => {
+  if (!homeEditMode || stageScene !== 'home') return;
+  const rect = petStageCanvas.getBoundingClientRect();
+  const x = ((e.clientX - rect.left) / rect.width) * STAGE_W;
+  const y = ((e.clientY - rect.top) / rect.height) * STAGE_H;
+  const rects = homeLayoutOf();
+  for (let i = rects.length - 1; i >= 0; i -= 1) {
+    const r = rects[i];
+    if (x >= r.x - r.w / 2 - 4 && x <= r.x + r.w / 2 + 4 && y >= r.y - r.h - 4 && y <= r.y + 8) {
+      dragInfo = { id: r.id, dx: x - r.x, dy: y - r.y };
+      try { petStageCanvas.setPointerCapture(e.pointerId); } catch (err) {}
+      e.preventDefault();
+      return;
+    }
+  }
+});
+
+petStageCanvas.addEventListener('pointermove', (e) => {
+  if (!dragInfo) return;
+  const rect = petStageCanvas.getBoundingClientRect();
+  const x = ((e.clientX - rect.left) / rect.width) * STAGE_W;
+  const y = ((e.clientY - rect.top) / rect.height) * STAGE_H;
+  if (!layoutDraft) layoutDraft = {};
+  layoutDraft[dragInfo.id] = {
+    x: Math.max(30, Math.min(450, Math.round(x - dragInfo.dx))),
+    y: Math.max(150, Math.min(352, Math.round(y - dragInfo.dy))),
+  };
+  e.preventDefault();
+});
+
+petStageCanvas.addEventListener('pointermove', (e) => {
+  if (dragInfo) return;
+  const rect = petStageCanvas.getBoundingClientRect();
+  const x = ((e.clientX - rect.left) / rect.width) * STAGE_W;
+  const y = ((e.clientY - rect.top) / rect.height) * STAGE_H;
+  let hover = false;
+  if (stageScene === 'park' && x >= PORTAL_RECT.x - 12 && x <= PORTAL_RECT.x + PORTAL_RECT.w + 12 && y >= PORTAL_RECT.y - 12 && y <= PORTAL_RECT.y + PORTAL_RECT.h + 12) hover = true;
+  const out0 = activeOutdoorAct();
+  if (out0) {
+    const r = RETURN_PORTAL_RECT;
+    if (x >= r.x - 10 && x <= r.x + r.w + 10 && y >= r.y - 12 && y <= r.y + r.h + 8) hover = true;
+  }
+  parkPortalHover = hover;
+  petStageCanvas.style.cursor = hover ? 'pointer' : '';
+});
+
+const endHomeDrag = () => { dragInfo = null; };
+petStageCanvas.addEventListener('pointerup', endHomeDrag);
+petStageCanvas.addEventListener('pointercancel', endHomeDrag);
+
 let lastStepAt = 0;
 let eatPrevState = null;
 let eatMunchAt = 0;
+let stageLoopErrors = 0;
 (function stageLoop() {
+  try {
   const stageNow = performance.now();
   drawStagePet(stageNow);
-  if (petWalk.moving && (!latest || !latest.state || !latest.state.dead) && stageNow - lastStepAt > 240) {
+  const stepSpecies = latest && latest.state && latest.state.pet ? sprites.normalizeSpeciesId(latest.state.pet.species || 'kala') : 'kala';
+  const stepEvo = latest && latest.state && latest.state.pet && latest.state.pet.evolved;
+  const stepFlying = FLYING_PETS.has(stepEvo ? `${stepSpecies}_evo` : stepSpecies);
+  if (petWalk.moving && !petSwimActive && (!latest || !latest.state || (!latest.state.dead && !arenaPetDead())) && stageNow - lastStepAt > (stepFlying ? 450 : 380)) {
     lastStepAt = stageNow;
-    if (cuteSfx) cuteSfx.play('step');
-    if (Math.random() < 0.45) spawnFx('crumb', petWalk.x - 14 * petWalk.dir, petWalk.y + 2, { vy: -0.12, size: 8 });
+    if (sfx && sfx.playWav) sfx.playWav(stepFlying ? WAV.flap : WAV.step, stepFlying ? 0.32 : 0.28);
+    else if (cuteSfx) cuteSfx.play('step');
+    if (!stepFlying && Math.random() < 0.45) spawnFx('crumb', petWalk.x - 14 * petWalk.dir, petWalk.y + 2, { vy: -0.12, size: 8 });
   }
   const nowState = stageStateFor();
   if (nowState === 'EAT' && stageNow - eatMunchAt > 520) {
@@ -2524,6 +3852,10 @@ let eatMunchAt = 0;
     lastFed = null;
   }
   eatPrevState = nowState;
+  } catch (err) {
+    stageLoopErrors += 1;
+    if (stageLoopErrors <= 5) console.error('[Juan Buddy] stage loop error:', err && err.message);
+  }
   requestAnimationFrame(stageLoop);
 })();
 
@@ -2567,14 +3899,8 @@ function renderExtras(d) {
   el('btn-daily').textContent = d.daily.claimedToday ? '✅ Claimed — come back tomorrow!' : `🎁 Claim Daily (+${d.daily.nextReward})`;
   el('btn-daily').disabled = d.daily.claimedToday;
   el('daily-info').textContent = `Streak: ${d.daily.streak} day${d.daily.streak === 1 ? '' : 's'} (best ${d.daily.best})`;
-  const fmEl = el('free-food-note');
-  if (fmEl) fmEl.textContent = d.rewards && d.rewards.freeFoodAvailable ? '1 free random meal — resets at midnight' : 'Claimed — come back tomorrow';
-  const ffb = el('btn-free-food');
-  if (ffb) { const on = d.rewards && d.rewards.freeFoodAvailable; ffb.disabled = !on; ffb.textContent = on ? '🎁 Free Daily Meal!' : '✅ Claimed today'; }
   const chipC = el('btn-gacha-free');
   if (chipC) { const on = d.rewards && d.rewards.freePullAvailable; chipC.disabled = !on; chipC.textContent = on ? '🎁 Free Daily Pull!' : 'Free pull used — resets at midnight'; }
-  const chipG = el('btn-gear-gacha-free');
-  if (chipG) { const on = d.rewards && d.rewards.freePullAvailable; chipG.disabled = !on; chipG.textContent = on ? '🎁 Free Daily Wish!' : 'Free wish used — resets at midnight'; }
 
   if (d.gacha && d.gacha.rates) {
     el('gacha-rates').textContent = `Rates: ${d.gacha.rates.map((g) => `${'★'.repeat(g.stars)} ${g.name} ${g.rate < 1 ? g.rate : g.rate + '%'}`).join(' · ')}`;
@@ -2592,7 +3918,7 @@ function renderExtras(d) {
     nm.textContent = sk.name;
     const btn = document.createElement('button');
     btn.className = 'btn f-feed';
-    btn.textContent = sk.equipped ? '✓ Equipped' : sk.owned ? 'Equip' : sk.gachaOnly ? '🎰 Gacha only' : `💰 ${sk.cost}`;
+    btn.innerHTML = sk.equipped ? '✓ Equipped' : sk.owned ? 'Equip' : sk.gachaOnly ? '🎰 Gacha only' : `${COIN_ICON_HTML}${sk.cost}`;
     btn.disabled = sk.equipped || (!!sk.gachaOnly && !sk.owned);
     btn.addEventListener('click', async () => {
       const res = await api.action(sk.owned ? 'setSkin' : 'buySkin', { skinId: sk.id });
@@ -2607,7 +3933,6 @@ function renderExtras(d) {
 }
 
 on('btn-daily','click', () => act('claimDaily'));
-on('btn-free-food','click', async () => { await act('claimFreeFood'); });
 
 let gachaBusy = false;
 
@@ -2738,7 +4063,7 @@ async function pullGacha(times) {
   const coinLine = document.createElement('div');
   coinLine.className = 'gacha-reward';
   const totalCoins = (res.results || []).reduce((sum, r) => sum + (r.coins || 0), 0);
-  coinLine.textContent = times === 10 ? `${best.name} best of 10 — +${totalCoins} coins total` : `+${best.coins} coins`;
+  coinLine.innerHTML = times === 10 ? `${best.name} best of 10 — +${totalCoins} ${COIN_ICON_HTML} total` : `+${best.coins} ${COIN_ICON_HTML}`;
   const iconLine = document.createElement('div');
   iconLine.className = 'gacha-icon';
   iconLine.textContent = best.icon || '🎰';
@@ -2934,6 +4259,12 @@ if (ecoThemePicks) {
 }
 
 document.addEventListener('pointerdown', startBgmOnGesture);
+
+document.addEventListener('click', (e) => {
+  const b = e.target && e.target.closest ? e.target.closest('button') : null;
+  if (!b || b.disabled) return;
+  playWavSafe(WAV.button, 0.45);
+}, true);
 document.addEventListener('keydown', startBgmOnGesture);
 
 on('btn-credits-close','click', () => {
@@ -2978,30 +4309,6 @@ if (brandLogoEl) {
   });
 }
 
-const monsterCards = {};
-const gearShopCards = {};
-const exploreCards = {};
-let gearGachaBusy = false;
-function monsterPortraitCandidates(id) {
-  return [
-    `../../assets/sprites/battle/monsters/${id}/frames_4x/idle/${id}_idle_01.png`,
-    `../../assets/sprites/battle/monsters/${id}/${id}_static.png`,
-    `../../assets/sprites/battle/monsters/${id}/frames/${id}_frame_01.png`,
-  ];
-}
-function setMonsterPortrait(icoEl, mo, candidates, idx) {
-  icoEl.innerHTML = '';
-  const img = document.createElement('img');
-  img.className = 'pixelated mo-sprite';
-  img.alt = mo.name;
-  img.draggable = false;
-  img.addEventListener('error', () => {
-    if (idx + 1 < candidates.length) setMonsterPortrait(icoEl, mo, candidates, idx + 1);
-    else icoEl.textContent = mo.icon;
-  });
-  img.src = candidates[idx];
-  icoEl.appendChild(img);
-}
 
 function rpgUnlock(d, id) {
   return (d.rpg && d.rpg.unlocks.find((u) => u.id === id)) || { unlocked: false, daysLeft: 99, day: 99, icon: '', name: '', desc: '' };
@@ -3025,103 +4332,6 @@ function renderRpg(d) {
     document.querySelectorAll('#battle-points-row .btn-stat').forEach((btn) => {
       btn.disabled = rpg.statPoints <= 0;
     });
-    const grid = el('monster-grid');
-    if (grid.childElementCount === 0) {
-      for (const mo of rpg.monsters) {
-        const card = document.createElement('div');
-        card.className = 'monster-card';
-        card.innerHTML = `<div class="mo-ico"></div><div class="mo-name"></div><div class="mo-lvl muted"></div><div class="mo-stats muted small"></div><button class="btn btn-amber mo-btn">\u2694\ufe0f Fight</button>`;
-        card.querySelector('.mo-btn').dataset.monster = mo.id;
-        grid.appendChild(card);
-        monsterCards[mo.id] = card;
-      }
-    }
-    for (const mo of rpg.monsters) {
-      const card = monsterCards[mo.id];
-      card.classList.toggle('locked', !mo.canFight);
-      const icoEl = card.querySelector('.mo-ico');
-      const pidKey = `${mo.id}:0`;
-      if (icoEl.dataset.portrait !== pidKey) {
-        icoEl.dataset.portrait = pidKey;
-        setMonsterPortrait(icoEl, mo, monsterPortraitCandidates(mo.id), 0);
-      }
-      card.querySelector('.mo-name').textContent = mo.name;
-      card.querySelector('.mo-lvl').textContent = `Lv ${mo.lvl} monster`;
-      card.querySelector('.mo-stats').textContent = `HP ${mo.hp} \u00b7 ATK ${mo.atk} \u00b7 \ud83e\ude99${mo.coins[0]}-${mo.coins[1]} +${mo.xp}xp \u00b7 \u26a1${mo.energy}`;
-      const btn = card.querySelector('.mo-btn');
-      btn.disabled = !mo.canFight || rpg.cooldownMs > 0;
-      btn.textContent = rpg.cooldownMs > 0
-        ? `\ud83d\udcaa Rest ${Math.ceil(rpg.cooldownMs / 1000)}s`
-        : !mo.canFight ? `Lv ${mo.lvl} + ${mo.energy}\u26a1` : '\u2694\ufe0f Fight';
-    }
-    el('battle-record').textContent = `Record: ${rpg.battle.wins}W \u2014 ${rpg.battle.losses}L \u00b7 Day ${rpg.daysPlayed} of your journey`;
-  }
-
-  const gu = rpgUnlock(d, 'gear');
-  el('gear-lock').classList.toggle('hidden', gu.unlocked);
-  el('gear-body').classList.toggle('hidden', !gu.unlocked);
-  if (!gu.unlocked) {
-    el('gear-lock').textContent = `${gu.icon || '\ud83d\udee1\ufe0f'} ${gu.name} opens in ${gu.daysLeft} more day${gu.daysLeft === 1 ? '' : 's'} (${rpg.daysPlayed}/14 days)`;
-  } else {
-    const slots = el('gear-slots');
-    if (slots.childElementCount === 0) {
-      for (const sl of rpg.gear.slots) {
-        const sdiv = document.createElement('div');
-        sdiv.className = 'gear-slot';
-        sdiv.innerHTML = `<div class="gs-ico"></div><div class="gs-kind muted small">${sl.name}</div><div class="gs-name"></div><div class="gs-stats small muted"></div>`;
-        slots.appendChild(sdiv);
-      }
-    }
-    const slotDivs = slots.querySelectorAll('.gear-slot');
-    const bonusTxt = (g) => {
-      const parts = [];
-      if (g.atk) parts.push(`\u2694\ufe0f+${g.atk}`);
-      if (g.def) parts.push(`\ud83d\udee1\ufe0f+${g.def}`);
-      if (g.spd) parts.push(`\ud83d\udca8+${g.spd}`);
-      return parts.join(' ');
-    };
-    const equippedIds = [];
-    rpg.gear.slots.forEach((sl, i) => {
-      const sdiv = slotDivs[i];
-      const equippedId = rpg.gear.equipped[sl.id];
-      const def = equippedId ? rpg.gearShop.find((g) => g.id === equippedId) || (rpg.gearGacha && rpg.gearGacha.poolPreview || []).find((g) => g.id === equippedId) || null : null;
-      if (equippedId) equippedIds.push(equippedId);
-      sdiv.querySelector('.gs-ico').textContent = def ? def.icon : '\u2795';
-      sdiv.querySelector('.gs-name').textContent = def ? def.name : 'Empty';
-      sdiv.querySelector('.gs-stats').textContent = def ? bonusTxt(def) : '';
-      sdiv.classList.toggle('filled', !!def);
-    });
-    el('gear-gacha-rates').textContent = `Rates: ${rpg.gearGacha.rates.map((g) => `${'\u2605'.repeat(g.stars)} ${g.name} ${g.rate < 1 ? g.rate : g.rate + '%'}`).join(' \u00b7 ')}`;
-    el('gear-gacha-stats').textContent = `Wishes: ${rpg.gearGacha.pulls} \u00b7 Legendaries: ${rpg.gearGacha.fiveStars} \u00b7 \ud83c\udfaf Mythics: ${rpg.gearGacha.mythics} \u2014 strongest weapons live here! \ud83c\udf40`;
-    const shop = el('gear-shop');
-    if (shop.childElementCount === 0) {
-      for (const g of rpg.gearShop) {
-        const card = document.createElement('div');
-        card.className = `gear-card gr-${g.rarity}`;
-        card.innerHTML = `<div class="gc-ico"></div><div class="gc-name"></div><div class="gc-stats small muted"></div><button class="btn btn-amber gc-btn"></button>`;
-        const btn = card.querySelector('.gc-btn');
-        btn.dataset.gearbuy = g.id;
-        btn.dataset.gearequip = g.id;
-        shop.appendChild(card);
-        gearShopCards[g.id] = card;
-      }
-    }
-    for (const g of rpg.gearShop) {
-      const card = gearShopCards[g.id];
-      card.querySelector('.gc-ico').textContent = g.icon;
-      card.querySelector('.gc-name').textContent = g.name;
-      card.querySelector('.gc-stats').textContent = bonusTxt(g) || '\u2014';
-      const btn = card.querySelector('.gc-btn');
-      btn.disabled = false;
-      if (equippedIds.includes(g.id)) {
-        btn.textContent = '\u2713 Unequip';
-      } else if (rpg.gear.owned.includes(g.id)) {
-        btn.textContent = '\ud83e\uddf3 Equip';
-      } else {
-        btn.textContent = '\ud83c\udfaf From Equipment Wish';
-        btn.disabled = true;
-      }
-    }
   }
 
   const pu = rpgUnlock(d, 'path');
@@ -3172,87 +4382,11 @@ function renderRpg(d) {
   }
 }
 
-function renderExplore(d) {
-  const grid = el('explore-grid');
-  if (!grid) return;
-  const spots = d.activities.filter((a) => a.outdoor);
-  if (grid.childElementCount === 0) {
-    for (const a of spots) {
-      const card = document.createElement('div');
-      card.className = 'explore-card';
-      card.innerHTML = `<div class="ex-ico"></div><div class="ex-name"></div><div class="ex-desc muted small"></div><div class="ex-meta muted small"></div><button class="btn btn-amber ex-btn">\ud83c\udf10 Explore</button>`;
-      card.querySelector('.ex-btn').dataset.explore = a.id;
-      grid.appendChild(card);
-      exploreCards[a.id] = card;
-    }
-  }
-  for (const a of spots) {
-    const card = exploreCards[a.id];
-    if (!card) continue;
-    card.classList.toggle('active', a.active);
-    card.classList.toggle('locked', a.cooldownRemainingMs > 0 && !a.active);
-    card.querySelector('.ex-ico').textContent = a.icon;
-    card.querySelector('.ex-name').textContent = a.name;
-    card.querySelector('.ex-desc').textContent = a.desc;
-    card.querySelector('.ex-meta').textContent = `${a.duration}s \u00b7 \u26a1${a.energy} \u00b7 \ud83e\ude99${a.coins[0]}-${a.coins[1]} \u00b7 +${a.xp}xp \u00b7 cd ${a.cooldown}s`;
-    const btn = card.querySelector('.ex-btn');
-    btn.disabled = a.active || d.dead;
-    btn.textContent = a.active ? `\u23f3 Out exploring... ${Math.max(0, Math.ceil((a.endsAt - Date.now()) / 1000))}s` : a.cooldownRemainingMs > 0 ? `\u23f3 ${Math.ceil(a.cooldownRemainingMs / 1000)}s` : '\ud83c\udf10 Explore';
-  }
-}
-
 on('battle-points-row','click', async (e) => {
   const btn = e.target.closest('button[data-stat]');
   if (!btn || btn.disabled) return;
   const res = await api.action('allocateStat', { statId: btn.dataset.stat });
   showToast((res && res.message) || '. ..', 1800);
-});
-
-on('monster-grid','click', async (e) => {
-  const btn = e.target.closest('button[data-monster]');
-  if (!btn || btn.disabled) return;
-  btn.disabled = true;
-  const res = await api.action('battleMonster', { monsterId: btn.dataset.monster });
-  if (res && res.ok) {
-    setBgmOverride('battle', 40000);
-    const mon = latest && latest.derived && latest.derived.rpg && latest.derived.rpg.monsters
-      ? latest.derived.rpg.monsters.find((m) => m.id === btn.dataset.monster) : null;
-    if (mon) startBattleFx(mon, res.win);
-  }
-  if (res && res.ok && res.win) {
-    for (let i = 0; i < 8; i += 1) spawnFx('coin', STAGE_CX + (Math.random() * 140 - 70), 110 + Math.random() * 40, { vy: -0.5, size: 18 });
-  } else if (res && res.ok) {
-    spawnFx('z', STAGE_CX, 160, { vy: -0.3, size: 16 });
-  }
-  showToast((res && res.message) || '. ..', 2800);
-});
-
-on('gear-shop','click', async (e) => {
-  const buyBtn = e.target.closest('button[data-gearbuy]');
-  const eqBtn = e.target.closest('button[data-gearequip]');
-  if (buyBtn && !eqBtn) {
-    const res = await api.action('buyGear', { gearId: buyBtn.dataset.gearbuy });
-    showToast((res && res.message) || '. ..', 2400);
-  } else if (eqBtn) {
-    const res = await api.action('equipGear', { gearId: eqBtn.dataset.gearequip });
-    showToast((res && res.message) || '. ..', 2400);
-  }
-});
-
-on('gear-slots','click', async (e) => {
-  const sdiv = e.target.closest('.gear-slot');
-  if (!sdiv) return;
-  const idx = Array.from(sdiv.parentElement.children).indexOf(sdiv);
-  const rpg = latest && latest.derived && latest.derived.rpg;
-  if (!rpg) return;
-  const slotId = ['weapon', 'armor', 'charm'][idx];
-  const equipped = rpg.gear.equipped[slotId];
-  if (!equipped) {
-    showToast('\ud83d\uddee Empty slot! Buy or win gear in the list below, then tap Equip.', 2400);
-    return;
-  }
-  const res = await api.action('equipGear', { gearId: equipped });
-  showToast((res && res.message) || '. ..', 2000);
 });
 
 let pathPending = null;
@@ -3271,173 +4405,34 @@ on('path-cards','click', async (e) => {
   showToast((res && res.message) || '. ..', 3600);
 });
 
-on('explore-grid','click', async (e) => {
-  const btn = e.target.closest('button[data-explore]');
-  if (!btn || btn.disabled) return;
-  const res = await api.action('startActivity', { activityId: btn.dataset.explore });
-  showToast((res && res.message) || '. ..', 2400);
-});
 
-async function pullGearWish(times) {
-  if (gearGachaBusy) return;
-  gearGachaBusy = true;
-  const frame = el('gear-gacha-frame');
-  const resultEl = el('gear-gacha-result');
-  frame.classList.add('spinning');
-  const res = await api.action('pullGearGacha', { times });
-  frame.classList.remove('spinning');
-  if (!res || !res.ok) {
-    sfxOnce('error');
-    showToast((res && res.message) || '. ..', 2200);
-    gearGachaBusy = false;
-    return;
-  }
-  if (cuteSfx) cuteSfx.play('chime');
-  await runWishReveal(res, times);
-  gearGachaBusy = false;
-  const best = res.best || {};
-  sfxOnce(best.rarity === 'mythic' ? 'levelup' : 'coin');
-  if (best.stars >= 4) spawnConfetti(frame, best.stars);
-  resultEl.className = `gacha-result r-${best.rarity}`;
-  resultEl.innerHTML = `<div class="gacha-icon">${best.gearIcon || best.icon || '🎰'}</div><div class="gacha-stars">${'\u2b50'.repeat(best.stars)}</div><div class="gacha-rarity">${best.rarity.toUpperCase()}</div><div class="gacha-reward">${best.gearUnlocked ? `\ud83d\udee1\ufe0f NEW GEAR: ${best.gearUnlocked}<br>` : ''}+\ud83e\ude99${best.coins}</div>`;
-  resultEl.classList.remove('hidden');
-  setTimeout(() => resultEl.classList.add('hidden'), 3400);
-}
 
-on('btn-gear-gacha-free','click', () => pullGearWish(1));
-on('btn-gear-gacha-1','click', () => pullGearWish(1));
-on('btn-gear-gacha-10','click', () => pullGearWish(10));
-
-// ===== Cozy Bag: cosmetics & equipment inventory with PNG item icons =====
+// ===== Evo popup tracking (Cozy Bag feature is disabled for rework) =====
 const evoTrack = { shown: false };
-const bagCards = {};
+const EVO_POPUP_KEY_PREFIX = 'juanbuddy-evo-popup-';
 
-function itemIconNode(itemId, fallbackEmoji) {
-  const folder = itemId.startsWith('cos_') ? 'cosmetics' : 'equipment';
-  const img = new Image();
-  img.className = 'bag-ico pixelated';
-  img.onerror = () => {
-    const fb = document.createElement('span');
-    fb.className = 'bag-ico';
-    fb.textContent = fallbackEmoji;
-    if (img.parentNode) img.parentNode.replaceChild(fb, img);
-  };
-  img.src = `../../assets/sprites/items/${folder}/${itemId}.png`;
-  return img;
+function evoPopupAlreadyShown(speciesId) {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem(EVO_POPUP_KEY_PREFIX + speciesId) === '1';
+  } catch (err) { return false; }
 }
 
-function bonusText(it) {
-  const parts = [];
-  if (it.str) parts.push(`+${it.str} STR`);
-  if (it.def) parts.push(`+${it.def} DEF`);
-  if (it.agi) parts.push(`+${it.agi} AGI`);
-  if (it.mag) parts.push(`+${it.mag} MAG`);
-  if (it.luk) parts.push(`+${it.luk} LUK`);
-  return parts.length ? parts.join(' ') : (it.id === 'eq_evo_stone' ? 'Unlocks Stage 2 Evolution' : 'Keepsake');
+function markEvoPopupShown(speciesId) {
+  try {
+    if (typeof localStorage !== 'undefined') localStorage.setItem(EVO_POPUP_KEY_PREFIX + speciesId, '1');
+  } catch (err) { /* storage unavailable */ }
 }
 
-const petShopTiles = {};
-function renderPetShop(d) {
-  const wrap = el('pet-shop');
-  if (!wrap || !d.petShop) return;
-  for (const pt of d.petShop) {
-    let card = petShopTiles[pt.id] || document.createElement('div');
-    if (!petShopTiles[pt.id]) {
-      card.className = 'pet-shop-card';
-      card.dataset.shoppet = pt.id;
-      const img = document.createElement('img');
-      const anim = PET_PREVIEW_PNG[pt.id];
-      img.className = 'pixelated petshop-ico';
-      img.src = anim || '';
-      const body = document.createElement('div');
-      body.innerHTML = '<div class="b-name"></div><div class="b-bonus small muted"></div>';
-      const btn = document.createElement('button');
-      btn.className = 'btn btn-violet b-btn';
-      card.appendChild(img);
-      card.appendChild(body);
-      card.appendChild(btn);
-      card._els = { name: body.querySelector('.b-name'), desc: body.querySelector('.b-bonus'), btn };
-      wrap.appendChild(card);
-      petShopTiles[pt.id] = card;
+function clearEvoPopupFlags() {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    const doomed = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (key && key.indexOf(EVO_POPUP_KEY_PREFIX) === 0) doomed.push(key);
     }
-    card._els.name.textContent = `${pt.icon} ${pt.name}`;
-    card._els.desc.textContent = pt.desc;
-    const btn = card._els.btn;
-    if (pt.owned) { btn.textContent = '\u2713 Adopted!'; btn.disabled = true; }
-    else {
-      btn.textContent = `\ud83e\ude99${pt.cost.toLocaleString('en-US')}`;
-      btn.disabled = d.coins < pt.cost;
-    }
-  }
-}
-
-on('pet-shop', 'click', async (e) => {
-  const card = e.target.closest('[data-shoppet]');
-  if (!card) return;
-  const btn = card.querySelector('button');
-  if (btn && btn.disabled) return;
-  await act('buyShopPet', { petId: card.dataset.shoppet });
-});
-
-function renderBag(d) {
-  const r = d.rpg;
-  const lock = el('bag-lock');
-  const body = el('bag-body');
-  const unlock = (r.unlocks || []).find((u) => u.id === 'items');
-  if (!unlock || !unlock.unlocked) {
-    lock.classList.remove('hidden');
-    lock.textContent = unlock
-      ? `${unlock.icon} ${unlock.name} unlocks after ${unlock.day} days of play \u2014 ${unlock.daysLeft} day${unlock.daysLeft === 1 ? '' : 's'} to go!`
-      : 'The Cozy Bag is still locked.';
-    body.classList.add('hidden');
-    return;
-  }
-  lock.classList.add('hidden');
-  body.classList.remove('hidden');
-  const b = r.items.bonus;
-  el('bag-bonus').textContent = `Bag bonus \u00b7 STR +${b.str} \u00b7 DEF +${b.def} \u00b7 AGI +${b.agi} \u00b7 MAG +${b.mag} \u00b7 LUK +${b.luk}${r.items.evolved ? ' \u00b7 \u2b50 Stage 2 (+25%)' : ''}`;
-  const stone = el('bag-evostone');
-  if (r.items.evolutionNote !== false) {
-    stone.textContent = r.items.evoStoneCount > 0
-      ? `\ud83d\udd2e ${r.items.evoStoneCount} Evo Stone${r.items.evoStoneCount === 1 ? '' : 's'} in your bag${r.items.evolved ? ' \u2014 already Stage 2!' : ' \u2014 evolve anytime, or wait for Level 10!'}`
-      : (r.items.evolved ? '\u2728 Stage 2 achieved \u2014 bathala-level style!' : `\ud83d\udd2e Evo Stone auto-evolves at Level ${r.items.evolveAt}`);
-  }
-  const grid = el('bag-grid');
-  grid.innerHTML = '';
-  for (const it of r.items.shop) {
-    let card = bagCards[it.id] || document.createElement('div');
-    if (!bagCards[it.id]) {
-      card.className = 'bag-card';
-      card.dataset.item = it.id;
-      card.appendChild(itemIconNode(it.id, it.icon));
-      const mid = document.createElement('div');
-      mid.innerHTML = '<div class="b-name"></div><div class="b-bonus"></div><div class="b-slot"></div>';
-      const btn = document.createElement('button');
-      btn.className = 'btn b-btn';
-      card.appendChild(mid);
-      card.appendChild(btn);
-      card._els = {
-        name: mid.querySelector('.b-name'),
-        bonus: mid.querySelector('.b-bonus'),
-        slot: mid.querySelector('.b-slot'),
-        btn,
-      };
-    }
-    card._els.name.textContent = `${it.icon} ${it.name}`;
-    card._els.bonus.textContent = bonusText(it);
-    const rlabel = it.rarity ? it.rarity.charAt(0).toUpperCase() + it.rarity.slice(1) : '';
-    card._els.slot.textContent = `${rlabel ? rlabel + ' \u00b7 ' : ''}${it.kind === 'cosmetic' ? `Cosmetic \u00b7 ${it.slot}` : `${it.type}${it.kind === 'special' ? ' \u00b7 keepsake' : ''}`}`;
-    const btn = card._els.btn;
-    if (!it.owned) {
-      btn.innerHTML = `<img class="eco-pixel bag-coin-icon" src="assets/icons/coin_gold_leaf.png" alt="" draggable="false"> ${it.cost}`;
-      btn.disabled = !!latest.state.dead || latest.state.coins < it.cost;
-    } else if (it.equipped) {
-      btn.textContent = 'Unequip';
-    } else {
-      btn.textContent = 'Equip';
-    }
-    grid.appendChild(card);
-  }
+    for (const key of doomed) localStorage.removeItem(key);
+  } catch (err) { /* ignore */ }
 }
 
 function showEvoPopup(speciesId) {
@@ -3475,6 +4470,15 @@ on('bag-grid','click', (e) => {
   if (!it) return;
   if (!it.owned) act('buyItem', { itemId });
   else act('equipItem', { itemId });
+});
+
+on('pet-shop','click', (e) => {
+  const card = e.target.closest('.pet-shop-card');
+  if (!card || !card.dataset.shoppet) return;
+  const pt = latest && latest.derived && latest.derived.petShop
+    ? latest.derived.petShop.find((x) => x.id === card.dataset.shoppet) : null;
+  if (pt && pt.owned) return;
+  act('buyShopPet', { petId: card.dataset.shoppet });
 });
 
 
@@ -3555,7 +4559,7 @@ function renderQuestsPop() {
       btn.disabled = true;
       btn.textContent = '\u2705 Claimed';
     } else {
-      btn.textContent = `+${q.rewardCoins || 40} coins`;
+      btn.innerHTML = `+${q.rewardCoins || 40} ${COIN_ICON_HTML}`;
       btn.disabled = !def.done;
       btn.addEventListener('click', async () => {
         const res = await act('claimQuest', { questId: def.id });
@@ -3684,7 +4688,7 @@ function renderCalendar() {
   el('checkin-streak').textContent = `${daily.streak}-day streak \u00b7 best ${daily.best}`;
   el('checkin-preview').textContent = daily.claimedToday
     ? '\u2705 Checked in today \u2014 next reward tomorrow!'
-    : `Today's reward: +${daily.nextReward} coins`;
+    : `Today's reward: +${daily.nextReward} ${COIN_ICON_HTML}`;
   const btn = el('checkin-claim');
   btn.disabled = daily.claimedToday;
   btn.textContent = daily.claimedToday ? '\u2705 Come back tomorrow!' : '\u{1F331} Check In & Claim';
@@ -3737,3 +4741,102 @@ document.addEventListener('click', (e) => {
   if (!b || b.disabled) return;
   if (cuteSfx) cuteSfx.play('pop');
 }, true);
+
+// ===== Buddy profile modal (click your buddy up top) =====
+const RENAME_COST = 10000;
+let buddyProfileEsc = null;
+
+function closeBuddyProfile() {
+  const modal = el('buddy-profile-modal');
+  if (modal) modal.classList.add('hidden');
+  if (buddyProfileEsc) { document.removeEventListener('keydown', buddyProfileEsc); buddyProfileEsc = null; }
+}
+
+function openBuddyProfile() {
+  const modal = el('buddy-profile-modal');
+  const body = el('buddy-profile-body');
+  const d = latest && latest.derived;
+  const st = latest && latest.state;
+  if (!modal || !body || !d || !st) return;
+  const pet = st.pet || {};
+  const species = sprites.normalizeSpeciesId(pet.species || 'kala');
+  const rpg = d.rpg || {};
+  const bs = rpg.battle || {};
+  const col = d.collection || {};
+  const kit = col.activeKit || null;
+  const battleBase = '../../assets/battle/';
+  const faceSrc = PET_PREVIEW_PNG[species] || '';
+  const xpNow = Math.floor(pet.xp || 0);
+  const xpNext = Math.max(1, d.nextLevelXp || 1);
+  const xpPct = Math.min(100, Math.round((xpNow / xpNext) * 100));
+  const renameFree = !!(st.milestones && st.milestones.rename60);
+  const renameLabel = renameFree ? '\u270F\uFE0F Rename (Free \u2014 60-day milestone!)' : `\u270F\uFE0F Rename \u2014 ${RENAME_COST.toLocaleString()}g`;
+
+  const kitHtml = kit
+    ? [['Active Skill', kit.skill], ['Battle Talent', kit.talent], ['Collection Passive', kit.passive]].map(([label, item]) => `
+        <div class="jb-bp-item" title="${item ? (item.desc || '').replace(/"/g, '&quot;') : ''}">
+          ${item && item.iconUrl ? `<img src="${battleBase}${item.iconUrl}" alt="" draggable="false" />` : '<span class="jb-bp-emoji">\uD83D\uDC3E</span>'}
+          <div class="jb-bp-item-txt">
+            <span class="jb-bp-label">${label}</span>
+            <span class="jb-bp-name">${item ? item.name : '\u2014'}</span>
+          </div>
+        </div>`).join('')
+    : '<div class="jb-bp-item"><span class="jb-bp-emoji">\uD83E\uDD5A</span><div class="jb-bp-item-txt"><span class="jb-bp-label">Egg Charm</span><span class="jb-bp-name">Hatch to unlock skills!</span></div></div>';
+
+  const invSlots = Array.from({ length: 8 }, () => '<div class="bp-inv-slot" title="Gear slot \u2014 coming in a future update!">\uD83D\uDD12</div>').join('');
+
+  body.innerHTML = `
+    <div class="bp-profile-head">
+      <img class="bp-face pixelated" src="${faceSrc}" alt="" draggable="false" />
+      <div class="bp-profile-id">
+        <div class="bp-profile-name">${pet.name || 'Buddy'} <span class="bp-profile-lvl">LV ${pet.level || 1}</span></div>
+        <div class="bp-profile-sub">\u23F3 ${rpg.daysPlayed || 0} day${(rpg.daysPlayed || 0) === 1 ? '' : 's'} played \u00b7 \u2694\uFE0F ${bs.wins || 0}W / ${bs.losses || 0}L \u00b7 \uD83D\uDC3E ${col.count || 1} buddy collected</div>
+      </div>
+    </div>
+    <div class="bp-section-title">\u2B50 Character Stats</div>
+    <div class="bp-stats-grid">
+      <div class="bp-stat"><span>\u2694\uFE0F ATK</span><b>${bs.atk || 0}</b></div>
+      <div class="bp-stat"><span>\uD83D\uDEE1\uFE0F DEF</span><b>${bs.def || 0}</b></div>
+      <div class="bp-stat"><span>\uD83D\uDCA8 SPD</span><b>${bs.spd || 0}</b></div>
+    </div>
+    <div class="bp-xp-row">
+      <span class="jb-bp-label">EXP Progress</span>
+      <div class="bp-xp-track"><div class="bp-xp-fill" style="width:${xpPct}%"></div></div>
+      <span class="bp-xp-num">${xpNow.toLocaleString()} / ${xpNext.toLocaleString()} (${xpPct}%)</span>
+    </div>
+    <div class="bp-section-title">\u2694\uFE0F Battle Kit</div>
+    <div class="jb-bp-kit bp-kit-grid">${kitHtml}</div>
+    <div class="bp-section-title">\uD83C\uDF92 Inventory <small class="muted">\u2014 gear slots coming soon</small></div>
+    <div class="bp-inv-grid">${invSlots}</div>
+    <div class="bp-section-title">\u270F\uFE0F Rename</div>
+    <div class="bp-rename-row">
+      <input id="bp-rename-input" class="name-input" maxlength="16" value="${(pet.name || 'Buddy').replace(/"/g, '&quot;')}" autocomplete="off" />
+      <button id="bp-rename-btn" class="btn btn-amber">${renameLabel}</button>
+    </div>
+    ${renameFree ? '' : `<p class="muted small" style="margin:6px 0 0;">\uD83D\uDCB0 Renaming costs 10,000 gold \u00b7 free forever after the 60-day milestone!</p>`}
+  `;
+
+  const renameBtn = body.querySelector('#bp-rename-btn');
+  const renameInput = body.querySelector('#bp-rename-input');
+  if (renameBtn && renameInput) {
+    renameBtn.addEventListener('click', async () => {
+      const name = (renameInput.value || '').trim();
+      if (!name) return;
+      const res = await act('rename', { name });
+      if (res && res.ok !== false) {
+        const snap = await api.getState();
+        if (snap) render(snap);
+        openBuddyProfile();
+      }
+    });
+  }
+  on('bp-close', 'click', () => closeBuddyProfile());
+
+  modal.classList.remove('hidden');
+  if (buddyProfileEsc) document.removeEventListener('keydown', buddyProfileEsc);
+  buddyProfileEsc = (e) => { if (e.key === 'Escape') closeBuddyProfile(); };
+  document.addEventListener('keydown', buddyProfileEsc);
+}
+
+const brandBadgeEl = document.querySelector('.brand-badge');
+if (brandBadgeEl) brandBadgeEl.addEventListener('click', () => openBuddyProfile());

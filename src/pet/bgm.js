@@ -253,13 +253,23 @@
     if (cs && cs.src && /^(https?|file):/i.test(cs.src) && cs.src.indexOf('blob:') !== 0) BGM_BASE = cs.src;
   } catch (err) { BGM_BASE = ''; }
 
+  // Browser pages (PWA / GitHub Pages / Capacitor localhost) keep music next to
+  // the page in bgm/, so the page-relative URL loads without a 404 detour.
+  // The desktop Electron build (file://) resolves assets via the script path instead.
+  function pageRelativeFirst() {
+    try {
+      if (typeof root.location !== 'undefined' && /^(https?):/i.test(root.location.href)) return true;
+    } catch (err) { /* ignore */ }
+    return false;
+  }
+
   function assetUrls(rel) {
-    const urls = [];
+    const base = [];
     if (BGM_BASE) {
-      try { urls.push(new URL('../../assets/' + rel, BGM_BASE).href); } catch (err) { /* ignore */ }
+      try { base.push(new URL('../../assets/' + rel, BGM_BASE).href); } catch (err) { /* ignore */ }
     }
-    urls.push(rel);
-    return urls;
+    base.push(rel);
+    return pageRelativeFirst() ? base.reverse() : base;
   }
 
   function mp3Volume() { return Math.max(0, Math.min(1, volume * 0.5)); }
@@ -270,6 +280,78 @@
       mp3Audio = null;
     }
     mp3Role = null;
+  }
+
+  const COMBAT_FILE = 'bgm/mp3/pixel_combat.mp3';
+  let combatAudio = null;
+  let combatRamp = null;
+  let combatWanted = false;
+  let ambientBeforeCombat = null;
+
+  function stopCombatRamp() {
+    if (combatRamp) { clearInterval(combatRamp); combatRamp = null; }
+  }
+
+  function playCombatMusic() {
+    if (!enabled || !mp3Supported()) return false;
+    hookGestureRecovery();
+    combatWanted = true;
+    if (mp3Audio && !mp3Audio.paused) {
+      ambientBeforeCombat = mp3Role;
+      try { mp3Audio.pause(); } catch (err) { /* ignore */ }
+    }
+    if (!combatAudio) {
+      const urls = assetUrls(COMBAT_FILE);
+      try {
+        combatAudio = new root.Audio();
+        combatAudio.loop = true;
+        combatAudio.volume = 0;
+        let u = 0;
+        combatAudio.src = urls[0];
+        combatAudio.onerror = () => {
+          u += 1;
+          if (combatAudio && u < urls.length) {
+            combatAudio.src = urls[u];
+            const r = combatAudio.play();
+            if (r && r.catch) r.catch(() => {});
+            return;
+          }
+          combatAudio = null;
+        };
+      } catch (err) { combatAudio = null; return false; }
+    }
+    const q = combatAudio.play();
+    if (q && typeof q.catch === 'function') q.catch(() => { /* autoplay guard */ });
+    stopCombatRamp();
+    const target = mp3Volume();
+    combatRamp = setInterval(() => {
+      if (!combatAudio) { stopCombatRamp(); return; }
+      let v = Number(combatAudio.volume) || 0;
+      v = Math.min(target, v + target / 12);
+      try { combatAudio.volume = v; } catch (err) { stopCombatRamp(); return; }
+      if (v >= target) stopCombatRamp();
+    }, 100);
+    return true;
+  }
+
+  function stopCombatMusic() {
+    combatWanted = false;
+    if (!combatAudio) return;
+    stopCombatRamp();
+    const audio = combatAudio;
+    combatRamp = setInterval(() => {
+      let v = Number(audio.volume) || 0;
+      v = Math.max(0, v - mp3Volume() / 8);
+      try { audio.volume = v; } catch (err) { v = 0; }
+      if (v <= 0) {
+        stopCombatRamp();
+        try { audio.pause(); } catch (err) { /* ignore */ }
+        if (combatAudio === audio) combatAudio = null;
+        const role = ambientBeforeCombat;
+        ambientBeforeCombat = null;
+        if (role && enabled && combatWanted === false) play(role);
+      }
+    }, 100);
   }
 
   function mp3Supported() { return typeof root.Audio === 'function'; }
@@ -304,7 +386,7 @@
         mp3Role = null;
       };
       audio.addEventListener('ended', () => {
-        if (!enabled || !mp3Supported() || mp3Broken) return;
+        if (!enabled || !mp3Supported() || mp3Broken || combatWanted) return;
         startMp3(pickSong(), role);
       });
       const q = audio.play();
@@ -347,6 +429,8 @@
   function play(name) {
     const def = TRACKS[name];
     if (!def || !enabled) return Promise.resolve(false);
+    if (combatWanted) return Promise.resolve(true);
+    hookGestureRecovery();
     if (mp3Supported() && !mp3Broken) {
       if (mp3Role === name && mp3Audio) return Promise.resolve(true);
       stop();
@@ -402,10 +486,33 @@
     if (mp3Audio) { try { mp3Audio.volume = mp3Volume(); } catch (err) { /* ignore */ } }
   }
 
+  // Some browsers (iOS Safari, Chrome with strict media engagement) block
+  // autoplay retries that happen outside a real user gesture — e.g. when an
+  // async load error swaps the song URL after the tap that started the track.
+  // One lightweight listener keeps both the AudioContext and any paused MP3
+  // alive on every later interaction, so music resumes as soon as it can.
+  let gestureRecoveryHooked = false;
+  function hookGestureRecovery() {
+    if (gestureRecoveryHooked || typeof document === 'undefined' || !document.addEventListener) return;
+    gestureRecoveryHooked = true;
+    const kick = () => {
+      if (!enabled) return;
+      if (ctx && ctx.state === 'suspended') {
+        try { ctx.resume(); } catch (err) { /* ignore */ }
+      }
+      if (mp3Audio && mp3Audio.paused && !combatWanted) {
+        try { mp3Audio.src = mp3Audio.src; } catch (err) { /* ignore */ }
+        const q = mp3Audio.play();
+        if (q && typeof q.catch === 'function') q.catch(() => { /* still blocked; wait for next gesture */ });
+      }
+    };
+    ['pointerdown', 'keydown', 'touchend'].forEach((ev) => document.addEventListener(ev, kick, { passive: true }));
+  }
+
   function setEnabled(on) {
     enabled = !!on;
     try { localStorage.setItem('juanbuddy-bgm', on ? 'on' : 'off'); } catch (err) { /* ignore */ }
-    if (!enabled) stop();
+    if (!enabled) { stopCombatMusic(); stop(); }
   }
 
   function getVolume() { return volume; }
@@ -417,6 +524,8 @@
     MP3_SONGS,
     play,
     stop,
+    playCombatMusic,
+    stopCombatMusic,
     ambientForHour,
     setVolume,
     getVolume,

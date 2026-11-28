@@ -1,0 +1,422 @@
+{
+  "pack_name": "Juan Buddy - Explore Asia 8-Bit Animated Pack",
+  "native_resolution": {
+    "width": 160,
+    "height": 100
+  },
+  "exported_resolution": {
+    "width": 640,
+    "height": 400,
+    "scale_factor": 4,
+    "rendering": "image-rendering: pixelated"
+  },
+  "shared_effects": {
+    "skies": {
+      "day": "shared_effects/sky_day.png",
+      "sunset": "shared_effects/sky_sunset.png",
+      "night": "shared_effects/sky_night.png"
+    },
+    "celestial": {
+      "sun": {
+        "file": "shared_effects/sun_anim_4f.png",
+        "frames": 4,
+        "frame_size": [
+          96,
+          96
+        ]
+      },
+      "moon": {
+        "file": "shared_effects/moon_anim_4f.png",
+        "frames": 4,
+        "frame_size": [
+          96,
+          96
+        ]
+      }
+    },
+    "weather": {
+      "rain": {
+        "file": "shared_effects/weather_rain_4f.png",
+        "frames": 4,
+        "frame_size": [
+          640,
+          400
+        ]
+      },
+      "wind": {
+        "file": "shared_effects/weather_wind_4f.png",
+        "frames": 4,
+        "frame_size": [
+          640,
+          400
+        ]
+      }
+    },
+    "pet_swim_ripple": {
+      "file": "shared_effects/pet_swim_ripple_4f.png",
+      "frames": 4,
+      "frame_size": [
+        128,
+        64
+      ]
+    }
+  },
+  "locations": {
+    "buddy_park": {
+      "folder": "01_buddy_park",
+      "weather_affected": true,
+      "night_lamps_only": true,
+      "backgrounds": {
+        "day": "bg_day.png",
+        "sunset": "bg_sunset.png",
+        "night": "bg_night.png"
+      },
+      "animations": [
+        {
+          "name": "dating_animals_bench",
+          "file": "dating_animals_bench_4f.png",
+          "frames": 4,
+          "frame_size": [
+            128,
+            96
+          ],
+          "pos": [
+            160,
+            224
+          ]
+        },
+        {
+          "name": "butterflies",
+          "file": "butterflies_4f.png",
+          "frames": 4,
+          "frame_size": [
+            64,
+            64
+          ],
+          "roam": true
+        },
+        {
+          "name": "dragonflies",
+          "file": "dragonflies_4f.png",
+          "frames": 4,
+          "frame_size": [
+            64,
+            64
+          ],
+          "roam": true
+        },
+        {
+          "name": "lamps_night_glow",
+          "file": "lamps_night_glow_4f.png",
+          "frames": 4,
+          "frame_size": [
+            640,
+            400
+          ],
+          "pos": [
+            0,
+            0
+          ],
+          "condition": "time === 'night'"
+        }
+      ]
+    },
+    "manila_baywalk": {
+      "folder": "02_manila_baywalk",
+      "celestial_cycle": {
+        "enabled": true,
+        "slow_sunset": true,
+        "show_moon_at_night": true
+      },
+      "backgrounds": {
+        "day": "bg_day.png",
+        "sunset": "bg_sunset.png",
+        "night": "bg_night.png"
+      },
+      "animations": [
+        {
+          "name": "water_shimmer",
+          "file": "water_shimmer_4f.png",
+          "frames": 4,
+          "frame_size": [
+            640,
+            88
+          ],
+          "pos": [
+            0,
+            192
+          ]
+        },
+        {
+          "name": "sea_birds",
+          "file": "sea_birds_4f.png",
+          "frames": 4,
+          "frame_size": [
+            64,
+            48
+          ],
+          "roam_sky": true
+        },
+        {
+          "name": "walking_people",
+          "file": "walking_people_4f.png",
+          "frames": 4,
+          "frame_size": [
+            64,
+            96
+          ],
+          "patrol_y": 272
+        },
+        {
+          "name": "kalesa",
+          "file": "kalesa_4f.png",
+          "frames": 4,
+          "frame_size": [
+            176,
+            104
+          ],
+          "patrol_y": 280
+        }
+      ]
+    },
+    "floating_market": {
+      "folder": "03_floating_market",
+      "water_zone": {
+        "x": 0,
+        "y": 200,
+        "width": 456,
+        "height": 200,
+        "trigger_pet_swim": true
+      },
+      "land_zone": {
+        "x": 456,
+        "y": 176,
+        "width": 184,
+        "height": 224,
+        "trigger_pet_swim": false
+      },
+      "backgrounds": {
+        "day": "bg_day.png",
+        "sunset": "bg_sunset.png",
+        "night": "bg_night.png"
+      },
+      "animations": [
+        {
+          "name": "canal_water",
+          "file": "canal_water_4f.png",
+          "frames": 4,
+          "frame_size": [
+            456,
+            200
+          ],
+          "pos": [
+            0,
+            200
+          ]
+        },
+        {
+          "name": "vendor_boats",
+          "file": "vendor_boats_4f.png",
+          "frames": 4,
+          "frame_size": [
+            168,
+            96
+          ],
+          "patrol_canal": true
+        },
+        {
+          "name": "coffee_monitor_lizard",
+          "file": "coffee_monitor_lizard_4f.png",
+          "frames": 4,
+          "frame_size": [
+            96,
+            96
+          ],
+          "pos": [
+            528,
+            216
+          ]
+        }
+      ]
+    },
+    "kyoto_zen_garden": {
+      "folder": "04_kyoto_zen_garden",
+      "windy": true,
+      "backgrounds": {
+        "day": "bg_day.png",
+        "sunset": "bg_sunset.png",
+        "night": "bg_night.png"
+      },
+      "animations": [
+        {
+          "name": "windy_trees",
+          "file": "windy_trees_4f.png",
+          "frames": 4,
+          "frame_size": [
+            640,
+            400
+          ],
+          "pos": [
+            0,
+            0
+          ]
+        },
+        {
+          "name": "shiba_inu",
+          "file": "shiba_inu_4f.png",
+          "frames": 4,
+          "frame_size": [
+            80,
+            80
+          ],
+          "pos": [
+            296,
+            288
+          ]
+        },
+        {
+          "name": "falling_sakura",
+          "file": "falling_sakura_8f.png",
+          "frames": 8,
+          "frame_size": [
+            640,
+            400
+          ],
+          "pos": [
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    "rice_terraces": {
+      "folder": "05_rice_terraces",
+      "windy": true,
+      "celestial_cycle": {
+        "enabled": true,
+        "auto_rotate_arc": true,
+        "show_moon_at_night": true
+      },
+      "backgrounds": {
+        "day": "bg_day.png",
+        "sunset": "bg_sunset.png",
+        "night": "bg_night.png"
+      },
+      "animations": [
+        {
+          "name": "windy_rice",
+          "file": "windy_rice_4f.png",
+          "frames": 4,
+          "frame_size": [
+            640,
+            400
+          ],
+          "pos": [
+            0,
+            0
+          ]
+        },
+        {
+          "name": "farmers_planting",
+          "file": "farmers_planting_4f.png",
+          "frames": 4,
+          "frame_size": [
+            80,
+            80
+          ],
+          "positions": [
+            [
+              128,
+              248
+            ],
+            [
+              256,
+              296
+            ]
+          ]
+        },
+        {
+          "name": "carabao",
+          "file": "carabao_4f.png",
+          "frames": 4,
+          "frame_size": [
+            112,
+            80
+          ],
+          "pos": [
+            416,
+            296
+          ]
+        }
+      ]
+    },
+    "boracay_beach": {
+      "folder": "06_boracay_beach",
+      "windy": true,
+      "celestial_cycle": {
+        "enabled": true,
+        "slow_sunset": true,
+        "show_moon_at_night": true
+      },
+      "backgrounds": {
+        "day": "bg_day.png",
+        "sunset": "bg_sunset.png",
+        "night": "bg_night.png"
+      },
+      "animations": [
+        {
+          "name": "swimmers_kayak",
+          "file": "swimmers_kayak_4f.png",
+          "frames": 4,
+          "frame_size": [
+            256,
+            72
+          ],
+          "pos": [
+            104,
+            200
+          ]
+        },
+        {
+          "name": "beach_volleyball",
+          "file": "beach_volleyball_4f.png",
+          "frames": 4,
+          "frame_size": [
+            192,
+            112
+          ],
+          "pos": [
+            260,
+            232
+          ]
+        },
+        {
+          "name": "tree_climber",
+          "file": "tree_climber_4f.png",
+          "frames": 4,
+          "frame_size": [
+            64,
+            144
+          ],
+          "pos": [
+            72,
+            152
+          ]
+        },
+        {
+          "name": "windy_coconuts",
+          "file": "windy_coconuts_4f.png",
+          "frames": 4,
+          "frame_size": [
+            640,
+            400
+          ],
+          "pos": [
+            0,
+            0
+          ]
+        }
+      ]
+    }
+  }
+}

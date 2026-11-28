@@ -18,12 +18,12 @@ jobs:
     continue-on-error: ${{ matrix.os == 'macos-latest' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -38,7 +38,7 @@ jobs:
           CI: true
 
       - name: Upload build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Juan-Buddy-${{ matrix.os }}
           retention-days: 30
@@ -51,16 +51,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
@@ -71,23 +71,49 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Ensure signing keystore
+        run: |
+          set +e
+          keytool -list -keystore android/app/juanbuddy.keystore -storetype PKCS12 -storepass JBquack2026stable -alias juanbuddy 2>&1 | tee /tmp/keytool_check.txt
+          if [ ${PIPESTATUS[0]} -eq 0 ]; then
+            echo "committed keystore OK"
+          else
+            echo "committed keystore unreadable, generating a fresh Java-native keystore"
+            rm -f android/app/juanbuddy.keystore
+            keytool -genkeypair -v -keystore android/app/juanbuddy.keystore -storetype PKCS12 \
+              -alias juanbuddy -keyalg RSA -keysize 2048 -validity 10950 \
+              -storepass JBquack2026stable -keypass JBquack2026stable \
+              -dname "CN=Juan Buddy, OU=Games, O=Juanbungo, L=Manila, C=PH"
+            mkdir -p /tmp/keystore-out
+            cp android/app/juanbuddy.keystore /tmp/keystore-out/juanbuddy.keystore
+          fi
+
+      - name: Upload regenerated keystore (commit me)
+        uses: actions/upload-artifact@v7
+        with:
+          name: signing-keystore
+          retention-days: 30
+          path: /tmp/keystore-out/juanbuddy.keystore
+        continue-on-error: true
+
       - name: Prepare mobile web app
         run: node scripts/prep-mobile.js
 
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Build debug APK
-        run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Build signed APK
+        run: cd android && chmod +x gradlew && ./gradlew assembleRelease -PversionCode=${{ github.run_number }} -PversionName="${{ github.ref_name }}"
 
       - name: Upload APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Juan-Buddy-android
           retention-days: 30
-          path: android/app/build/outputs/apk/debug/*.apk
+          path: android/app/build/outputs/apk/release/*.apk
 
   mobile-pwa:
+    if: github.ref == 'refs/heads/main'
     continue-on-error: true
     runs-on: ubuntu-latest
     permissions:
@@ -99,18 +125,18 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Prepare mobile web app
         run: node scripts/prep-mobile.js
 
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
         with:
           enablement: true
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: pages
 
@@ -119,4 +145,4 @@ jobs:
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

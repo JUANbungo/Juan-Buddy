@@ -466,3 +466,63 @@ body.eco-polished .modal-content {
   pointer-events: auto;
   cursor: pointer;
 }
+
+/* ==========================================================================
+   WALLPAW-SYNCED TOP HEADER — shares the active wallpaper, always legible
+   ========================================================================== */
+
+.eco-hud-header {
+  background: var(--eco-bg, #f4efe6) url('../../assets/wallpapers/juan_buddy_paw_06_peach.png') repeat;
+  background-size: 606px 1016px;
+  background-position: 0 0;
+  background-attachment: fixed;
+}
+body.theme-mint .eco-hud-header { background-image: url('../../assets/wallpapers/juan_buddy_paw_04_mint_green.png'); }
+body.theme-sky .eco-hud-header { background-image: url('../../assets/wallpapers/juan_buddy_paw_02_sky_blue.png'); }
+body.theme-berry .eco-hud-header { background-image: url('../../assets/wallpapers/juan_buddy_paw_03_sakura_pink.png'); }
+body.theme-violet .eco-hud-header { background-image: url('../../assets/wallpapers/juan_buddy_paw_05_lavender.png'); }
+body.theme-sunset .eco-hud-header { background-image: url('../../assets/wallpapers/juan_buddy_paw_09_sunshine_yellow.png'); }
+body.theme-classic .eco-hud-header { background-image: url('../../assets/wallpapers/juan_buddy_paw_06_peach.png'); }
+body.wallpaw-cream .eco-hud-header { background-image: url('../../assets/wallpapers/juan_buddy_paw_01_cream.png'); }
+body.wallpaw-sky_blue .eco-hud-header { background-image: url('../../assets/wallpapers/juan_buddy_paw_02_sky_blue.png'); }
+body.wallpaw-sakura_pink .eco-hud-header { background-image: url('../../assets/wallpapers/juan_buddy_paw_03_sakura_pink.png'); }
+body.wallpaw-mint_green .eco-hud-header { background-image: url('../../assets/wallpapers/juan_buddy_paw_04_mint_green.png'); }
+body.wallpaw-lavender .eco-hud-header { background-image: url('../../assets/wallpapers/juan_buddy_paw_05_lavender.png'); }
+body.wallpaw-peach .eco-hud-header { background-image: url('../../assets/wallpapers/juan_buddy_paw_06_peach.png'); }
+body.wallpaw-dark_coffee .eco-hud-header { background-image: url('../../assets/wallpapers/juan_buddy_paw_07_dark_coffee.png'); }
+body.wallpaw-aqua .eco-hud-header { background-image: url('../../assets/wallpapers/juan_buddy_paw_08_aqua.png'); }
+body.wallpaw-sunshine_yellow .eco-hud-header { background-image: url('../../assets/wallpapers/juan_buddy_paw_09_sunshine_yellow.png'); }
+body.wallpaw-periwinkle .eco-hud-header { background-image: url('../../assets/wallpapers/juan_buddy_paw_10_periwinkle.png'); }
+
+/* Translucent ink backdrop so header text stays readable on light & dark WallPaws */
+.brand {
+  background: rgba(24, 18, 12, 0.55);
+  border: 1px solid rgba(255, 233, 185, 0.28);
+  border-radius: 12px;
+  padding: 5px 10px;
+}
+.hud-center .hud-ticker {
+  background: rgba(24, 18, 12, 0.62);
+  border-color: rgba(255, 233, 185, 0.28);
+  color: #ffe9c9;
+}
+.hud-center .topbar-quick {
+  background: rgba(24, 18, 12, 0.55);
+  border-color: rgba(255, 233, 185, 0.28);
+  color: #ffe9c9;
+}
+.eco-hud-header .hud-pill {
+  background: rgba(24, 18, 12, 0.62);
+  border-color: rgba(255, 233, 185, 0.3);
+}
+.eco-hud-header .brand-logo { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35)); }
+
+/* Subtle ink tint over the header wallpaper so badges/pills stay readable on light & dark WallPaws */
+.eco-hud-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(20, 16, 10, 0.20);
+  pointer-events: none;
+}

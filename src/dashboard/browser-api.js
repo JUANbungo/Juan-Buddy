@@ -5,6 +5,53 @@
   'use strict';
   if (window.BuddyAPI) return;
 
+  const CAP = window.Capacitor || null;
+  const CAP_PLUGINS = CAP && CAP.Plugins ? CAP.Plugins : null;
+  const isNative = () => !!(CAP && typeof CAP.isNativePlatform === 'function' && CAP.isNativePlatform());
+
+  const notifStamps = { hunger: 0, energy: 0 };
+  const NOTIF_COOLDOWN_MS = 30 * 60 * 1000;
+
+  function pushNotification(title, body) {
+    try {
+      if (isNative() && CAP_PLUGINS.LocalNotifications && CAP_PLUGINS.LocalNotifications.schedule) {
+        CAP_PLUGINS.LocalNotifications.schedule({
+          notifications: [{ id: Date.now() % 1000000000, title, body }],
+        });
+        return;
+      }
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        new Notification(title, { body });
+      }
+    } catch (err) { /* notifications unavailable on this platform */ }
+  }
+
+  function requestNotificationPermission() {
+    try {
+      if (isNative() && CAP_PLUGINS.LocalNotifications && CAP_PLUGINS.LocalNotifications.requestPermissions) {
+        CAP_PLUGINS.LocalNotifications.requestPermissions();
+        return;
+      }
+      if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    } catch (err) { /* ignore */ }
+  }
+  document.addEventListener('pointerdown', requestNotificationPermission, { once: true, passive: true });
+
+  function maybeNotify() {
+    if (state.dead) return;
+    const now = Date.now();
+    const name = state.pet.name || 'Buddy';
+    const send = (key, body) => {
+      if (now - notifStamps[key] < NOTIF_COOLDOWN_MS) return;
+      notifStamps[key] = now;
+      pushNotification('Juan Buddy', body);
+    };
+    if (state.meters.hunger < 15 && !state.flags.sleeping) send('hunger', `${name} is really hungry! Time to feed.`);
+    if (state.meters.energy < 10 && !state.flags.sleeping) send('energy', `${name} is exhausted. Let them sleep.`);
+  }
+
   const engine = window.JBEngine;
   const sprites = window.JBSprites;
   const motivation = window.JBMotivation || null;
@@ -92,6 +139,7 @@
       case 'toggleSleep': result = engine.toggleSleep(state); break;
       case 'buyUpgrade': result = engine.buyUpgrade(state, payload && payload.upgradeId); break;
       case 'startActivity': result = engine.startActivity(state, payload && payload.activityId); break;
+      case 'stopActivity': result = engine.stopActivity(state); break;
       case 'setSpecies':
         if (payload && typeof payload.speciesId === 'string' && setSpeciesId(payload.speciesId)) {
           result = { ok: true, message: 'Buddy chosen!' };
@@ -100,7 +148,6 @@
         }
         break;
       case 'claimDaily': result = engine.claimDaily(state); break;
-      case 'claimFreeFood': result = engine.claimFreeFood(state); break;
       case 'claimQuest': result = engine.claimQuest(state, payload ? payload.questId : undefined); break;
       case 'pullGacha': result = engine.pullGacha(state, payload && payload.times); break;
       case 'buyShopPet': result = engine.buyShopPet(state, payload && payload.petId); break;
@@ -110,6 +157,8 @@
       case 'equipItem': result = engine.equipItem(state, payload && payload.itemId); break;
       case 'useEvoStone': result = engine.useEvoStone(state); break;
       case 'battleMonster': result = engine.battleMonster(state, payload && payload.monsterId); break;
+    case 'arenaResult': result = engine.arenaResult(state, payload); break;
+    case 'arenaRevive': result = engine.arenaRevive(state, payload); break;
       case 'buyGear': result = engine.buyGear(state, payload && payload.gearId); break;
       case 'equipGear': result = engine.equipGear(state, payload && payload.gearId); break;
       case 'choosePath': result = engine.choosePath(state, payload && payload.pathId); break;
@@ -118,6 +167,8 @@
       case 'choosePerk': result = engine.choosePerk(state, payload ? payload.index : undefined); break;
       case 'buySkin': result = engine.buySkin(state, payload && payload.skinId); break;
       case 'setSkin': result = engine.setSkin(state, payload && payload.skinId); break;
+      case 'homeAction': result = engine.homeAction(state, payload); break;
+      case 'farmAction': result = engine.farmAction(state, payload); break;
       case 'exportSave':
         result = { ok: true, code: engine.saveCode(state), message: 'Save code copied!' };
         break;
@@ -125,23 +176,39 @@
         result = engine.importSave(state, payload && payload.code);
         break;
       case 'newGame': result = engine.newGame(state); break;
-      case 'rename':
+      case 'rename': {
         if (payload && typeof payload.name === 'string' && payload.name.trim().length > 0) {
-          state.pet.name = payload.name.trim().slice(0, 16);
-          result = { ok: true, message: `Renamed to ${state.pet.name}.` };
+          const milestoneFree = !!(state.milestones && state.milestones.rename60);
+          if (!milestoneFree && state.coins < 10000) {
+            result = { ok: false, message: 'Renaming costs 10,000 gold \u2014 keep working and battling!' };
+          } else {
+            if (!milestoneFree) state.coins -= 10000;
+            state.pet.name = payload.name.trim().slice(0, 16);
+            result = { ok: true, message: milestoneFree ? `Renamed to ${state.pet.name}.` : `Renamed to ${state.pet.name} for 10,000 gold.` };
+          }
         }
         break;
+      }
       case 'setOpenAtLogin':
         result = { ok: true, message: 'Login autostart is desktop-only.' };
         break;
       case 'openUrl':
         if (payload && typeof payload.url === 'string' && /^https:\/\//.test(payload.url)) {
-          window.open(payload.url, '_blank');
+          if (isNative() && CAP_PLUGINS.Browser && CAP_PLUGINS.Browser.open) {
+            CAP_PLUGINS.Browser.open({ url: payload.url });
+          } else {
+            window.open(payload.url, '_blank');
+          }
           result = { ok: true };
         }
         break;
       case 'exitApp':
-        result = { ok: true, message: 'Close the browser tab to exit.' };
+        if (isNative() && CAP_PLUGINS.App && CAP_PLUGINS.App.exitApp) {
+          CAP_PLUGINS.App.exitApp();
+          result = { ok: true };
+        } else {
+          result = { ok: true, message: 'Close the browser tab to exit.' };
+        }
         break;
       case 'adminAddDay': {
         if (!state.playdays) state.playdays = { last: null, count: 0 };
@@ -187,12 +254,12 @@
   window.__JB_SAVE__ = saveState;
 
   window.BuddyAPI = {
-    getState: () => snapshot(null),
-    action: runAction,
-    saveNow: () => { saveState(); return true; },
+    getState: () => Promise.resolve(snapshot(null)),
+    action: (name, payload) => Promise.resolve(runAction(name, payload)),
+    saveNow: () => { saveState(); return Promise.resolve(true); },
     onState: (cb) => { listeners.push(cb); },
     onEvent: () => {},
-    getEvent: () => triggerMotivation('work_break'),
+    getEvent: () => Promise.resolve(triggerMotivation('work_break')),
     isBrowser: true,
   };
 
@@ -205,13 +272,37 @@
     last = now;
     const events = engine.tick(state, dt, false) || [];
     for (const ev of events) {
-      if (ev && ev.message) broadcast(ev.message);
+      if (ev && ev.message) {
+        broadcast(ev.message);
+        if (ev.message.includes('passed away') || ev.message.includes('Achievement') || ev.message.includes('evolved') || ev.message.includes('hatched')) {
+          pushNotification('Juan Buddy', ev.message);
+        }
+      }
     }
     broadcast(null);
+    maybeNotify();
     motivationCountdown -= dt;
     if (motivationCountdown <= 0) { motivationCountdown = 15 * 60; triggerMotivation('random_blessing'); }
     if (now % 30000 < 1000) saveState();
   }, 1000);
   window.addEventListener('beforeunload', saveState);
-  document.addEventListener('visibilitychange', () => { if (document.hidden) saveState(); });
+  let hiddenAt = 0;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      hiddenAt = Date.now();
+      saveState();
+      return;
+    }
+    if (hiddenAt && Date.now() - hiddenAt > 30000) {
+      hiddenAt = 0;
+      const rep = engine.addOfflineProgress(state);
+      if (rep) {
+        pendingOfflineReport = rep;
+        saveState();
+        broadcast(null);
+      }
+    } else {
+      hiddenAt = 0;
+    }
+  });
 })();

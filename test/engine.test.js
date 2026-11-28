@@ -58,7 +58,8 @@ s.meters.hunger = 50;
 r = engine.feed(s, 'butter_chicken');
 assert(!r.ok, 'cannot afford butter chicken');
 assert(s.meters.hunger === 50, 'failed feed leaves hunger untouched');
-assert(engine.FOODS.samosa.cost === 0, 'samosa is free');
+assert(engine.FOODS.samosa.cost === 18, 'samosa has a price');
+assert(engine.FOODS.kaya_toast.cost === 15, 'kaya toast has a price');
 
 s = engine.defaultState();
 s.meters.energy = 40;
