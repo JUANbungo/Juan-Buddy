@@ -20,17 +20,21 @@
   <div id="splash" class="splash">
     <div class="splash-card">
       <img class="splash-logo pixelated" src="../../assets/branding/juan_buddy_logo.png" alt="Juan Buddy" />
-      <div class="splash-tag">Your cozy idle pet buddy 🐾</div>
+      <div class="splash-tag" data-i18n="Your cozy idle pet buddy 🐾">Your cozy idle pet buddy 🐾</div>
       <div class="splash-load"><div id="splash-fill"></div></div>
-      <div id="splash-status" class="muted small">Loading…</div>
-      <div class="splash-actions">
-        <button id="btn-splash-start" class="btn btn-amber" disabled>▶ Start</button>
-        <button id="btn-splash-exit" class="btn btn-danger">✖ Exit</button>
+      <div id="splash-status" class="muted small" data-i18n="Loading…">Loading…</div>
+      <div class="splash-lang-row">
+        <label for="splash-lang" data-i18n="🌐 Language">🌐 Language</label>
+        <select id="splash-lang" class="settings-select"></select>
       </div>
-        <button id="btn-splash-credits" class="btn btn-primary">📝 Credits</button>
-        <button id="btn-splash-updates" class="btn btn-gold">🔄 Updates</button>
+      <div class="splash-actions">
+        <button id="btn-splash-start" class="btn btn-amber" disabled><span data-i18n="▶ Start">▶ Start</span></button>
+        <button id="btn-splash-exit" class="btn btn-danger"><span data-i18n="✖ Exit">✖ Exit</span></button>
+      </div>
+        <button id="btn-splash-credits" class="btn btn-primary"><span data-i18n="📝 Credits">📝 Credits</span></button>
+        <button id="btn-splash-updates" class="btn btn-gold"><span data-i18n="🔄 Updates">🔄 Updates</span></button>
       <div id="splash-credits" class="splash-credits hidden">
-        <p><strong>Created &amp; developed by Juan Bungo</strong></p>
+        <p><strong data-i18n="Created & developed by Juan Bungo">Created &amp; developed by Juan Bungo</strong></p>
         <p class="muted small">John Albert Tancio Datu — a cozy idle pet RPG. Feed, play, explore, and grow together.</p>
         <button id="btn-splash-credits-back" class="link">← Back</button>
       </div>
@@ -119,29 +123,30 @@
             <div class="arena-lock-msg">💀 Your pet is dead! Buy a Reincarnation Stone in the Shop to revive.</div>
             <div id="arena-lock-clock" class="arena-lock-clock">01:00:00</div>
           </div>
+          <div id="fps-chip" class="fps-chip hidden">60 FPS</div>
           <button id="stage-menu-btn" class="stage-menu-btn" title="Open the feature menu">☰ <span>Menu</span></button>
           <div id="stage-menu" class="stage-menu hidden">
-            <button class="stage-menu-item" data-menu-tab="food"><img class="eco-pixel" src="assets/icons/tab_delicacies.png" alt="" draggable="false"> Delicacies</button>
-            <button class="stage-menu-item" data-menu-tab="activities"><img class="eco-pixel" src="assets/icons/tab_activities.png" alt="" draggable="false"> Activities</button>
-            <button class="stage-menu-item" data-menu-tab="shop"><img class="eco-pixel" src="assets/icons/tab_shop_bazaar.png" alt="" draggable="false"> Shop</button>
-            <button class="stage-menu-item" data-menu-tab="petshop"><img class="eco-pixel" src="assets/icons/tab_petshop_nest.png" alt="" draggable="false"> Pet Shop</button>
-            <button class="stage-menu-item" data-menu-tab="battle"><img class="eco-pixel" src="assets/icons/tab_battle_bamboo.png" alt="" draggable="false"> Battle</button>
-            <button class="stage-menu-item" data-menu-tab="path"><img class="eco-pixel" src="assets/icons/tab_path_roots.png" alt="" draggable="false"> Path</button>
-            <button class="stage-menu-item" data-menu-tab="gacha"><img class="eco-pixel" src="assets/icons/tab_wishing_tree.png" alt="" draggable="false"> Gacha</button>
-            <button class="stage-menu-item" data-menu-tab="pets"><img class="eco-pixel" src="assets/icons/tab_buddies_paw.png" alt="" draggable="false"> Buddies</button>
-            <button class="stage-menu-item" data-menu-tab="life"><img class="eco-pixel" src="assets/icons/tab_life_bloom.png" alt="" draggable="false"> Life</button>
-            <button class="stage-menu-item" data-menu-tab="settings"><img class="eco-pixel" src="assets/icons/tab_options_woodgear.png" alt="" draggable="false"> Options</button>
+            <button class="stage-menu-item" data-menu-tab="food"><img class="eco-pixel" src="assets/icons/tab_delicacies.png" alt="" draggable="false"> <span data-i18n="Delicacies">Delicacies</span></button>
+            <button class="stage-menu-item" data-menu-tab="activities"><img class="eco-pixel" src="assets/icons/tab_activities.png" alt="" draggable="false"> <span data-i18n="Activities">Activities</span></button>
+            <button class="stage-menu-item" data-menu-tab="shop"><img class="eco-pixel" src="assets/icons/tab_shop_bazaar.png" alt="" draggable="false"> <span data-i18n="Shop">Shop</span></button>
+            <button class="stage-menu-item" data-menu-tab="petshop"><img class="eco-pixel" src="assets/icons/tab_petshop_nest.png" alt="" draggable="false"> <span data-i18n="Pet Shop">Pet Shop</span></button>
+            <button class="stage-menu-item" data-menu-tab="battle"><img class="eco-pixel" src="assets/icons/tab_battle_bamboo.png" alt="" draggable="false"> <span data-i18n="Battle">Battle</span></button>
+            <button class="stage-menu-item" data-menu-tab="path"><img class="eco-pixel" src="assets/icons/tab_path_roots.png" alt="" draggable="false"> <span data-i18n="Path">Path</span></button>
+            <button class="stage-menu-item" data-menu-tab="gacha"><img class="eco-pixel" src="assets/icons/tab_wishing_tree.png" alt="" draggable="false"> <span data-i18n="Gacha">Gacha</span></button>
+            <button class="stage-menu-item" data-menu-tab="pets"><img class="eco-pixel" src="assets/icons/tab_buddies_paw.png" alt="" draggable="false"> <span data-i18n="Buddies">Buddies</span></button>
+            <button class="stage-menu-item" data-menu-tab="life"><img class="eco-pixel" src="assets/icons/tab_life_bloom.png" alt="" draggable="false"> <span data-i18n="Life">Life</span></button>
+            <button class="stage-menu-item" data-menu-tab="settings"><img class="eco-pixel" src="assets/icons/tab_options_woodgear.png" alt="" draggable="false"> <span data-i18n="Options">Options</span></button>
           </div>
           <div class="stage-hint">Tap pet = greet 💕 · Tap floor = walk 🚶 · Tap 💩💧 = clean it 🧹</div>
           <div id="scene-nav" class="scene-nav">
-            <button class="scene-btn on" data-scene="home" title="Buddy's Home">🏠 Home</button>
-            <button class="scene-btn" data-scene="farm" title="Eco-Farm">🌾 Farm</button>
-            <button id="edit-home-btn" class="scene-btn hidden" title="Edit Home">🛠️ Edit Home</button>
+            <button class="scene-btn on" data-scene="home" title="Buddy's Home"><span data-i18n="🏠 Home">🏠 Home</span></button>
+            <button class="scene-btn" data-scene="farm" title="Eco-Farm"><span data-i18n="🌾 Farm">🌾 Farm</span></button>
+            <button id="edit-home-btn" class="scene-btn hidden" title="Edit Home"><span data-i18n="🛠️ Edit Home">🛠️ Edit Home</span></button>
           </div>
           <div id="edit-home-bar" class="edit-home-bar hidden">
-            <span class="small">Drag furniture, then save.</span>
-            <button id="btn-save-layout" class="btn btn-amber">Save Layout</button>
-            <button id="btn-cancel-layout" class="btn">Cancel</button>
+            <span class="small" data-i18n="Drag furniture, then save.">Drag furniture, then save.</span>
+            <button id="btn-save-layout" class="btn btn-amber" data-i18n="Save Layout">Save Layout</button>
+            <button id="btn-cancel-layout" class="btn" data-i18n="Cancel">Cancel</button>
           </div>
           <div id="farm-topbar" class="farm-topbar hidden">
             <button class="farm-tool on" data-farm-tool="plant" title="Plant selected crop">🌱 Plant</button>
@@ -170,22 +175,22 @@
               <h3>🌏 Explore Asia</h3>
               <p class="muted small">Pick a destination — your buddy travels there right away.</p>
               <div id="portal-destinations" class="portal-destinations"></div>
-              <button id="btn-portal-close" class="btn">Stay in Park</button>
+              <button id="btn-portal-close" class="btn" data-i18n="Stay in Park">Stay in Park</button>
             </div>
           </div>
           <div id="danger-banner" class="care-marquee hidden"><span class="marquee-track">⚠️ YOUR BUDDY NEEDS CARE — FEED THEM OR LET THEM SLEEP! · FEED THEM OR LET THEM SLEEP! · ⚠️ YOUR BUDDY NEEDS CARE — FEED THEM OR LET THEM SLEEP! · FEED THEM OR LET THEM SLEEP! · </span></div>
         </div>
         <div class="care-grid">
           <div class="care">
-            <div class="care-row"><span class="care-hunger"><img class="eco-pixel" src="assets/icons/stat_hunger_bowl.png" alt="" draggable="false"> Hunger</span><span id="hunger-val" class="val">0%</span></div>
+            <div class="care-row"><span class="care-hunger"><img class="eco-pixel" src="assets/icons/stat_hunger_bowl.png" alt="" draggable="false"> <span data-i18n="Hunger">Hunger</span></span><span id="hunger-val" class="val">0%</span></div>
             <div class="bar eco-bar-trough"><div id="hunger-fill" class="fill hunger eco-bar-hunger"></div></div>
           </div>
           <div class="care">
-            <div class="care-row"><span class="care-happy"><img class="eco-pixel" src="assets/icons/stat_happiness_heart.png" alt="" draggable="false"> Happiness</span><span id="happy-val" class="val">0%</span></div>
+            <div class="care-row"><span class="care-happy"><img class="eco-pixel" src="assets/icons/stat_happiness_heart.png" alt="" draggable="false"> <span data-i18n="Happiness">Happiness</span></span><span id="happy-val" class="val">0%</span></div>
             <div class="bar eco-bar-trough"><div id="happy-fill" class="fill happy eco-bar-happy"></div></div>
           </div>
           <div class="care">
-            <div class="care-row"><span class="care-energy"><img class="eco-pixel" src="assets/icons/stat_energy_sun.png" alt="" draggable="false"> Energy</span><span id="energy-val" class="val">0%</span></div>
+            <div class="care-row"><span class="care-energy"><img class="eco-pixel" src="assets/icons/stat_energy_sun.png" alt="" draggable="false"> <span data-i18n="Energy">Energy</span></span><span id="energy-val" class="val">0%</span></div>
             <div class="bar eco-bar-trough"><div id="energy-fill" class="fill energy eco-bar-energy"></div></div>
           </div>
         </div>
@@ -211,7 +216,7 @@
       <main id="tab-panels">
         <div class="tab-panel panel-food">
           <section class="card">
-            <h2>🍜 Delicacies <small class="muted">— feed your buddy world foods</small></h2>
+            <h2><span data-i18n="🍜 Delicacies">🍜 Delicacies</span> <small class="muted" data-i18n="— feed your buddy world foods">— feed your buddy world foods</small></h2>
             <div id="food-filters" class="filter-row"></div>
             <input id="food-search" class="search-box" type="text" placeholder="Search foods... (e.g. pad thai, samosa)" />
             <div id="food-grid" class="food-grid"></div>
@@ -220,14 +225,14 @@
 
         <div class="tab-panel hidden panel-activities">
           <section class="card">
-            <h2>🎯 Activities <small class="muted">— earn extra coins &amp; XP</small></h2>
+            <h2><span data-i18n="🎯 Activities">🎯 Activities</span> <small class="muted" data-i18n="— earn extra coins &amp; XP">— earn extra coins &amp; XP</small></h2>
             <div id="activities" class="activity-list"></div>
           </section>
         </div>
 
         <div class="tab-panel hidden panel-shop">
           <section class="card">
-            <h2>🛠️ Shop</h2>
+            <h2 data-i18n="🛠️ Shop">🛠️ Shop</h2>
             <div id="shop" class="shop-grid"></div>
             <div id="home-shop"></div>
           </section>
@@ -235,45 +240,45 @@
 
         <div class="tab-panel hidden panel-life">
           <section class="card">
-            <h2>🎁 Daily Bonus</h2>
+            <h2 data-i18n="🎁 Daily Bonus">🎁 Daily Bonus</h2>
             <div id="daily-info" class="muted">Streak: 0 days (best 0)</div>
             <div id="daily-milestones" class="muted small"></div>
-            <button id="btn-daily" class="btn btn-amber daily-btn">🎁 Claim Daily Bonus</button>
+            <button id="btn-daily" class="btn btn-amber daily-btn" data-i18n="🎁 Claim Daily Bonus">🎁 Claim Daily Bonus</button>
           </section>
           <section class="card">
-            <h2>🧴 Pet Skins</h2>
+            <h2 data-i18n="🧴 Pet Skins">🧴 Pet Skins</h2>
             <div id="skins-grid" class="skins-grid"></div>
           </section>
           <section class="card">
-            <h2>🏆 Achievements</h2>
+            <h2 data-i18n="🏆 Achievements">🏆 Achievements</h2>
             <div id="achv-grid" class="achv-grid"></div>
             <div id="achv-pager" class="achv-pager">
-              <button id="achv-prev" class="btn btn-small">‹ Prev</button>
+              <button id="achv-prev" class="btn btn-small" data-i18n="‹ Prev">‹ Prev</button>
               <span id="achv-page" class="muted small"></span>
-              <button id="achv-next" class="btn btn-small">Next ›</button>
+              <button id="achv-next" class="btn btn-small" data-i18n="Next ›">Next ›</button>
             </div>
           </section>
           <section class="card">
-            <h2>💾 Save Code <small class="muted">— backup or move your buddy</small></h2>
+            <h2><span data-i18n="💾 Save Code">💾 Save Code</span> <small class="muted" data-i18n="— backup or move your buddy">— backup or move your buddy</small></h2>
             <div class="save-actions">
-              <button id="btn-export" class="btn btn-indigo">📤 Export Save Code</button>
-              <button id="btn-import" class="btn btn-violet">📥 Import Save Code</button>
+              <button id="btn-export" class="btn btn-indigo" data-i18n="📤 Export Save Code">📤 Export Save Code</button>
+              <button id="btn-import" class="btn btn-violet" data-i18n="📥 Import Save Code">📥 Import Save Code</button>
             </div>
           </section>
         </div>
 
         <div class="tab-panel hidden panel-gacha">
           <section class="card">
-            <h2>🎦 Cosmetic Wish <small class="muted">— skins &amp; coin showers · chase the 0.0001%</small></h2>
+            <h2><span data-i18n="🎦 Cosmetic Wish">🎦 Cosmetic Wish</span> <small class="muted" data-i18n="— skins &amp; coin showers · chase the 0.0001%">— skins &amp; coin showers · chase the 0.0001%</small></h2>
             <div id="gacha-frame" class="gacha-frame">
               <div id="gacha-orb" class="gacha-orb">🎰</div>
               <img class="eco-wishing-pod pixelated" src="assets/decor/prop_wishing_seed_pod.png" alt="Wishing seed pod" draggable="false">
               <div id="gacha-result" class="gacha-result hidden"></div>
             </div>
             <div class="gacha-actions">
-              <button id="btn-gacha-free" class="btn btn-teal">🎁 Free Daily Pull</button>
-              <button id="btn-gacha-1" class="btn btn-amber">🔮 Summon ×1 — 💰100</button>
-              <button id="btn-gacha-10" class="btn btn-violet">✨ Summon ×10 — 💰900</button>
+              <button id="btn-gacha-free" class="btn btn-teal" data-i18n="🎁 Free Daily Pull">🎁 Free Daily Pull</button>
+              <button id="btn-gacha-1" class="btn btn-amber" data-i18n="🔮 Summon ×1 — 💰100">🔮 Summon ×1 — 💰100</button>
+              <button id="btn-gacha-10" class="btn btn-violet" data-i18n="✨ Summon ×10 — 💰900">✨ Summon ×10 — 💰900</button>
             </div>
             <div id="gacha-rates" class="gacha-rates muted small"></div>
             <div id="gacha-stats" class="muted small"></div>
@@ -282,32 +287,32 @@
 
         <div class="tab-panel hidden panel-battle">
           <section class="card">
-            <h2>⚔️ Battle Arena <small class="muted">— 7-day unlock · stat points every level up</small></h2>
+            <h2><span data-i18n="⚔️ Battle Arena">⚔️ Battle Arena</span> <small class="muted" data-i18n="— 7-day unlock · stat points every level up">— 7-day unlock · stat points every level up</small></h2>
             <div id="battle-lock" class="rpg-lock hidden"></div>
             <div id="battle-body" class="hidden">
               <div id="battle-stats" class="battle-stats"></div>
               <div id="battle-points-row" class="battle-points">
                 <span id="battle-points-label" class="muted small"></span>
-                <button class="btn-stat" data-stat="atk" title="+Attack">⚔️ +ATK</button>
-                <button class="btn-stat" data-stat="def" title="+Defense">🛡️ +DEF</button>
-                <button class="btn-stat" data-stat="spd" title="+Speed">💨 +SPD</button>
+                <button class="btn-stat" data-stat="atk" title="+Attack" data-i18n="⚔️ +ATK">⚔️ +ATK</button>
+                <button class="btn-stat" data-stat="def" title="+Defense" data-i18n="🛡️ +DEF">🛡️ +DEF</button>
+                <button class="btn-stat" data-stat="spd" title="+Speed" data-i18n="💨 +SPD">💨 +SPD</button>
               </div>
-              <div id="battle-arena-note" class="muted small" style="margin-top:8px;">⚔️ Fight in the Menu → Battle Arena — pick your enemy on the big stage!</div>
+              <div id="battle-arena-note" class="muted small" style="margin-top:8px;" data-i18n="⚔️ Fight in the Menu → Battle Arena — pick your enemy on the big stage!">⚔️ Fight in the Menu → Battle Arena — pick your enemy on the big stage!</div>
             </div>
           </section>
         </div>
 
         <div class="tab-panel hidden panel-petshop">
           <section class="card">
-            <h2>🛒 Pet Shop <small class="muted">— rare buddies sold only here, never in eggs</small></h2>
-            <div id="pet-shop-info" class="muted small">Save your coins, work hard, battle hard — the legendary Dragon waits. 🐉</div>
+            <h2><span data-i18n="🛒 Pet Shop">🛒 Pet Shop</span> <small class="muted" data-i18n="— rare buddies sold only here, never in eggs">— rare buddies sold only here, never in eggs</small></h2>
+            <div id="pet-shop-info" class="muted small" data-i18n="Save your coins, work hard, battle hard — the legendary Dragon waits. 🐉">Save your coins, work hard, battle hard — the legendary Dragon waits. 🐉</div>
             <div id="pet-shop" class="pet-shop"></div>
           </section>
         </div>
 
         <div class="tab-panel hidden panel-path">
           <section class="card">
-            <h2>🌀 Destiny Path <small class="muted">— 30-day unlock · choose once, keep forever</small></h2>
+            <h2><span data-i18n="🌀 Destiny Path">🌀 Destiny Path</span> <small class="muted" data-i18n="— 30-day unlock · choose once, keep forever">— 30-day unlock · choose once, keep forever</small></h2>
             <div id="path-lock" class="rpg-lock hidden"></div>
             <div id="path-body" class="hidden">
               <p id="path-chosen" class="path-chosen hidden"></p>
@@ -318,8 +323,8 @@
 
         <div class="tab-panel hidden panel-pets">
           <section class="card">
-            <h2>🐾 Buddy Guide <small class="muted">— hatching is RANDOM, your egg decides!</small></h2>
-            <p class="muted" style="margin: 4px 0 10px;">Take care of your egg and feed it XP — one of these buddies will hatch randomly. No picking, pure luck!</p>
+            <h2><span data-i18n="🐾 Buddy Guide">🐾 Buddy Guide</span> <small class="muted" data-i18n="— hatching is RANDOM, your egg decides!">— hatching is RANDOM, your egg decides!</small></h2>
+            <p class="muted" style="margin: 4px 0 10px;" data-i18n="Take care of your egg and feed it XP — one of these buddies will hatch randomly. No picking, pure luck!">Take care of your egg and feed it XP — one of these buddies will hatch randomly. No picking, pure luck!</p>
             <div id="buddy-grid" class="buddy-grid"></div>
             <p class="muted small" style="margin: 8px 0 0;">💡 Click any buddy to preview its animations &amp; battle skills! Your active Collection Bonuses live at the top-left, under your buddy's name.</p>
           </section>
@@ -327,34 +332,73 @@
 
         <div class="tab-panel hidden panel-settings">
           <section class="card">
-            <h2>⚙️ Options <small class="muted">— tune your game</small></h2>
+            <h2><span data-i18n="⚙️ Options">⚙️ Options</span> <small class="muted" data-i18n="— tune your game">— tune your game</small></h2>
             <div class="settings-grid">
               <div class="settings-row">
-                <label class="settings-label" for="set-bgm">🎵 Background Music</label>
+                <label class="settings-label" for="set-bgm" data-i18n="🎵 Background Music">🎵 Background Music</label>
                 <div class="settings-controls">
                   <button id="btn-bgm-toggle" class="btn">Music: On</button>
                   <input id="set-bgm" type="range" min="0" max="100" value="50" />
                 </div>
               </div>
               <div class="settings-row">
-                <label class="settings-label" for="set-sfx">🔔 Sound Effects</label>
+                <label class="settings-label" for="set-sfx" data-i18n="🔔 Sound Effects">🔔 Sound Effects</label>
                 <div class="settings-controls">
                   <input id="set-sfx" type="range" min="0" max="100" value="70" />
                 </div>
               </div>
               <div class="settings-row">
-                <label class="settings-label" for="btn-gfx-toggle">🎨 Graphics</label>
+                <label class="settings-label" for="btn-gfx-toggle" data-i18n="🎨 Graphics">🎨 Graphics</label>
                 <div class="settings-controls">
                   <select id="set-gfx" class="settings-select">
-                    <option value="pixel">Pixel-perfect (crisp)</option>
-                    <option value="smooth">Smooth (soft)</option>
+                    <option value="pixel" data-i18n="Pixel-perfect (crisp)">Pixel-perfect (crisp)</option>
+                    <option value="smooth" data-i18n="Smooth (soft)">Smooth (soft)</option>
                   </select>
                 </div>
               </div>
               <div class="settings-row">
-                <span class="settings-label">🖼️ WallPaw</span>
+                <label class="settings-label" for="set-fps" data-i18n="FPS limit">FPS limit</label>
+                <div class="settings-controls">
+                  <select id="set-fps" class="settings-select">
+                    <option value="0" data-i18n="Max (uncapped)">Max (uncapped)</option>
+                    <option value="120">120</option>
+                    <option value="60">60</option>
+                    <option value="30">30</option>
+                  </select>
+                  <label class="toggle settings-inline"><input type="checkbox" id="set-fps-counter" /><span data-i18n="Show FPS counter">Show FPS counter</span></label>
+                </div>
+              </div>
+              <div class="settings-row">
+                <label class="settings-label" for="set-quality" data-i18n="🎚️ Graphics quality">🎚️ Graphics quality</label>
+                <div class="settings-controls">
+                  <select id="set-quality" class="settings-select">
+                    <option value="low" data-i18n="Low">Low</option>
+                    <option value="medium" data-i18n="Medium">Medium</option>
+                    <option value="high" data-i18n="High">High</option>
+                  </select>
+                </div>
+              </div>
+              <div class="settings-row">
+                <label class="settings-label" for="set-bit" data-i18n="🖥️ Visual mode">🖥️ Visual mode</label>
+                <div class="settings-controls">
+                  <select id="set-bit" class="settings-select">
+                    <option value="8" data-i18n="8-Bit (retro chunky)">8-Bit (retro chunky)</option>
+                    <option value="16" data-i18n="16-Bit (classic)">16-Bit (classic)</option>
+                    <option value="24" data-i18n="24-Bit (smooth HD)">24-Bit (smooth HD)</option>
+                    <option value="32" data-i18n="32-Bit (ultra)">32-Bit (ultra)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="settings-row">
+                <label class="settings-label" for="set-lang" data-i18n="🌐 Language">🌐 Language</label>
+                <div class="settings-controls">
+                  <select id="set-lang" class="settings-select"></select>
+                </div>
+              </div>
+              <div class="settings-row">
+                <span class="settings-label" data-i18n="🖼️ WallPaw">🖼️ WallPaw</span>
                 <div id="wallpaw-picks" class="wallpaw-picks">
-                  <button class="wallpaw-pick wp-auto on" data-wallpaw="auto" title="Follow accent color">Follow color</button>
+                  <button class="wallpaw-pick wp-auto on" data-wallpaw="auto" title="Follow accent color" data-i18n="Follow color">Follow color</button>
                   <button class="wallpaw-pick wp-cream" data-wallpaw="cream" title="Cream"></button>
                   <button class="wallpaw-pick wp-sky_blue" data-wallpaw="sky_blue" title="Sky Blue"></button>
                   <button class="wallpaw-pick wp-sakura_pink" data-wallpaw="sakura_pink" title="Sakura Pink"></button>
@@ -366,7 +410,7 @@
                   <button class="wallpaw-pick wp-sunshine_yellow" data-wallpaw="sunshine_yellow" title="Sunshine Yellow"></button>
                   <button class="wallpaw-pick wp-periwinkle" data-wallpaw="periwinkle" title="Periwinkle"></button>
                 </div>
-                <span class="settings-label">🌈 Accent color</span>
+                <span class="settings-label" data-i18n="🌈 Accent color">🌈 Accent color</span>
                 <div id="theme-swatches" class="theme-swatches">
                   <button class="theme-swatch t-classic" data-theme="classic" title="Classic Amber"></button>
                   <button class="theme-swatch t-mint" data-theme="mint" title="Mint"></button>
@@ -377,23 +421,23 @@
                 </div>
               </div>
               <div class="settings-row">
-                <span class="settings-label">🌿 Eco-Theme</span>
+                <span class="settings-label" data-i18n="🌿 Eco-Theme">🌿 Eco-Theme</span>
                 <div id="eco-theme-picks" class="eco-theme-picks">
-                  <button class="eco-pick" data-eco="bamboo-grove" title="Bamboo Grove">Bamboo Grove</button>
-                  <button class="eco-pick" data-eco="rice-terraces" title="Rice Terraces">Rice Terraces</button>
-                  <button class="eco-pick" data-eco="terracotta-clay" title="Terracotta Clay">Terracotta Clay</button>
-                  <button class="eco-pick" data-eco="night-fireflies" title="Night Fireflies">Night Fireflies</button>
+                  <button class="eco-pick" data-eco="bamboo-grove" title="Bamboo Grove"><span data-i18n="Bamboo Grove">Bamboo Grove</span></button>
+                  <button class="eco-pick" data-eco="rice-terraces" title="Rice Terraces"><span data-i18n="Rice Terraces">Rice Terraces</span></button>
+                  <button class="eco-pick" data-eco="terracotta-clay" title="Terracotta Clay"><span data-i18n="Terracotta Clay">Terracotta Clay</span></button>
+                  <button class="eco-pick" data-eco="night-fireflies" title="Night Fireflies"><span data-i18n="Night Fireflies">Night Fireflies</span></button>
                 </div>
               </div>
               <div class="settings-row">
-                <span class="settings-label">🕒 Your timezone</span>
+                <span class="settings-label" data-i18n="🕒 Your timezone">🕒 Your timezone</span>
                 <span id="settings-tz" class="muted"></span>
               </div>
             </div>
           </section>
           <section class="card">
-            <h2>💙 About Juan Buddy</h2>
-            <p class="about-line">A cozy 16-bit idle pet life sim — hatch a mystery egg, take care of your buddy, explore Asia, and build your legend.</p>
+            <h2 data-i18n="💙 About Juan Buddy">💙 About Juan Buddy</h2>
+            <p class="about-line" data-i18n="A cozy 16-bit idle pet life sim — hatch a mystery egg, take care of your buddy, explore Asia, and build your legend.">A cozy 16-bit idle pet life sim — hatch a mystery egg, take care of your buddy, explore Asia, and build your legend.</p>
             <p class="about-line credits"><strong>Created &amp; developed by Juan Bungo</strong> — John Albert Tancio Datu</p>
           </section>
         </div>
@@ -404,21 +448,21 @@
   <footer>
     <label class="toggle">
       <input type="checkbox" id="open-login" />
-      Open at login
+      <span data-i18n="Open at login">Open at login</span>
     </label>
-    <button id="btn-sfx" class="link"><span id="sfx-label">🔊 Sound: On</span></button>
+    <button id="btn-sfx" class="link"><span id="sfx-label" data-i18n="🔊 Sound: On">🔊 Sound: On</span></button>
     <button id="btn-admin-day" class="link admin" title="ADMIN (temporary): fast-forward +1 play day to test 3/7/14/30 day unlocks">+ Day</button>
     <button id="btn-admin-gold" class="link admin" title="ADMIN (temporary): +1,000 coins for quick testing">+ Gold</button>
     <button id="btn-admin-exp" class="link admin" title="ADMIN (temporary): +100 EXP to trigger level-ups, perks, and evolution">+ Exp</button>
-    <button id="btn-reset" class="link danger">Reset progress</button>
+    <button id="btn-reset" class="link danger" data-i18n="Reset progress">Reset progress</button>
   </footer>
 
   <div id="evo-popup" class="evo-popup hidden">
     <div class="evo-card eco-panel">
-      <div class="evo-banner">✨ EVOLUTION ✨</div>
+      <div class="evo-banner" data-i18n="✨ EVOLUTION ✨">✨ EVOLUTION ✨</div>
       <canvas id="evo-canvas" width="96" height="96"></canvas>
       <div class="evo-name" id="evo-name"></div>
-      <div class="evo-sub" id="evo-sub">Base stats +25% · say hello to Stage 2!</div>
+      <div class="evo-sub" id="evo-sub" data-i18n="Base stats +25% · say hello to Stage 2!">Base stats +25% · say hello to Stage 2!</div>
     </div>
   </div>
 
@@ -426,56 +470,56 @@
     <div class="evo-card eco-panel buddy-profile-card">
       <div class="evo-banner">🐾 BUDDY PROFILE</div>
       <div id="buddy-profile-body"></div>
-      <button id="bp-close" class="btn btn-amber">✖️ Close</button>
+      <button id="bp-close" class="btn btn-amber" data-i18n="✖️ Close">✖️ Close</button>
     </div>
   </div>
 
   <div id="death-overlay" class="death-overlay hidden">
     <div class="death-card">
       <div class="death-emoji">🕊️</div>
-      <h2 id="death-title">Buddy passed away...</h2>
-      <p id="death-cause" class="muted">Cause: neglect</p>
-      <p class="death-lesson">Take care of the things you love — feed them, rest them, check in on them. Just like real life. 🌱</p>
-      <button id="btn-new-game" class="btn btn-amber">🌱 Start a New Game</button>
+      <h2 id="death-title" data-i18n="Buddy passed away...">Buddy passed away...</h2>
+      <p id="death-cause" class="muted" data-i18n="Cause: neglect">Cause: neglect</p>
+      <p class="death-lesson" data-i18n="Take care of the things you love — feed them, rest them, check in on them. Just like real life. 🌱">Take care of the things you love — feed them, rest them, check in on them. Just like real life. 🌱</p>
+      <button id="btn-new-game" class="btn btn-amber" data-i18n="🌱 Start a New Game">🌱 Start a New Game</button>
     </div>
   </div>
 
   <div id="perk-modal" class="evo-popup hidden">
     <div class="evo-card perk-card eco-panel">
-      <div class="evo-banner"><img class="eco-pixel" src="assets/icons/levelup_golden_sprout.png" alt="" draggable="false"> LEVEL UP — PICK A PERK</div>
-      <p class="muted perk-note">Every level gives a boost! Choose one — 1% luck rolls an ✨EPIC with triple power.</p>
+      <div class="evo-banner"><img class="eco-pixel" src="assets/icons/levelup_golden_sprout.png" alt="" draggable="false"> <span data-i18n="LEVEL UP — PICK A PERK">LEVEL UP — PICK A PERK</span></div>
+      <p class="muted perk-note" data-i18n="Every level gives a boost! Choose one — 1% luck rolls an ✨EPIC with triple power.">Every level gives a boost! Choose one — 1% luck rolls an ✨EPIC with triple power.</p>
       <div id="perk-choices" class="perk-choices"></div>
     </div>
   </div>
 
   <div id="name-modal" class="evo-popup hidden">
     <div class="evo-card name-card eco-panel">
-      <div class="evo-banner"><img class="eco-pixel" src="assets/icons/egg_woven_nest.png" alt="" draggable="false"> NAME YOUR BUDDY</div>
-      <p class="muted name-note">A random buddy will hatch from this egg. Give it a nickname (max 16 characters):</p>
+      <div class="evo-banner"><img class="eco-pixel" src="assets/icons/egg_woven_nest.png" alt="" draggable="false"> <span data-i18n="NAME YOUR BUDDY">NAME YOUR BUDDY</span></div>
+      <p class="muted name-note" data-i18n="A random buddy will hatch from this egg. Give it a nickname (max 16 characters):">A random buddy will hatch from this egg. Give it a nickname (max 16 characters):</p>
       <input id="name-input" class="name-input" maxlength="16" placeholder="e.g. Chokoy" autocomplete="off" />
-      <button id="btn-name-save" class="btn btn-amber">💚 Let's Go!</button>
-      <button id="btn-name-skip" class="link"><span class="muted">Keep the default name</span></button>
+      <button id="btn-name-save" class="btn btn-amber" data-i18n="💚 Let's Go!">💚 Let's Go!</button>
+      <button id="btn-name-skip" class="link"><span class="muted" data-i18n="Keep the default name">Keep the default name</span></button>
     </div>
   </div>
 
   <div id="credits-modal" class="evo-popup hidden">
     <div class="evo-card eco-panel credits-card">
-      <div class="evo-banner">📜 CREDITS</div>
+      <div class="evo-banner" data-i18n="📜 CREDITS">📜 CREDITS</div>
       <h2 class="credits-title">JUAN BUDDY</h2>
-      <p class="credits-line">Created &amp; developed by</p>
+      <p class="credits-line" data-i18n="Created & developed by">Created &amp; developed by</p>
       <p class="credits-name">Juan Bungo</p>
       <p class="muted small">John Albert Tancio Datu</p>
       <p class="muted small">A cozy 16-bit idle pet RPG — hatch, feed, play, explore, and grow together. 🐾</p>
-      <button id="btn-credits-close" class="btn btn-amber">✖️ Close</button>
+      <button id="btn-credits-close" class="btn btn-amber" data-i18n="✖️ Close">✖️ Close</button>
     </div>
   </div>
 
   <div id="confirm-modal" class="evo-popup hidden">
     <div class="evo-card eco-panel confirm-card">
-      <div class="evo-banner">⚠️ ARE YOU SURE?</div>
+      <div class="evo-banner" data-i18n="⚠️ ARE YOU SURE?">⚠️ ARE YOU SURE?</div>
       <p id="confirm-text" class="confirm-text"></p>
       <div class="confirm-row">
-        <button id="btn-confirm-yes" class="btn btn-amber">✔️ Yes, do it</button>
+        <button id="btn-confirm-yes" class="btn btn-amber" data-i18n="✔️ Yes, do it">✔️ Yes, do it</button>
         <button id="btn-confirm-no" class="link"><span class="muted">Cancel</span></button>
       </div>
     </div>
@@ -487,31 +531,31 @@
       <img id="wish-pod" class="wish-pod pixelated" src="assets/decor/prop_wishing_seed_pod.png" alt="Wishing seed pod" draggable="false">
       <div id="wish-petals" class="wish-petals"></div>
       <div id="wish-cards" class="wish-cards"></div>
-      <button id="wish-skip" class="btn wish-skip">&#9195; Skip</button>
+      <button id="wish-skip" class="btn wish-skip"><span data-i18n="⏫ Skip">&#9195; Skip</span></button>
     </div>
   </div>
 
   <div id="welcome-back-modal" class="evo-popup hidden">
     <div class="evo-card eco-panel wb-card">
-      <div class="evo-banner">&#127811; WELCOME BACK!</div>
+      <div class="evo-banner"><span data-i18n="🍂 WELCOME BACK!">&#127811; WELCOME BACK!</span></div>
       <div id="wb-time" class="wb-time">4h 12m away</div>
-      <div class="wb-badge">5% Offline Rate &middot; Keep the game open for 100%!</div>
+      <div class="wb-badge" data-i18n="5% Offline Rate · Keep the game open for 100%!">5% Offline Rate &middot; Keep the game open for 100%!</div>
       <div class="wb-rewards">
         <div class="wb-reward"><span class="wb-ico">&#129689;</span><span id="wb-coins">+0</span><img class="coin-ico pixelated" src="assets/icons/coin_gold_leaf.png" draggable="false"></div>
         <div class="wb-reward"><span class="wb-ico">&#11088;</span><span id="wb-xp">+0</span> XP</div>
       </div>
-      <div id="wb-stats-note" class="muted small wb-note">Your buddy missed you &mdash; care meters kept draining slowly while away.</div>
-      <button id="wb-collect" class="btn btn-amber">&#129689; Collect</button>
+      <div id="wb-stats-note" class="muted small wb-note" data-i18n="Your buddy missed you — care meters kept draining slowly while away.">Your buddy missed you &mdash; care meters kept draining slowly while away.</div>
+      <button id="wb-collect" class="btn btn-amber" data-i18n="💰 Collect">&#129689; Collect</button>
     </div>
   </div>
 
   <div id="checkin-modal" class="evo-popup hidden">
     <div class="evo-card eco-panel cal-card">
-      <div class="evo-banner">&#128197; DAILY CHECK-IN</div>
+      <div class="evo-banner"><span data-i18n="📅 DAILY CHECK-IN">&#128197; DAILY CHECK-IN</span></div>
       <div id="checkin-streak" class="cal-streak">0-day streak &middot; best 0</div>
       <div id="checkin-grid" class="cal-grid"></div>
       <div id="checkin-preview" class="cal-preview"></div>
-      <button id="checkin-claim" class="btn btn-amber">&#127793; Check In &amp; Claim</button>
+      <button id="checkin-claim" class="btn btn-amber" data-i18n="🌱 Check In & Claim">&#127793; Check In &amp; Claim</button>
       <button id="checkin-close" class="link"><span class="muted">Close</span></button>
     </div>
   </div>
@@ -528,6 +572,7 @@
   <script src="js/battle-arena.js"></script>
   <script src="js/juanBungoReaper.js"></script>
   <script src="browser-api.js"></script>
+  <script src="js/i18n.js"></script>
   <script src="dashboard.js"></script>
 </body>
 </html>

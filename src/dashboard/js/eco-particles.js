@@ -41,6 +41,8 @@
     canvas.height = window.innerHeight;
   }
 
+  let disabled = false;
+
   function spawnAmbient(randomY) {
     const isNight = mode === "night";
     return {
@@ -82,6 +84,10 @@
   function loop() {
     // skip all work when the tab is hidden or the overlay is not on screen —
     // keeps phones cool and batteries alive
+    if (disabled) {
+      animId = requestAnimationFrame(loop);
+      return;
+    }
     if (document.hidden || !canvas || canvas.clientWidth === 0) {
       animId = requestAnimationFrame(loop);
       return;
@@ -146,6 +152,11 @@
     },
     burst: spawnBurst,
     getTheme: () => currentTheme,
+    setEnabled: (v) => {
+      disabled = !v;
+      if (disabled && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    },
+    isEnabled: () => !disabled,
   };
 
   window.addEventListener("DOMContentLoaded", () => {
