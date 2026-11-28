@@ -37,6 +37,9 @@
     '✖ Exit': {
       fil: '✖ Lumabas', th: '✖ ออก', id: '✖ Keluar', ja: '✖ 終了', zh: '✖ 退出', vi: '✖ Thoát',
     },
+    '📖 Instructions': {
+      fil: '📖 Mga Panuto', th: '📖 คำแนะนำ', id: '📖 Instruksi', ja: '📖 遊び方', zh: '📖 玩法说明', vi: '📖 Hướng dẫn',
+    },
     '📝 Credits': {
       fil: '📝 Mga Kredit', th: '📝 เครดิต', id: '📝 Kredit', ja: '📝 クレジット', zh: '📝 制作人员', vi: '📝 Thông tin',
     },

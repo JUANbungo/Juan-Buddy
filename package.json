@@ -1,8 +1,8 @@
 {
   "name": "juan-buddy",
   "productName": "Juan Buddy",
-  "version": "0.1.34",
-  "description": "A cozy 16-bit idle pet RPG \u2014 hatch a mystery egg, evolve your buddy, and take care of it or lose it forever.",
+  "version": "0.1.35",
+  "description": "A cozy 16-bit idle pet RPG — hatch a mystery egg, evolve your buddy, and take care of it or lose it forever.",
   "main": "main.js",
   "author": "JUANbungo",
   "license": "MIT",

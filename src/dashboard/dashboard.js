@@ -355,7 +355,10 @@ function render(snapshot) {
     if (document.body && document.body.classList) document.body.classList.toggle('rain-active', wantRain !== 'off');
   }
   const homeTitle = el('home-title');
-  if (homeTitle) homeTitle.textContent = `🏠 ${s.pet.name}'s Home`;
+  if (homeTitle) {
+    const outdoorAct = activeOutdoorAct();
+    homeTitle.textContent = outdoorAct ? `🌍 ${outdoorAct.name || tr('Explore')}` : stageScene === 'farm' ? `🌾 ${tr('Farm')}` : `🏠 ${s.pet.name}'s Home`;
+  }
   maybeShowNameModal();
   maybeShowPerkModal(d);
   arenaSyncPack();
@@ -1100,6 +1103,7 @@ function splashSetup() {
     const cm = el('credits-modal');
     if (cm) cm.classList.add('hidden');
     if (creditsBox) creditsBox.classList.add('hidden');
+    if (helpBox) helpBox.classList.add('hidden');
     startBgmOnGesture();
     if (sfx) sfx.play('happy');
   });
@@ -1121,7 +1125,19 @@ function splashSetup() {
     if (creditsModal) creditsModal.classList.add('hidden');
     if (creditsBox) creditsBox.classList.add('hidden');
   };
-  if (creditsBtn) creditsBtn.addEventListener('click', openCredits);
+  const helpBox = el('splash-help');
+  const helpBtn = el('btn-splash-help');
+  const helpBack = el('btn-splash-help-back');
+  const closeHelp = () => { if (helpBox) helpBox.classList.add('hidden'); };
+  if (helpBtn) helpBtn.addEventListener('click', () => {
+    if (!helpBox) return;
+    const opening = helpBox.classList.contains('hidden');
+    helpBox.classList.toggle('hidden', !opening);
+    if (opening && creditsBox) creditsBox.classList.add('hidden');
+    if (sfx) sfx.play('click');
+  });
+  if (helpBox && helpBack) helpBack.addEventListener('click', closeHelp);
+    if (creditsBtn) creditsBtn.addEventListener('click', openCredits);
   if (creditsBox && creditsBack) creditsBack.addEventListener('click', closeCredits);
   if (creditsModal) creditsModal.addEventListener('click', (e) => {
     if (e.target === creditsModal) closeCredits();
@@ -2493,11 +2509,13 @@ function updateHomeFarmBars() {
   }
   const editBar = el('edit-home-bar');
   if (editBar) editBar.classList.toggle('hidden', !(homeEditMode && stageScene === 'home'));
+  const outdoorNow = !!activeOutdoorAct();
+  const farmScene = stageScene === 'farm' && !outdoorNow;
   const topBar = el('farm-topbar');
-  if (topBar) topBar.classList.toggle('hidden', stageScene !== 'farm');
+  if (topBar) topBar.classList.toggle('hidden', !farmScene);
   const plusTab = el('farm-plus-tab');
-  if (plusTab) plusTab.classList.toggle('hidden', stageScene !== 'farm');
-  if (stageScene !== 'farm') {
+  if (plusTab) plusTab.classList.toggle('hidden', !farmScene);
+  if (!farmScene) {
     farmDrawerOpen = false;
     const drawer = el('farm-plus-drawer');
     if (drawer) drawer.classList.add('hidden');
