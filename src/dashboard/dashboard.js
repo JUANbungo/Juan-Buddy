@@ -2197,8 +2197,10 @@ function drawFarmScene(now, phaseId) {
       const prog = farmProgressUi(plot, farm, now);
       const stage = prog >= 1 ? 2 : 1;
       const cropImg = sdImage(`farm/crop_${plot.cropId}_stage${stage}.png`);
-      const ch = stage === 2 ? 52 : 36;
-      if (sdReady(cropImg)) stageCtx.drawImage(cropImg, pos.x - ch / 2, pos.y - FARM_PLOT_W / 2 - ch + 8, ch, ch);
+      const sway = Math.sin(now / 700 + pos.x) * 1.5;
+      const ch = stage === 2 ? 52 : Math.round(14 + 22 * prog);
+      const bob = stage === 2 ? Math.round(Math.sin(now / 400) * 1.5) : 0;
+      if (sdReady(cropImg)) stageCtx.drawImage(cropImg, pos.x - ch / 2 + sway, pos.y - FARM_PLOT_W / 2 - ch + 8 + bob, ch, ch);
       stageCtx.save();
       stageCtx.font = 'bold 11px sans-serif';
       stageCtx.textAlign = 'center';

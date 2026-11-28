@@ -2,7 +2,7 @@
   "name": "juan-buddy",
   "productName": "Juan Buddy",
   "version": "0.1.0",
-  "description": "A cozy 16-bit idle pet RPG — hatch a mystery egg, evolve your buddy, and take care of it or lose it forever.",
+  "description": "A cozy 16-bit idle pet RPG \u2014 hatch a mystery egg, evolve your buddy, and take care of it or lose it forever.",
   "main": "main.js",
   "author": "JUANbungo",
   "license": "MIT",
@@ -48,7 +48,10 @@
       "scripts/generate-icons.js",
       "assets/branding/**/*",
       "assets/wallpapers/**/*",
-      "assets/scenes/**/*"
+      "assets/scenes/**/*",
+      "assets/stardew/**/*",
+      "assets/explore_8bit/**/*",
+      "assets/sfx/**/*"
     ],
     "win": {
       "icon": "assets/icon.png",
