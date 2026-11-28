@@ -1723,7 +1723,6 @@ header.topbar { padding-right: 262px; }
   height: 150px;
   max-width: 88%;
   object-fit: contain;
-  mix-blend-mode: multiply;
   margin-top: 8px;
   animation: splash-logo-bounce 3.4s ease-in-out infinite;
   filter: drop-shadow(0 7px 10px rgba(0, 0, 0, 0.18));

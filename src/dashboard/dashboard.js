@@ -165,6 +165,8 @@ function clearNamedFlag() {
 function maybeShowNameModal() {
   const modal = el('name-modal');
   if (!modal || namedAlready() || !latest) return;
+  const splash = el('splash');
+  if (splash && !splash.classList.contains('hidden')) return;
   const s = latest.state;
   if (s && s.pet && s.pet.name === 'Buddy' && s.pet.stage === 'egg' && modal.classList.contains('hidden')) {
     modal.classList.remove('hidden');
