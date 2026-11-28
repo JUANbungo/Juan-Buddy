@@ -201,8 +201,6 @@ function playActionSound(action, res) {
   if (action === 'claimDaily' && cuteSfx) cuteSfx.play('stamp');
 }
 const UPGRADE_META = {
-  bed: { icon: '🛏', title: 'Cozy Bed', desc: 'Energy drains 12% slower per level' },
-  toys: { icon: '🧸', title: 'Toy Box', desc: 'Playing gives +25% happiness per level' },
   job: { icon: '📈', title: 'Job Promotion', desc: '+60% coins per level while working' },
   feeder: { icon: '🍽', title: 'Auto-Feeder', desc: 'Auto-feeds a Snack below 20 hunger' },
 };
@@ -358,7 +356,6 @@ function render(snapshot) {
 
   safeRender('extras', () => renderExtras(d));
   safeRender('rpg', () => renderRpg(d));
-  safeRender('explore', () => renderExplore(d));
   safeRender('petshop', () => renderPetShop(d));
 
   if (d.rpg.items.evolved && !evoTrack.shown) {
@@ -2001,15 +1998,15 @@ const DOOR_RECT = { x: 18, y: 104, w: 74, h: 70 };
 const DEFAULT_FURNITURE_LAYOUT = {
   cozy_bed: { x: 96, y: 352 },
   toy_box: { x: 432, y: 350 },
-  flower_vase: { x: 366, y: 238 },
+  flower_vase: { x: 386, y: 340 },
 };
 const PORTAL_RECT = { x: 196, y: 112, w: 84, h: 74 };
 const FARM_PLOT_W = 64;
 const FARM_PLOTS = [
-  { x: 120, y: 246 }, { x: 196, y: 246 }, { x: 272, y: 246 },
-  { x: 120, y: 314 }, { x: 196, y: 314 }, { x: 272, y: 314 },
+  { x: 84, y: 232 }, { x: 220, y: 232 }, { x: 356, y: 232 },
+  { x: 84, y: 312 }, { x: 220, y: 312 }, { x: 356, y: 312 },
 ];
-const FARM_HIVE_POS = { x: 398, y: 252 };
+const FARM_HIVE_POS = { x: 420, y: 170 };
 const FARM_BEEHIVE_COST_UI = 400;
 const FARM_FERTILIZER_COST_UI = 30;
 const HF_ENGINE = (typeof window !== 'undefined' && window.JBEngine) || {};
@@ -2203,10 +2200,14 @@ function drawFarmScene(now, phaseId) {
       const ch = stage === 2 ? 52 : 36;
       if (sdReady(cropImg)) stageCtx.drawImage(cropImg, pos.x - ch / 2, pos.y - FARM_PLOT_W / 2 - ch + 8, ch, ch);
       stageCtx.save();
-      stageCtx.font = '10px sans-serif';
+      stageCtx.font = 'bold 11px sans-serif';
       stageCtx.textAlign = 'center';
-      stageCtx.fillStyle = 'rgba(20, 16, 10, 0.8)';
-      stageCtx.fillText(prog >= 1 ? 'READY!' : `${Math.round(prog * 100)}%`, pos.x, pos.y + FARM_PLOT_W / 2 + 12);
+      stageCtx.lineWidth = 3;
+      stageCtx.strokeStyle = 'rgba(255, 250, 235, 0.9)';
+      stageCtx.fillStyle = 'rgba(40, 28, 12, 0.95)';
+      const label = prog >= 1 ? 'READY!' : `${Math.round(prog * 100)}%`;
+      stageCtx.strokeText(label, pos.x, pos.y + FARM_PLOT_W / 2 + 12);
+      stageCtx.fillText(label, pos.x, pos.y + FARM_PLOT_W / 2 + 12);
       stageCtx.restore();
     }
   });
@@ -2376,7 +2377,16 @@ function renderHomeShop(s) {
       const b = document.createElement('button');
       b.className = 'wall-swatch';
       b.dataset.wallId = w.id;
-      b.textContent = w.name;
+      if (w.id !== 'classic') {
+        const thumb = document.createElement('span');
+        thumb.className = 'wall-thumb pixelated';
+        thumb.style.backgroundImage = `url('${SD_BASE}/home/walls/${w.id}.png')`;
+        b.appendChild(thumb);
+      }
+      const label = document.createElement('span');
+      label.className = 'wall-label';
+      label.textContent = w.name;
+      b.appendChild(label);
       b.addEventListener('click', () => act('homeAction', { op: 'setWall', wallId: w.id }));
       walls.appendChild(b);
     }
@@ -2385,7 +2395,9 @@ function renderHomeShop(s) {
       const card = document.createElement('div');
       card.className = 'shop-item';
       card.dataset.furniture = f.id;
-      card.innerHTML = '<div class="name"></div><div class="desc"></div><button class="btn buy-btn"></button>';
+      const art = HOME_FURNITURE_ART[f.id];
+      const artHtml = art && art.file ? `<div class="shop-art"><img class="pixelated" src="${SD_BASE}/${art.file}" alt="" draggable="false"></div>` : '';
+      card.innerHTML = `${artHtml}<div class="name"></div><div class="desc"></div><button class="btn buy-btn"></button>`;
       card.querySelector('.buy-btn').addEventListener('click', () => act('homeAction', { op: 'buyFurniture', itemId: f.id }));
       grid.appendChild(card);
       homeShopCards[f.id] = card;
@@ -4297,7 +4309,6 @@ if (brandLogoEl) {
   });
 }
 
-const exploreCards = {};
 
 function rpgUnlock(d, id) {
   return (d.rpg && d.rpg.unlocks.find((u) => u.id === id)) || { unlocked: false, daysLeft: 99, day: 99, icon: '', name: '', desc: '' };
@@ -4371,35 +4382,6 @@ function renderRpg(d) {
   }
 }
 
-function renderExplore(d) {
-  const grid = el('explore-grid');
-  if (!grid) return;
-  const spots = d.activities.filter((a) => a.outdoor);
-  if (grid.childElementCount === 0) {
-    for (const a of spots) {
-      const card = document.createElement('div');
-      card.className = 'explore-card';
-      card.innerHTML = `<div class="ex-ico"></div><div class="ex-name"></div><div class="ex-desc muted small"></div><div class="ex-meta muted small"></div><button class="btn btn-amber ex-btn">\ud83c\udf10 Explore</button>`;
-      card.querySelector('.ex-btn').dataset.explore = a.id;
-      grid.appendChild(card);
-      exploreCards[a.id] = card;
-    }
-  }
-  for (const a of spots) {
-    const card = exploreCards[a.id];
-    if (!card) continue;
-    card.classList.toggle('active', a.active);
-    card.classList.toggle('locked', a.cooldownRemainingMs > 0 && !a.active);
-    card.querySelector('.ex-ico').textContent = a.icon;
-    card.querySelector('.ex-name').textContent = a.name;
-    card.querySelector('.ex-desc').textContent = a.desc;
-    card.querySelector('.ex-meta').innerHTML = `${a.duration}s \u00b7 \u26a1${a.energy} \u00b7 ${COIN_ICON_HTML}${a.coins[0]}-${a.coins[1]} \u00b7 +${a.xp}xp \u00b7 cd ${a.cooldown}s`;
-    const btn = card.querySelector('.ex-btn');
-    btn.disabled = a.active || d.dead;
-    btn.textContent = a.active ? `\u23f3 Out exploring... ${Math.max(0, Math.ceil((a.endsAt - Date.now()) / 1000))}s` : a.cooldownRemainingMs > 0 ? `\u23f3 ${Math.ceil(a.cooldownRemainingMs / 1000)}s` : '\ud83c\udf10 Explore';
-  }
-}
-
 on('battle-points-row','click', async (e) => {
   const btn = e.target.closest('button[data-stat]');
   if (!btn || btn.disabled) return;
@@ -4423,12 +4405,6 @@ on('path-cards','click', async (e) => {
   showToast((res && res.message) || '. ..', 3600);
 });
 
-on('explore-grid','click', async (e) => {
-  const btn = e.target.closest('button[data-explore]');
-  if (!btn || btn.disabled) return;
-  const res = await api.action('startActivity', { activityId: btn.dataset.explore });
-  showToast((res && res.message) || '. ..', 2400);
-});
 
 
 // ===== Evo popup tracking (Cozy Bag feature is disabled for rework) =====

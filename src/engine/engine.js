@@ -55,8 +55,8 @@ const HOME_WALLS = [
 ];
 
 const FURNITURE = [
-  { id: 'cozy_bed', name: 'Cozy Bed', cost: 240, desc: 'A soft 16-bit bed for naps. Replaces the old bed model.' },
-  { id: 'toy_box', name: 'Toy Box', cost: 180, desc: 'Keeps toys tidy. Replaces the old toy pile.' },
+  { id: 'cozy_bed', name: 'Cozy Bed', cost: 240, desc: 'A soft 16-bit bed. Stats included: energy drains 12% slower (max level).' },
+  { id: 'toy_box', name: 'Toy Box', cost: 180, desc: 'Keeps toys tidy. Stats included: play gives +25% happiness (max level).' },
   { id: 'flower_vase', name: 'Flower Vase', cost: 120, desc: 'A fresh vase of flowers for the room.' },
 ];
 
@@ -108,6 +108,8 @@ function homeAction(state, payload) {
     if (state.coins < item.cost) return { ok: false, message: `Not enough coins for the ${item.name}.` };
     state.coins -= item.cost;
     home.owned.push(item.id);
+    if (item.id === 'cozy_bed' && UPGRADES.bed) state.upgrades.bed = UPGRADES.bed.max;
+    if (item.id === 'toy_box' && UPGRADES.toys) state.upgrades.toys = UPGRADES.toys.max;
     return { ok: true, message: `${item.name} delivered to Buddy's Home!` };
   }
   if (op === 'saveLayout') {
@@ -208,6 +210,8 @@ function ensureHomeFarm(state) {
   if (!HOME_WALLS.some((w) => w.id === state.home.wall)) state.home.wall = 'classic';
   if (!Array.isArray(state.home.owned)) state.home.owned = [];
   state.home.owned = state.home.owned.filter((id) => FURNITURE.some((f) => f.id === id));
+  if (state.home.owned.includes('cozy_bed') && UPGRADES.bed) state.upgrades.bed = UPGRADES.bed.max;
+  if (state.home.owned.includes('toy_box') && UPGRADES.toys) state.upgrades.toys = UPGRADES.toys.max;
   if (!state.home.layout || typeof state.home.layout !== 'object') state.home.layout = {};
   if (!state.farm || typeof state.farm !== 'object') state.farm = defaultFarmState();
   const farm = state.farm;

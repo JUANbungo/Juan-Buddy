@@ -2370,6 +2370,9 @@ body { background-attachment: fixed; }
   margin: 6px 0 12px;
 }
 .wall-swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font: inherit;
   font-size: 11px;
   font-weight: 700;
@@ -2377,12 +2380,38 @@ body { background-attachment: fixed; }
   background: #fff9ea;
   border: 2px solid #d8c193;
   border-radius: 8px;
-  padding: 4px 10px;
+  padding: 3px 9px 3px 4px;
   cursor: pointer;
+}
+.wall-swatch .wall-thumb {
+  display: inline-block;
+  width: 30px;
+  height: 22px;
+  border-radius: 5px;
+  border: 1px solid rgba(74, 58, 36, 0.35);
+  background-size: cover;
+  background-position: center;
+  image-rendering: pixelated;
 }
 .wall-swatch.on {
   background: linear-gradient(180deg, #ffe08a, #f5c34d);
   border-color: #a3782c;
+}
+.shop-art {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 56px;
+  border-radius: 8px;
+  background: rgba(255, 249, 234, 0.6);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.shop-art img {
+  max-width: 88%;
+  max-height: 88%;
+  object-fit: contain;
+  image-rendering: pixelated;
 }
 
 @media (max-width: 768px) {
