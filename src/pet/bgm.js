@@ -386,7 +386,7 @@
         mp3Role = null;
       };
       audio.addEventListener('ended', () => {
-        if (!enabled || !mp3Supported() || mp3Broken) return;
+        if (!enabled || !mp3Supported() || mp3Broken || combatWanted) return;
         startMp3(pickSong(), role);
       });
       const q = audio.play();
@@ -429,6 +429,7 @@
   function play(name) {
     const def = TRACKS[name];
     if (!def || !enabled) return Promise.resolve(false);
+    if (combatWanted) return Promise.resolve(true);
     hookGestureRecovery();
     if (mp3Supported() && !mp3Broken) {
       if (mp3Role === name && mp3Audio) return Promise.resolve(true);
@@ -499,7 +500,7 @@
       if (ctx && ctx.state === 'suspended') {
         try { ctx.resume(); } catch (err) { /* ignore */ }
       }
-      if (mp3Audio && mp3Audio.paused) {
+      if (mp3Audio && mp3Audio.paused && !combatWanted) {
         try { mp3Audio.src = mp3Audio.src; } catch (err) { /* ignore */ }
         const q = mp3Audio.play();
         if (q && typeof q.catch === 'function') q.catch(() => { /* still blocked; wait for next gesture */ });
