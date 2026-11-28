@@ -1564,29 +1564,65 @@ function drawGrave() {
   stageCtx.restore();
 }
 
-function drawRoom(now, phaseId, weatherId) {
-  const fy = STAGE_GROUND;
-  const wallTop = {
-    day: '#f7f0dc', dawn: '#fbe4c8', dusk: '#d9a878', night: '#40496a',
-  }[phaseId] || '#f7f0dc';
-  const wallBot = {
-    day: '#e3d7b8', dawn: '#eecfa6', dusk: '#9c7452', night: '#2b3050',
-  }[phaseId] || '#e3d7b8';
-  const wallGrad = cachedGradient(`wall:${phaseId}`, () => {
-    const wg = stageCtx.createLinearGradient(0, 0, 0, fy);
-    wg.addColorStop(0, wallTop);
-    wg.addColorStop(1, wallBot);
-    return wg;
-  });
-  stageCtx.fillStyle = wallGrad;
-  stageCtx.fillRect(0, 0, STAGE_W, fy);
-  stageCtx.fillStyle = 'rgba(0,0,0,0.10)';
-  stageCtx.fillRect(0, fy - 12, STAGE_W, 12);
+// One animated window (sky + moon/stars/sunset/clouds + frame).
+// Reused by the classic painted room AND the wallpaper PNG homes, which ship
+// without their own window. Also hosts the friendly ghost that appears in the
+// window glass every night between 3:00 and 4:00 AM (local time).
+function drawWindowGhost(now, wx, wy, ww, wh) {
+  const d = new Date();
+  if (d.getHours() !== 3) return; // 3:00-3:59 AM local time only
+  const mins = d.getMinutes() * 60 + d.getSeconds();
+  let alpha = 0.85;
+  if (mins < 150) alpha = 0.85 * (mins / 150);           // gentle fade-in (2.5 min)
+  else if (mins > 2100) alpha = 0.85 * ((3600 - mins) / 150); // gentle fade-out
+  if (alpha <= 0.03) return;
+  const bob = Math.sin(now / 700) * 3;
+  const tilt = Math.sin(now / 1100) * 0.09;
+  const gw = Math.max(24, Math.min(34, ww * 0.36));
+  const gh = gw * 1.15;
+  const gx = wx + ww / 2;
+  const gy = wy + wh - 10 + bob;
+  stageCtx.save();
+  stageCtx.translate(gx, gy);
+  stageCtx.rotate(tilt);
+  stageCtx.globalAlpha = alpha;
+  stageCtx.shadowColor = 'rgba(170, 225, 255, 0.95)';
+  stageCtx.shadowBlur = 14;
+  // body: dome head + wavy skirt
+  stageCtx.fillStyle = '#eef8ff';
+  stageCtx.beginPath();
+  stageCtx.arc(0, -gh + gw / 2, gw / 2, Math.PI, 0);
+  stageCtx.lineTo(gw / 2, 0);
+  const seg = gw / 3;
+  for (let i = 0; i < 3; i += 1) {
+    const x1 = gw / 2 - seg * i;
+    stageCtx.quadraticCurveTo(x1 - seg / 2, i % 2 === 0 ? 7 : -3, x1 - seg, 0);
+  }
+  stageCtx.closePath();
+  stageCtx.fill();
+  stageCtx.shadowBlur = 0;
+  // face
+  const blink = (now % 3200) < 200;
+  stageCtx.fillStyle = '#2a3550';
+  if (!blink) {
+    stageCtx.beginPath();
+    stageCtx.ellipse(-gw / 5, -gh + gw / 2, gw / 11, gw / 7.5, 0, 0, Math.PI * 2);
+    stageCtx.ellipse(gw / 5, -gh + gw / 2, gw / 11, gw / 7.5, 0, 0, Math.PI * 2);
+    stageCtx.fill();
+  }
+  stageCtx.beginPath();
+  stageCtx.ellipse(0, -gh + gw / 2 + gw / 3.2, gw / 8, gw / 10, 0, 0, Math.PI * 2);
+  stageCtx.fill();
+  // rosy cheeks
+  stageCtx.fillStyle = 'rgba(255, 160, 170, 0.55)';
+  stageCtx.beginPath();
+  stageCtx.ellipse(-gw / 3.1, -gh + gw / 2 + gw / 5, gw / 12, gw / 22, 0, 0, Math.PI * 2);
+  stageCtx.ellipse(gw / 3.1, -gh + gw / 2 + gw / 5, gw / 12, gw / 22, 0, 0, Math.PI * 2);
+  stageCtx.fill();
+  stageCtx.restore();
+}
 
-  const wx = STAGE_CX - 54;
-  const wy = 40;
-  const ww = 108;
-  const wh = 80;
+function drawHomeWindow(now, phaseId, wx, wy, ww, wh) {
   const skyGrad = cachedGradient(`winsky:${phaseId}`, () => {
     const sg = stageCtx.createLinearGradient(0, wy, 0, wy + wh);
     if (phaseId === 'night') {
@@ -1651,6 +1687,29 @@ function drawRoom(now, phaseId, weatherId) {
   stageCtx.stroke();
   stageCtx.fillStyle = '#5d3317';
   stageCtx.fillRect(wx - 6, wy + wh, ww + 12, 7);
+  drawWindowGhost(now, wx, wy, ww, wh);
+}
+
+function drawRoom(now, phaseId, weatherId) {
+  const fy = STAGE_GROUND;
+  const wallTop = {
+    day: '#f7f0dc', dawn: '#fbe4c8', dusk: '#d9a878', night: '#40496a',
+  }[phaseId] || '#f7f0dc';
+  const wallBot = {
+    day: '#e3d7b8', dawn: '#eecfa6', dusk: '#9c7452', night: '#2b3050',
+  }[phaseId] || '#e3d7b8';
+  const wallGrad = cachedGradient(`wall:${phaseId}`, () => {
+    const wg = stageCtx.createLinearGradient(0, 0, 0, fy);
+    wg.addColorStop(0, wallTop);
+    wg.addColorStop(1, wallBot);
+    return wg;
+  });
+  stageCtx.fillStyle = wallGrad;
+  stageCtx.fillRect(0, 0, STAGE_W, fy);
+  stageCtx.fillStyle = 'rgba(0,0,0,0.10)';
+  stageCtx.fillRect(0, fy - 12, STAGE_W, 12);
+
+  drawHomeWindow(now, phaseId, STAGE_CX - 54, 40, 108, 80);
 
   const px = 150;
   stageCtx.strokeStyle = '#6b5d43';
@@ -2013,6 +2072,15 @@ const HOME_FURNITURE_ART = {
 };
 const HOME_DOOR_ART = { closed: 'home/furniture/door_closed.png', open: 'home/furniture/door_open.png' };
 const DOOR_RECT = { x: 18, y: 212, w: 74, h: 74 };
+// Door can be repositioned in Edit Home mode (saved with the furniture layout),
+// so it always lines up with the wall the player wants.
+function doorRectOf() {
+  const s = latest && latest.state;
+  const saved = s && s.home && s.home.layout ? s.home.layout : {};
+  const layout = homeEditMode && layoutDraft ? layoutDraft : saved;
+  const d = (layout && layout.door) || { x: DOOR_RECT.x, y: DOOR_RECT.y };
+  return { x: d.x, y: d.y, w: DOOR_RECT.w, h: DOOR_RECT.h };
+}
 const DEFAULT_FURNITURE_LAYOUT = {
   cozy_bed: { x: 96, y: 352 },
   toy_box: { x: 432, y: 350 },
@@ -2135,8 +2203,9 @@ function drawHomeFurnitureSet(now) {
     stageCtx.drawImage(img, r.x - r.w / 2, r.y - r.h, r.w, r.h);
   }
   const doorImg = sdImage(now < doorOpenUntil ? HOME_DOOR_ART.open : HOME_DOOR_ART.closed);
+  const dr = doorRectOf();
   if (sdReady(doorImg)) {
-    stageCtx.drawImage(doorImg, DOOR_RECT.x, DOOR_RECT.y, DOOR_RECT.w, DOOR_RECT.h);
+    stageCtx.drawImage(doorImg, dr.x, dr.y, dr.w, dr.h);
   }
   if (homeEditMode) {
     stageCtx.save();
@@ -2144,6 +2213,7 @@ function drawHomeFurnitureSet(now) {
     stageCtx.lineWidth = 2;
     stageCtx.setLineDash([5, 4]);
     for (const r of rects) stageCtx.strokeRect(r.x - r.w / 2, r.y - r.h, r.w, r.h);
+    stageCtx.strokeRect(dr.x, dr.y, dr.w, dr.h);
     stageCtx.restore();
   }
 }
@@ -2155,6 +2225,7 @@ function drawHomeScene(now, phaseId, weatherId) {
   if (wall && sdReady(wall)) {
     stageCtx.imageSmoothingEnabled = false;
     stageCtx.drawImage(wall, 0, 0, STAGE_W, STAGE_H);
+    drawHomeWindow(now, phaseId, 330, 44, 104, 78);
     drawHomeFloor(phaseId);
   } else {
     drawRoom(now, phaseId, weatherId);
@@ -2277,7 +2348,8 @@ function handleHomeFarmClick(x, y) {
   }
   if (latest.state.dead || arenaPetDead()) return false;
   if (stageScene === 'home') {
-    if (x >= DOOR_RECT.x - 6 && x <= DOOR_RECT.x + DOOR_RECT.w + 6 && y >= DOOR_RECT.y - 8 && y <= DOOR_RECT.y + DOOR_RECT.h + 22) {
+    const dr = doorRectOf();
+    if (x >= dr.x - 6 && x <= dr.x + dr.w + 6 && y >= dr.y - 8 && y <= dr.y + dr.h + 22) {
       goThroughDoor();
       return true;
     }
@@ -2304,7 +2376,8 @@ function goThroughDoor() {
   if (doorPending) return;
   doorPending = true;
   doorOpenUntil = performance.now() + 900;
-  petWalk.target = { x: Math.max(60, DOOR_RECT.x + DOOR_RECT.w / 2 + 8), y: 330 };
+  const dr = doorRectOf();
+  petWalk.target = { x: Math.max(60, dr.x + dr.w / 2 + 8), y: 330 };
   if (sfx) sfx.play('click');
   if (cuteSfx) cuteSfx.play('plop');
   setTimeout(() => {
@@ -2589,7 +2662,7 @@ const EXP8_SCENES = {
   '02_manila_baywalk': [
     { file: '02_manila_baywalk/water_shimmer_4f.png', frames: 4, x: 0, y: 192, step: 340 },
     { type: 'roam', file: '02_manila_baywalk/sea_birds_4f.png', frames: 4, w: 64, h: 48, count: 2, y0: 36, y1: 104, speed: 20 },
-    { type: 'patrol', file: '02_manila_baywalk/walking_people_4f.png', frames: 4, w: 64, h: 96, count: 2, x0: 50, x1: 590, y: 272, speed: 6.5, bob: 2 },
+    { type: 'patrol', file: '02_manila_baywalk/walking_people_4f.png', frames: 4, w: 64, h: 96, count: 2, x0: 50, x1: 590, y: 272, speed: 3, bob: 2 },
     { type: 'patrol', file: '02_manila_baywalk/kalesa_4f.png', frames: 4, w: 176, h: 104, count: 1, x0: 30, x1: 440, y: 280, speed: 4 },
   ],
   '03_floating_market': [
@@ -3857,6 +3930,13 @@ petStageCanvas.addEventListener('pointerdown', (e) => {
   const rect = petStageCanvas.getBoundingClientRect();
   const x = ((e.clientX - rect.left) / rect.width) * STAGE_W;
   const y = ((e.clientY - rect.top) / rect.height) * STAGE_H;
+  const dr = doorRectOf();
+  if (x >= dr.x - 4 && x <= dr.x + dr.w + 4 && y >= dr.y - 4 && y <= dr.y + dr.h + 8) {
+    dragInfo = { id: 'door', dx: x - dr.x, dy: y - dr.y };
+    try { petStageCanvas.setPointerCapture(e.pointerId); } catch (err) {}
+    e.preventDefault();
+    return;
+  }
   const rects = homeLayoutOf();
   for (let i = rects.length - 1; i >= 0; i -= 1) {
     const r = rects[i];
@@ -3875,10 +3955,17 @@ petStageCanvas.addEventListener('pointermove', (e) => {
   const x = ((e.clientX - rect.left) / rect.width) * STAGE_W;
   const y = ((e.clientY - rect.top) / rect.height) * STAGE_H;
   if (!layoutDraft) layoutDraft = {};
-  layoutDraft[dragInfo.id] = {
-    x: Math.max(30, Math.min(450, Math.round(x - dragInfo.dx))),
-    y: Math.max(150, Math.min(352, Math.round(y - dragInfo.dy))),
-  };
+  if (dragInfo.id === 'door') {
+    layoutDraft.door = {
+      x: Math.max(6, Math.min(400, Math.round(x - dragInfo.dx))),
+      y: Math.max(150, Math.min(282, Math.round(y - dragInfo.dy))),
+    };
+  } else {
+    layoutDraft[dragInfo.id] = {
+      x: Math.max(30, Math.min(450, Math.round(x - dragInfo.dx))),
+      y: Math.max(150, Math.min(352, Math.round(y - dragInfo.dy))),
+    };
+  }
   e.preventDefault();
 });
 

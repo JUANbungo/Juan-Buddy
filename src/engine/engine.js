@@ -137,6 +137,14 @@ function homeAction(state, payload) {
       if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
       clean[item.id] = { x: Math.max(30, Math.min(450, x)), y: Math.max(150, Math.min(352, y)) };
     }
+    const doorPos = layout.door;
+    if (doorPos) {
+      const dx = Math.round(Number(doorPos.x));
+      const dy = Math.round(Number(doorPos.y));
+      if (Number.isFinite(dx) && Number.isFinite(dy)) {
+        clean.door = { x: Math.max(6, Math.min(400, dx)), y: Math.max(150, Math.min(282, dy)) };
+      }
+    }
     home.layout = clean;
     return { ok: true, message: 'Home layout saved.' };
   }
