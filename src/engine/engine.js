@@ -37,11 +37,11 @@ const UPGRADES = {
     desc: 'Playing gives 25% more happiness per level.',
   },
   job: {
-    id: 'job', name: 'Job Promotion', max: 10, baseCost: 60, growth: 2.1,
+    id: 'job', name: 'Job Promotion', max: 10, baseCost: 1000, growth: 2.0, startLevel: 1,
     desc: 'Earns +60% coins per level while working.',
   },
   feeder: {
-    id: 'feeder', name: 'Auto-Feeder', max: 1, baseCost: 150, growth: 1,
+    id: 'feeder', name: 'Auto-Feeder', max: 1, baseCost: 6666, growth: 1,
     desc: 'Automatically feeds a Snack when hunger drops below 20.',
   },
 };
@@ -55,9 +55,9 @@ const HOME_WALLS = [
 ];
 
 const FURNITURE = [
-  { id: 'cozy_bed', name: 'Cozy Bed', cost: 240, desc: 'A soft 16-bit bed. Stats included: energy drains 12% slower (max level).' },
-  { id: 'toy_box', name: 'Toy Box', cost: 180, desc: 'Keeps toys tidy. Stats included: play gives +25% happiness (max level).' },
-  { id: 'flower_vase', name: 'Flower Vase', cost: 120, desc: 'A fresh vase of flowers for the room.' },
+  { id: 'cozy_bed', name: 'Cozy Bed', cost: 1500, desc: 'A soft 16-bit bed. Stats included: energy drains 12% slower (max level).' },
+  { id: 'toy_box', name: 'Toy Box', cost: 1500, desc: 'Keeps toys tidy. Stats included: play gives +25% happiness (max level).' },
+  { id: 'flower_vase', name: 'Flower Vase', cost: 1500, desc: 'A fresh vase of flowers for the room.' },
 ];
 
 const FARM_CROPS = {
@@ -360,10 +360,10 @@ const ARENA_MONSTER_ALIASES = {
 
 const SKINS = {
   classic: { id: 'classic', name: 'Classic', cost: 0, tint: null },
-  golden: { id: 'golden', name: 'Golden Shine', cost: 300, tint: 'rgba(255, 200, 60, 0.34)' },
-  sakura: { id: 'sakura', name: 'Sakura Glow', cost: 450, tint: 'rgba(255, 130, 180, 0.30)' },
-  midnight: { id: 'midnight', name: 'Midnight Aura', cost: 6000, tint: 'rgba(40, 60, 160, 0.38)' },
-  cosmic: { id: 'cosmic', name: 'Cosmic Mythic', cost: 100000, tint: 'rgba(167, 139, 250, 0.40)' },
+  golden: { id: 'golden', name: 'Golden Shine', cost: 10000, tint: 'rgba(255, 200, 60, 0.34)' },
+  sakura: { id: 'sakura', name: 'Sakura Glow', cost: 50000, tint: 'rgba(255, 130, 180, 0.30)' },
+  midnight: { id: 'midnight', name: 'Midnight Aura', cost: 100000, tint: 'rgba(40, 60, 160, 0.38)' },
+  cosmic: { id: 'cosmic', name: 'Cosmic Mythic', cost: 300000, tint: 'rgba(167, 139, 250, 0.40)' },
 };
 
 const GACHA = {
@@ -1104,7 +1104,10 @@ function clampMeter(state, key, value) {
 
 function upgradeCost(id, currentLevel) {
   const u = UPGRADES[id];
-  return Math.round(u.baseCost * Math.pow(u.growth, currentLevel));
+  // startLevel: upgrades whose default level is 1 (e.g. Job) price their FIRST
+  // purchase at baseCost (level 1 -> 1000), then double per level (level 2 -> 2000)
+  const step = Math.max(0, currentLevel - (u.startLevel || 0));
+  return Math.round(u.baseCost * Math.pow(u.growth, step));
 }
 
 function coinRate(state) {
@@ -1179,12 +1182,13 @@ function tick(state, dtSeconds, offline) {
   const isBabyGrace = state.pet.stage !== 'egg' && state.pet.level <= 3;
   const careScale = state.pet.stage === 'egg' ? 0.35 : isBabyGrace ? 0.65 : 1;
 
-  let energyDrain = 0.021 * bedFactor * (f.working ? 1.8 : 1) * (1 - Math.min(0.6, perkPct(state, 'energy')));
-  let hungerDrain = 0.028 * (f.working ? 1.5 : 1);
-  let happinessDrain = 0.017;
+  let energyDrain = 0.028 * bedFactor * (f.working ? 1.8 : 1) * (1 - Math.min(0.6, perkPct(state, 'energy')));
+  let hungerDrain = 0.038 * (f.working ? 1.5 : 1);
+  let happinessDrain = 0.024;
   if (m.hunger < 25) happinessDrain += 0.03;
   if (m.energy < 20) happinessDrain += 0.02;
   if ((state.waste || []).length > 0) happinessDrain += 0.02 * state.waste.length;
+  if (f.sleeping) happinessDrain += 0.012; // sleeping is cozy but boring — happiness slowly fades
 
   const col = collectionBonusesOf(state);
   const decayMul = 1 - Math.min(0.9, col.totals.decayReductionPct || 0);

@@ -2086,7 +2086,7 @@ const DEFAULT_FURNITURE_LAYOUT = {
   toy_box: { x: 432, y: 350 },
   flower_vase: { x: 386, y: 340 },
 };
-const PORTAL_RECT = { x: 196, y: 112, w: 84, h: 74 };
+const PORTAL_RECT = { x: 209, y: 124, w: 59, h: 52 }; // shrunk ~28% (was 84x74) so it doesn't dominate the park
 const FARM_PLOT_W = 64;
 const FARM_PLOTS = [
   { x: 84, y: 232 }, { x: 220, y: 232 }, { x: 356, y: 232 },
@@ -2569,7 +2569,7 @@ const EXP8_S = 0.9;
 const EXP8_OX = -48;
 const EXP8_W = 640;
 const EXP8_H = 400;
-const RETURN_PORTAL_RECT = { x: 16, y: 268, w: 56, h: 70 };
+const RETURN_PORTAL_RECT = { x: 21, y: 282, w: 45, h: 56 }; // shrunk ~25% (was 56x70), bottom-anchored
 const PORTAL_FLASH_MS = 620;
 let portalFlashUntil = 0;
 let parkPortalHover = false;
@@ -4065,6 +4065,42 @@ if (window.JuanBungoReaper) {
 }
 
 const achCards = {};
+let achvPage = 0;
+let achvList = [];
+let achvPagerWired = false;
+const ACHV_PAGE_SIZE = 12;
+
+function achvPageCount(total) { return Math.max(1, Math.ceil(total / ACHV_PAGE_SIZE)); }
+
+// Re-applies pagination visibility + pager label from the stored achievements
+// list. Kept standalone (no dependency on the render loop / latest snapshot)
+// so the Prev/Next buttons always work even between render ticks.
+function applyAchvPage() {
+  const total = achvList.length;
+  const pages = achvPageCount(total);
+  if (achvPage >= pages) achvPage = pages - 1;
+  if (achvPage < 0) achvPage = 0;
+  const start = achvPage * ACHV_PAGE_SIZE;
+  const end = Math.min(total, start + ACHV_PAGE_SIZE);
+  achvList.forEach((a, i) => {
+    const card = achCards[a.id];
+    if (card) card.style.display = i >= start && i < end ? '' : 'none';
+  });
+  const pager = el('achv-pager');
+  if (!pager) return;
+  pager.style.display = pages > 1 ? 'flex' : 'none';
+  const lbl = el('achv-page');
+  if (lbl) lbl.textContent = `Page ${achvPage + 1} of ${pages} \u00b7 ${total} achievements`;
+  const prev = el('achv-prev');
+  const next = el('achv-next');
+  if (prev) prev.disabled = achvPage === 0;
+  if (next) next.disabled = achvPage >= pages - 1;
+  if (!achvPagerWired) {
+    achvPagerWired = true;
+    if (prev) prev.onclick = () => { achvPage = Math.max(0, achvPage - 1); applyAchvPage(); };
+    if (next) next.onclick = () => { achvPage = Math.min(achvPageCount(achvList.length) - 1, achvPage + 1); applyAchvPage(); };
+  }
+}
 
 function renderExtras(d) {
   if (!d.achievements) return;
@@ -4078,13 +4114,16 @@ function renderExtras(d) {
       achCards[a.id] = card;
     }
   }
-  for (const a of d.achievements) {
+  // pagination — the tab was way too long with all cards rendered at once
+  achvList = d.achievements;
+  d.achievements.forEach((a, i) => {
     const card = achCards[a.id];
     card.classList.toggle('unlocked', a.unlocked);
     card.querySelector('.achv-ico').textContent = a.unlocked ? a.icon : '🔒';
     card.querySelector('.achv-name').textContent = a.name;
     card.querySelector('.achv-desc').textContent = a.desc;
-  }
+  });
+  applyAchvPage();
   el('btn-daily').textContent = d.daily.claimedToday ? '✅ Claimed — come back tomorrow!' : `🎁 Claim Daily (+${d.daily.nextReward})`;
   el('btn-daily').disabled = d.daily.claimedToday;
   el('daily-info').textContent = `Streak: ${d.daily.streak} day${d.daily.streak === 1 ? '' : 's'} (best ${d.daily.best})`;

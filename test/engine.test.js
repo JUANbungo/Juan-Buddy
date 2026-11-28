@@ -154,7 +154,7 @@ assert(s.meters.hunger > 30, 'auto-feeder feeds cheapest food when hungry');
 const d = engine.derivedStats(engine.defaultState());
 assert(d.coinRate === 0, 'idle coin rate is 0');
 assert(d.statusText === 'Chilling', 'default status text');
-assert(d.upgradeCosts.feeder === 150, 'feeder one-time cost');
+assert(d.upgradeCosts.feeder === 6666, 'feeder one-time cost');
 
 const w = engine.defaultState();
 w.flags.working = true;

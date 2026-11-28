@@ -26,12 +26,12 @@ console.log('home & farm tests');
 
 {
   const s = engine.defaultState();
-  s.coins = 1000;
+  s.coins = 5000;
   const buy = engine.homeAction(s, { op: 'buyFurniture', itemId: 'flower_vase' });
   assert(buy.ok && s.home.owned.includes('flower_vase'), 'flower vase purchasable');
-  assert(s.coins === 880, 'flower vase costs 120');
+  assert(s.coins === 3500, 'flower vase costs 1500');
   const again = engine.homeAction(s, { op: 'buyFurniture', itemId: 'flower_vase' });
-  assert(!again.ok && s.coins === 880, 'furniture is one-time purchase');
+  assert(!again.ok && s.coins === 3500, 'furniture is one-time purchase');
   const buyBed = engine.homeAction(s, { op: 'buyFurniture', itemId: 'cozy_bed' });
   assert(buyBed.ok && s.upgrades.bed === engine.UPGRADES.bed.max, 'cozy bed purchase grants max bed upgrade stats');
   const buyToys = engine.homeAction(s, { op: 'buyFurniture', itemId: 'toy_box' });
