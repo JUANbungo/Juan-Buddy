@@ -27,7 +27,10 @@
   try {
     if (typeof localStorage !== 'undefined') {
       enabled = localStorage.getItem('juanbuddy-bgm') !== 'off';
-      const v = Number(localStorage.getItem('juanbuddy-bgm-vol'));
+      // NOTE: Number(null) === 0 (not NaN) — guard against it, or every fresh
+      // install silently boots with BGM volume 0
+      const raw = localStorage.getItem('juanbuddy-bgm-vol');
+      const v = raw === null || raw === '' ? NaN : Number(raw);
       if (!Number.isNaN(v) && v >= 0 && v <= 1) volume = v;
     }
   } catch (err) { /* storage unavailable */ }
@@ -295,6 +298,9 @@
       ambientBeforeCombat = mp3Role;
       try { mp3Audio.pause(); } catch (err) { /* ignore */ }
     }
+    // battle during the reaper event: duck Lurching Doom (paused, not stopped,
+    // so stopCombatMusic can resume it)
+    if (reaperAudio && !reaperAudio.paused) { try { reaperAudio.pause(); } catch (err) { /* ignore */ } }
     if (!combatAudio) {
       const urls = assetUrls(COMBAT_FILE);
       try {
@@ -344,7 +350,10 @@
         if (combatAudio === audio) combatAudio = null;
         const role = ambientBeforeCombat;
         ambientBeforeCombat = null;
-        if (role && enabled && combatWanted === false) play(role);
+        if (reaperWantsMusic()) {
+          // battle happened during the reaper event — bring Lurching Doom back
+          try { playReaperMusic(); } catch (err) { /* ignore */ }
+        } else if (role && enabled && combatWanted === false) play(role);
       }
     }, 100);
   }
@@ -355,6 +364,7 @@
   const REAPER_FILES = ['audio/Lurching Doom.mp3', 'bgm/mp3/Lurching Doom.mp3'];
   let reaperAudio = null;
   let reaperRamp = null;
+  let reaperTargetVol = 0;
   let ambientBeforeReaper = null;
 
   function stopReaperRamp() {
@@ -392,10 +402,13 @@
     const q = reaperAudio.play();
     if (q && typeof q.catch === 'function') q.catch(() => { /* autoplay guard */ });
     stopReaperRamp();
-    const target = mp3Volume();
-    // fade-in: +target/25 every 100ms = 2.5s smooth ramp
+    reaperTargetVol = mp3Volume();
+    // fade-in: +target/25 every 100ms = 2.5s smooth ramp (reads reaperTargetVol
+    // live so a mid-fade volume-slider change takes effect instead of being
+    // overwritten by the stale target)
     reaperRamp = setInterval(() => {
       if (!reaperAudio) { stopReaperRamp(); return; }
+      const target = reaperTargetVol;
       let v = Number(reaperAudio.volume) || 0;
       v = Math.min(target, v + target / 25);
       try { reaperAudio.volume = v; } catch (err) { stopReaperRamp(); return; }
@@ -404,18 +417,37 @@
     return true;
   }
 
-  function stopReaperMusic() {
+  // True while Juan Bungo is on screen (arrive/active) — Lurching Doom should
+  // be the only BGM in those phases. Exposed by the reaper module.
+  function reaperWantsMusic() {
+    return !!(root.JuanBungoReaper && typeof root.JuanBungoReaper.wantsMusic === 'function' && root.JuanBungoReaper.wantsMusic());
+  }
+
+  function stopReaperMusic(immediate) {
     if (!reaperAudio) {
       restoreAmbientAfterReaper();
       return;
     }
     stopReaperRamp();
     const audio = reaperAudio;
-    const target = mp3Volume();
-    // fade-out: -target/20 every 100ms = 2.0s smooth ramp, then pause + reset
+    if (immediate) {
+      try { audio.pause(); } catch (err) { /* ignore */ }
+      try { audio.currentTime = 0; } catch (err) { /* ignore */ }
+      reaperAudio = null;
+      // keep ambientBeforeReaper if Juan Bungo is still on screen — the Music
+      // toggle is just muting, the reaper is NOT gone, so the saved ambient
+      // role must survive until the real banish/reset restores it
+      if (!reaperWantsMusic()) restoreAmbientAfterReaper();
+      return;
+    }
+    // fade-out step based on the LOUDER of current volume and the music slider
+    // (never 0) so the fade always finishes — a 0-volume slider used to leave
+    // the track looping forever because the ramp subtracted 0 each tick
+    const step = Math.max(0.03, mp3Volume() / 20, Number(audio.volume) / 20);
+    // fade-out: 20 steps × 100ms = 2.0s smooth ramp, then pause + reset
     reaperRamp = setInterval(() => {
       let v = Number(audio.volume) || 0;
-      v = Math.max(0, v - target / 20);
+      v = Math.max(0, v - step);
       try { audio.volume = v; } catch (err) { v = 0; }
       if (v <= 0) {
         stopReaperRamp();
@@ -430,7 +462,7 @@
   function restoreAmbientAfterReaper() {
     const role = ambientBeforeReaper;
     ambientBeforeReaper = null;
-    if (role && enabled) {
+    if (role && enabled && !reaperWantsMusic() && !combatWanted) {
       try { play(role); } catch (err) { /* ignore */ }
     }
   }
@@ -506,13 +538,27 @@
     });
   }
 
+  const COMBAT_ROLES = ['battle', 'boss', 'final'];
+
   function play(name) {
     const def = TRACKS[name];
     if (!def || !enabled) return Promise.resolve(false);
     if (combatWanted) return Promise.resolve(true);
+    // Juan Bungo owns the speakers: while the reaper is on screen, ignore
+    // ambient restarts (the dashboard's 10s ensureBgm loop used to layer the
+    // normal BGM on top of Lurching Doom). Combat tracks may still take over.
+    if (reaperWantsMusic() && !COMBAT_ROLES.includes(name)) return Promise.resolve(true);
     hookGestureRecovery();
     if (mp3Supported() && !mp3Broken) {
-      if (mp3Role === name && mp3Audio) return Promise.resolve(true);
+      if (mp3Role === name && mp3Audio) {
+        // same track requested — if it was paused (reaper/combat ducked it),
+        // resume it instead of assuming it is already audible
+        if (mp3Audio.paused) {
+          const q = mp3Audio.play();
+          if (q && typeof q.catch === 'function') q.catch(() => { /* autoplay guard */ });
+        }
+        return Promise.resolve(true);
+      }
       stop();
       current = name;
       return Promise.resolve(startMp3(pickSong(), name));
@@ -564,6 +610,10 @@
     try { localStorage.setItem('juanbuddy-bgm-vol', String(volume)); } catch (err) { /* ignore */ }
     if (master && ctx) master.gain.value = volume * 0.5;
     if (mp3Audio) { try { mp3Audio.volume = mp3Volume(); } catch (err) { /* ignore */ } }
+    if (reaperAudio) {
+      reaperTargetVol = mp3Volume();
+      try { reaperAudio.volume = mp3Volume(); } catch (err) { /* ignore */ }
+    }
   }
 
   // Some browsers (iOS Safari, Chrome with strict media engagement) block
@@ -585,6 +635,11 @@
         const q = mp3Audio.play();
         if (q && typeof q.catch === 'function') q.catch(() => { /* still blocked; wait for next gesture */ });
       }
+      // Lurching Doom can also be blocked by the autoplay guard — resume it too
+      if (reaperAudio && reaperAudio.paused && reaperWantsMusic()) {
+        const rq = reaperAudio.play();
+        if (rq && typeof rq.catch === 'function') rq.catch(() => { /* wait for next gesture */ });
+      }
     };
     ['pointerdown', 'keydown', 'touchend'].forEach((ev) => document.addEventListener(ev, kick, { passive: true }));
   }
@@ -592,7 +647,15 @@
   function setEnabled(on) {
     enabled = !!on;
     try { localStorage.setItem('juanbuddy-bgm', on ? 'on' : 'off'); } catch (err) { /* ignore */ }
-    if (!enabled) { stopCombatMusic(); stop(); }
+    if (!enabled) {
+      stopCombatMusic();
+      stop();
+      // Lurching Doom must obey the Music toggle too — silence it immediately
+      stopReaperMusic(true);
+    } else if (reaperWantsMusic()) {
+      // reaper still on screen: Lurching Doom is the BGM, not the ambient track
+      playReaperMusic();
+    }
   }
 
   function getVolume() { return volume; }

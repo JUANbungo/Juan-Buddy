@@ -12,7 +12,10 @@
   try {
     if (typeof localStorage !== 'undefined') {
       enabled = localStorage.getItem('juanbuddy-sfx') !== 'off';
-      const v = Number(localStorage.getItem('juanbuddy-sfx-vol'));
+      // NOTE: Number(null) === 0 (not NaN) — guard against it, or every fresh
+      // install silently boots with SFX volume 0
+      const raw = localStorage.getItem('juanbuddy-sfx-vol');
+      const v = raw === null || raw === '' ? NaN : Number(raw);
       if (!Number.isNaN(v) && v >= 0 && v <= 1) volume = v;
     }
   } catch (err) {

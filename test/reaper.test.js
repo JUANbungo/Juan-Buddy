@@ -54,5 +54,17 @@ console.log('reaper (Juan Bungo) tests');
   assert(clamped.ok && s.home.layout.door.x === 400 && s.home.layout.door.y === 150, 'door clamped to stage bounds');
 }
 
+{
+  // Lurching Doom / bgm integration: fresh install must NOT boot with volume 0
+  // (regression: Number(null) === 0 used to pass the volume guard)
+  const bgm = require('../src/pet/bgm');
+  assert(bgm.getVolume() === 0.5, 'bgm fresh-install volume defaults to 0.5');
+  assert(bgm.getEnabled() === true, 'bgm fresh-install music enabled');
+  assert(typeof bgm.playReaperMusic === 'function' && typeof bgm.stopReaperMusic === 'function', 'reaper BGM api exposed');
+  const reaperMod = require('../src/dashboard/js/juanBungoReaper');
+  assert(typeof reaperMod.wantsMusic === 'function', 'reaper exposes wantsMusic for the bgm guard');
+  assert(reaperMod.wantsMusic() === false, 'wantsMusic false while reaper is off');
+}
+
 console.log(`reaper tests: ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);

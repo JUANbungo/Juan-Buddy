@@ -778,6 +778,9 @@
     banish,
     isActive: () => ev.phase !== 'off',
     phase: () => ev.phase,
+    // true while Juan Bungo owns the speakers (arrive/active) — bgm.js checks
+    // this so the Music toggle switches between Lurching Doom and normal BGM
+    wantsMusic: () => ev.phase === 'arrive' || ev.phase === 'active',
     remainingSeconds: () => (ev.phase === 'off' ? 0 : Math.max(0, Math.ceil((ev.endsAt - root.performance.now()) / 1000))),
   };
 });
