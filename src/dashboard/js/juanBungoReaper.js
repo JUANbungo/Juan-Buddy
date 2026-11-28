@@ -445,7 +445,9 @@
     showToast._t = root.setTimeout(() => { toastEl.style.opacity = '0'; }, ms || 3000);
   }
 
-  function spawn(testSeconds) {
+  // natural = true when spawned by the real meter watcher (recovery/banish applies).
+  // forced (debug via triggerJuanBungo) always runs the full doom sequence.
+  function spawn(testSeconds, natural) {
     if (!inited) return { ok: false, message: 'Reaper not initialised yet.' };
     ensureDom();
     if (ev.phase !== 'off' && ev.phase !== 'banish') return { ok: false, message: 'Juan Bungo is already here!' };
@@ -453,7 +455,7 @@
     ev.t0 = root.performance.now();
     ev.seconds = Math.max(1, Math.round(testSeconds || 666));
     ev.endsAt = ev.t0 + ev.seconds * 1000;
-    ev.forced = true;
+    ev.forced = !natural;
     ev.firedMilestones = {};
     ev.nextLaughAt = ev.t0 + 6000 + Math.random() * 4000;
     ev.laughUntil = 0;
@@ -528,7 +530,7 @@
     if (ev.phase === 'off' && snapshot && snapshot.state) {
       const s = snapshot.state;
       const alive = s.pet && s.pet.stage !== 'egg' && !s.dead;
-      if (alive && metersAllZero(s)) spawn(666);
+      if (alive && metersAllZero(s)) spawn(666, true);
     }
 
     if (ev.phase === 'off') return;

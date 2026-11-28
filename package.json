@@ -51,7 +51,9 @@
       "assets/scenes/**/*",
       "assets/stardew/**/*",
       "assets/explore_8bit/**/*",
-      "assets/sfx/**/*"
+      "assets/sfx/**/*",
+      "assets/reaper/**/*",
+      "assets/audio/**/*"
     ],
     "win": {
       "icon": "assets/icon.png",
