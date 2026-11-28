@@ -1,0 +1,79 @@
+{
+  "boss_name": "Juan Bungo",
+  "style": "8-bit / 16-bit retro pixel art (transparent RGBA, nearest-neighbor scaling)",
+  "bgm_file": "Lurching Doom.mp3",
+  "trigger_rule": "hunger <= 0 && happiness <= 0 && energy <= 0",
+  "countdown_seconds": 666,
+  "animations": {
+    "juan_bungo_idle": {
+      "file_1x": "sprites_1x/juan_bungo_idle.png",
+      "file_4x": "sprites_4x/juan_bungo_idle_4x.png",
+      "frame_width_1x": 48,
+      "frame_height_1x": 48,
+      "frame_width_4x": 192,
+      "frame_height_4x": 192,
+      "frame_count": 8,
+      "recommended_fps": 8
+    },
+    "juan_bungo_attack": {
+      "file_1x": "sprites_1x/juan_bungo_attack.png",
+      "file_4x": "sprites_4x/juan_bungo_attack_4x.png",
+      "frame_width_1x": 48,
+      "frame_height_1x": 48,
+      "frame_width_4x": 192,
+      "frame_height_4x": 192,
+      "frame_count": 8,
+      "recommended_fps": 12
+    },
+    "juan_bungo_laugh_redeyes": {
+      "file_1x": "sprites_1x/juan_bungo_laugh_redeyes.png",
+      "file_4x": "sprites_4x/juan_bungo_laugh_redeyes_4x.png",
+      "frame_width_1x": 48,
+      "frame_height_1x": 48,
+      "frame_width_4x": 192,
+      "frame_height_4x": 192,
+      "frame_count": 8,
+      "recommended_fps": 10
+    },
+    "crow_orbit": {
+      "file_1x": "sprites_1x/crow_orbit.png",
+      "file_4x": "sprites_4x/crow_orbit_4x.png",
+      "frame_width_1x": 24,
+      "frame_height_1x": 24,
+      "frame_width_4x": 96,
+      "frame_height_4x": 96,
+      "frame_count": 6,
+      "recommended_fps": 10
+    },
+    "crow_feathers": {
+      "file_1x": "sprites_1x/crow_feathers.png",
+      "file_4x": "sprites_4x/crow_feathers_4x.png",
+      "frame_width_1x": 16,
+      "frame_height_1x": 16,
+      "frame_width_4x": 64,
+      "frame_height_4x": 64,
+      "frame_count": 6,
+      "recommended_fps": 8
+    },
+    "scythe_slash_fx": {
+      "file_1x": "sprites_1x/scythe_slash_fx.png",
+      "file_4x": "sprites_4x/scythe_slash_fx_4x.png",
+      "frame_width_1x": 64,
+      "frame_height_1x": 64,
+      "frame_width_4x": 256,
+      "frame_height_4x": 256,
+      "frame_count": 5,
+      "recommended_fps": 14
+    },
+    "reaper_warning_icon": {
+      "file_1x": "sprites_1x/reaper_warning_icon.png",
+      "file_4x": "sprites_4x/reaper_warning_icon_4x.png",
+      "frame_width_1x": 16,
+      "frame_height_1x": 16,
+      "frame_width_4x": 64,
+      "frame_height_4x": 64,
+      "frame_count": 4,
+      "recommended_fps": 6
+    }
+  }
+}

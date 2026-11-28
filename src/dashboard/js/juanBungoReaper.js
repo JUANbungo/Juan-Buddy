@@ -108,8 +108,11 @@
     const urls = [];
     const base = scriptBase();
     if (base) {
+      // script lives at <root>/src/dashboard/js/ -> root assets are three levels up
+      try { urls.push(new URL('../../../' + SPRITE_DIR + file, base).href); } catch (err) { /* ignore */ }
       try { urls.push(new URL('../../' + SPRITE_DIR + file, base).href); } catch (err) { /* ignore */ }
     }
+    urls.push('../../' + SPRITE_DIR + file); // page-relative (page at <root>/src/dashboard/)
     urls.push('./' + SPRITE_DIR + file); // spec-relative fallback (works on Pages root / APK webDir)
     return urls;
   }
